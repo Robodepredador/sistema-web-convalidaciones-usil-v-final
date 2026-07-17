@@ -32,6 +32,13 @@ const PRECONV = {
     convalidada: { label: 'Convalidada',  clase: 'bg-green-50 text-green-700 ring-green-200' },
 };
 
+// Estado de revisión de admisión (Ejecutivo Comercial).
+const REVISION = {
+    pendiente: { label: 'Pendiente de revisión', clase: 'bg-amber-50 text-amber-700 ring-amber-200' },
+    aprobada:  { label: 'Aprobada',              clase: 'bg-green-50 text-green-700 ring-green-200' },
+    observada: { label: 'Observada',             clase: 'bg-orange-50 text-orange-700 ring-orange-200' },
+};
+
 // ── Modal de preconvalidación ──
 const modalAbierto = ref(false);
 const modalCargando = ref(false);
@@ -128,6 +135,7 @@ const cerrarModal = () => {
                             <th class="px-4 py-3 font-semibold">Carrera destino</th>
                             <th class="px-4 py-3 font-semibold">Procedencia</th>
                             <th class="px-4 py-3 font-semibold">Estado</th>
+                            <th class="px-4 py-3 font-semibold">Revisión</th>
                             <th class="px-4 py-3 font-semibold">Preconvalidación</th>
                             <th class="px-4 py-3 text-right font-semibold">Acciones</th>
                         </tr>
@@ -144,6 +152,11 @@ const cerrarModal = () => {
                             <td class="px-4 py-3 text-slate-600">{{ p.procedencia || '—' }}</td>
                             <td class="px-4 py-3">
                                 <span :class="ESTADO[p.estado]?.clase" class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ estadoLabel(p.estado) }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span v-if="p.revision" :class="REVISION[p.revision]?.clase" class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">
+                                    {{ REVISION[p.revision]?.label ?? p.revision }}
+                                </span>
                             </td>
                             <td class="px-4 py-3">
                                 <button v-if="p.preconvalidacion !== 'pendiente'"
@@ -172,7 +185,7 @@ const cerrarModal = () => {
                             </td>
                         </tr>
                         <tr v-if="!postulantes.data.length">
-                            <td colspan="8" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
+                            <td colspan="9" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
                         </tr>
                     </tbody>
                 </table>

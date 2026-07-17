@@ -1,13 +1,34 @@
 <script setup>
-import { useForm, Link } from '@inertiajs/vue3';
+import { useForm, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
 
 const props = defineProps({
     postulante: Object, instituciones: Array, carreras: Array, estados: Array,
     preconvalidaciones: { type: Array, default: () => [] }, preconvalidacion_estado: String,
+    revision: { type: Object, default: null },
 });
 const editando = !!props.postulante;
+
+// Revisión de admisión (aprobar / observar / reenviar).
+const obs = reactive({ observaciones: '' });
+const revProcesando = ref(false);
+const REV = {
+    pendiente: { label: 'Pendiente de revisión', clase: 'border-amber-200 bg-amber-50 text-amber-800' },
+    aprobada:  { label: 'Aprobada',              clase: 'border-green-200 bg-green-50 text-green-800' },
+    observada: { label: 'Observada',             clase: 'border-orange-200 bg-orange-50 text-orange-800' },
+};
+const postRevision = (url, payload) => router.post(url, payload, {
+    preserveScroll: true,
+    onStart: () => { revProcesando.value = true; },
+    onFinish: () => { revProcesando.value = false; },
+});
+const aprobar = () => postRevision(`/postulantes/${props.postulante.id}/revisar`, { accion: 'aprobar' });
+const observar = () => {
+    if (!obs.observaciones.trim()) return;
+    postRevision(`/postulantes/${props.postulante.id}/revisar`, { accion: 'observar', observaciones: obs.observaciones });
+};
+const reenviar = () => postRevision(`/postulantes/${props.postulante.id}/reenviar-revision`, {});
 
 // Badge del estado de preconvalidación derivado (resultado de la evaluación del coordinador).
 const PRECONV = {
@@ -209,6 +230,37 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
                     Guardar borrador
                 </button>
             </div>
+        </div>
+
+        <!-- Revisión de admisión: aprobar/observar (Ejecutivo) o reenviar (Asesor) -->
+        <div v-if="editando && revision" class="mb-5 rounded-2xl border p-4 shadow-sm" :class="REV[revision.estado]?.clase">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-semibold">Revisión de admisión: {{ REV[revision.estado]?.label ?? revision.estado }}</h2>
+                <span v-if="revision.revisado_por" class="text-xs opacity-80">{{ revision.revisado_por }} · {{ revision.revisado_en }}</span>
+            </div>
+
+            <!-- Observación visible para el asesor -->
+            <p v-if="revision.estado === 'observada' && revision.observaciones" class="mt-2 text-sm">
+                <span class="font-medium">Observación:</span> {{ revision.observaciones }}
+            </p>
+
+            <!-- Ejecutivo Comercial: aprobar u observar -->
+            <div v-if="revision.puede_revisar" class="mt-3 space-y-2">
+                <textarea v-model="obs.observaciones" rows="2" placeholder="Detalle de la observación (obligatorio para observar)"
+                          class="w-full rounded-md border-slate-300 text-sm"></textarea>
+                <div class="flex gap-2">
+                    <button type="button" @click="aprobar" :disabled="revProcesando"
+                            class="rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50">Aprobar</button>
+                    <button type="button" @click="observar" :disabled="revProcesando || !obs.observaciones.trim()"
+                            class="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-40">Observar</button>
+                </div>
+            </div>
+
+            <!-- Asesor dueño: reenviar tras corregir -->
+            <button v-else-if="revision.puede_reenviar && revision.estado === 'observada'" type="button" @click="reenviar" :disabled="revProcesando"
+                    class="mt-3 rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white hover:bg-[#2E75B6] disabled:opacity-50">
+                Reenviar a revisión
+            </button>
         </div>
 
         <!-- Preconvalidación (solo lectura): resultado de la evaluación del coordinador -->

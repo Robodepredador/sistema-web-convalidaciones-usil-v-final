@@ -63,6 +63,7 @@ class PostulanteController extends Controller
                 'estado'          => $p->estado,
                 'preconvalidacion' => $p->convalidaciones_count > 0 ? 'convalidada'
                     : ($p->simulaciones_count > 0 ? 'atendida' : 'pendiente'),
+                'revision'        => $p->revision_estado,
             ]);
 
         return inertia('Postulantes/Index', [
@@ -171,6 +172,16 @@ class PostulanteController extends Controller
             ],
             'preconvalidaciones'       => $preconvalidaciones,
             'preconvalidacion_estado'  => $estadoPre,
+            'revision' => [
+                'estado'         => $postulante->revision_estado,
+                'observaciones'  => $postulante->revision_observaciones,
+                'revisado_en'    => optional($postulante->revisado_en)->format('d/m/Y H:i'),
+                'revisado_por'   => $postulante->revisadoPor?->nombre,
+                'puede_revisar'  => $request->user()->puede('solicitudes.validar'),
+                'puede_reenviar' => $request->user()->puede('solicitudes.editar')
+                    && ($request->user()->rol?->nombre !== Role::ASESOR
+                        || $postulante->usuario_id === $request->user()->id),
+            ],
         ]);
     }
 
