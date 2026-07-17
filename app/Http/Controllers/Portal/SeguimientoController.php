@@ -36,6 +36,8 @@ class SeguimientoController extends Controller
                 'carrera_externa'   => $p->carreraExterna?->nombre,
                 'ciclo_postulacion' => $p->ciclo_postulacion,
                 'observaciones'     => $p->observaciones,
+                'revision_estado'        => $p->revision_estado,
+                'revision_observaciones' => $p->revision_observaciones,
             ],
             // Carreras solicitadas (una o más) con su estado de revisión.
             'destinos' => $destinos->map(fn ($d) => [
