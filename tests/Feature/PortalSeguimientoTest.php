@@ -42,4 +42,30 @@ class PortalSeguimientoTest extends TestCase
         // Ya con el flag en false, el seguimiento carga.
         $this->actingAs($p->fresh(), 'postulante')->get('/portal/')->assertOk();
     }
+
+    public function test_seguimiento_avanza_con_documentos(): void
+    {
+        $p = $this->postulanteConAcceso(false); // sin forzar cambio
+
+        // Fase 1 (registro) completada, fase 2 (documentos) actual.
+        $this->actingAs($p, 'postulante')->get('/portal/')
+            ->assertInertia(fn ($page) => $page
+                ->where('timeline.0.estado', 'completado')
+                ->where('timeline.1.estado', 'actual')
+                ->where('postulante.estado', 'en_evaluacion'));
+
+        // Cargar los 3 documentos del expediente.
+        foreach (['certificado', 'silabos', 'constancia'] as $tipo) {
+            $p->documentos()->create([
+                'tipo' => $tipo, 'nombre_original' => "{$tipo}.pdf",
+                'ruta' => "postulantes/{$p->id}/{$tipo}.pdf", 'tamano' => 1000,
+            ]);
+        }
+
+        // Fase 2 completada, fase 3 (equivalencias) actual.
+        $this->actingAs($p, 'postulante')->get('/portal/')
+            ->assertInertia(fn ($page) => $page
+                ->where('timeline.1.estado', 'completado')
+                ->where('timeline.2.estado', 'actual'));
+    }
 }
