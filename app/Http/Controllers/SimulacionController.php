@@ -54,7 +54,7 @@ class SimulacionController extends Controller
         // Una fila por destino solicitado (postulante × carrera USIL): un
         // postulante que pidió varias carreras aparece varias veces.
         $postulantes = PostulanteDestino::query()
-            ->whereHas('postulante')
+            ->whereHas('postulante', fn ($p) => $p->where('revision_estado', 'aprobada'))
             ->with(['carrera:id,nombre', 'postulante.institucionOrigen:id,nombre', 'postulante.carreraExterna:id,nombre'])
             ->when($request->q, fn ($qq, $v) => $qq->whereHas('postulante', fn ($w) => $w
                 ->where('nombres', 'like', "%$v%")
@@ -94,6 +94,9 @@ class SimulacionController extends Controller
     /** Espacio de trabajo de simulación para un postulante (nueva). */
     public function crear(Request $request, Postulante $postulante)
     {
+        abort_unless($postulante->revision_estado === 'aprobada', 403,
+            'La solicitud aún no ha sido aprobada por el Ejecutivo Comercial de Admisión.');
+
         // Carrera destino elegida en la lista (una de las que solicitó el postulante).
         $carreraId = $request->integer('carrera') ?: $postulante->carrera_destino_id;
 
@@ -427,6 +430,8 @@ class SimulacionController extends Controller
         ]);
 
         $postulante = Postulante::findOrFail($datos['postulante_id']);
+        abort_unless($postulante->revision_estado === 'aprobada', 403,
+            'La solicitud aún no ha sido aprobada por el Ejecutivo Comercial de Admisión.');
         abort_if(! $postulante->carrera_externa_id, 422, 'El postulante no tiene una carrera de origen registrada.');
 
         $malla = $this->engine->mallaDeCarrera((int) $datos['carrera_usil_id']);
