@@ -13,7 +13,8 @@ class RoleSeeder extends Seeder
         // Los 7 perfiles del sistema (idempotente).
         $roles = [
             Role::SUPERUSUARIO => 'Administrador total del sistema',
-            Role::SERVICIOS    => 'Recibe la solicitud e inicia el flujo (Servicios Académicos)',
+            Role::ASESOR       => 'Registra al postulante, sus datos y documentos (Admisión)',
+            Role::EJECUTIVO    => 'Revisa y aprueba/observa los expedientes de admisión',
             Role::COORDINADOR  => 'Evaluación académica de sus carreras asignadas',
             Role::DIRECTOR     => 'Supervisa y valida evaluaciones de sus carreras',
             Role::DECANO       => 'Autoridad de validación superior por facultad',
