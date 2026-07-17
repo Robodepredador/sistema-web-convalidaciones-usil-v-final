@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AccesoPortalMail;
 use App\Models\Carrera;
 use App\Models\InstitucionExterna;
 use App\Models\Postulante;
@@ -12,6 +13,8 @@ use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -110,13 +113,18 @@ class PostulanteController extends Controller
         $temporal = null;
         if (! empty($datos['email'])) {
             $temporal = Str::password(10);
-            $datos['password_hash']     = Hash::make($temporal);
-            $datos['acceso_habilitado'] = true;
+            $datos['password_hash']         = Hash::make($temporal);
+            $datos['acceso_habilitado']     = true;
+            $datos['debe_cambiar_password'] = true;
         }
 
         $postulante = Postulante::create($datos);
         $this->guardarDocumentos($request, $postulante);
         $this->syncDestinos($postulante, $destinoIds);
+
+        if ($temporal) {
+            $this->enviarAcceso($postulante, $temporal);
+        }
 
         AuditoriaService::registrar('crear', 'postulantes', $postulante->id, null, ['documento' => $postulante->numero_documento]);
 
@@ -125,7 +133,7 @@ class PostulanteController extends Controller
             : "Postulante registrado ({$postulante->codigo}).";
         if ($temporal) {
             $url = route('portal.login');
-            $msg .= " Acceso al portal ({$url}) → usuario: {$postulante->email} · contraseña temporal: {$temporal}";
+            $msg .= " Se enviaron las credenciales al correo del postulante. Acceso ({$url}) → usuario: {$postulante->email} · contraseña temporal: {$temporal}";
         }
 
         return redirect()->route('postulantes.index')->with('status', $msg);
@@ -301,10 +309,15 @@ class PostulanteController extends Controller
         abort_if(empty($postulante->email), 422, 'El postulante no tiene correo para habilitar acceso.');
 
         $temporal = Str::password(10);
-        $postulante->update(['password_hash' => Hash::make($temporal), 'acceso_habilitado' => true]);
+        $postulante->update([
+            'password_hash'         => Hash::make($temporal),
+            'acceso_habilitado'     => true,
+            'debe_cambiar_password' => true,
+        ]);
+        $this->enviarAcceso($postulante, $temporal);
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['reset_acceso' => true]);
 
-        return back()->with('status', "Acceso restablecido para {$postulante->email}. Contraseña temporal: {$temporal}");
+        return back()->with('status', "Acceso restablecido para {$postulante->email}. Se envió la contraseña temporal por correo. (Temporal: {$temporal})");
     }
 
     public function destroy(Request $request, Postulante $postulante): RedirectResponse
@@ -370,6 +383,18 @@ class PostulanteController extends Controller
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['revision_estado' => 'reenviada']);
 
         return back()->with('status', 'Expediente reenviado a revisión.');
+    }
+
+    /** Envía al postulante sus credenciales del portal; no rompe el registro si falla el correo. */
+    private function enviarAcceso(Postulante $postulante, string $temporal): void
+    {
+        try {
+            Mail::to($postulante->email)->send(
+                new AccesoPortalMail($postulante, route('portal.login'), $temporal)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo enviar el correo de acceso al portal: ' . $e->getMessage());
+        }
     }
 
     /** El Asesor solo opera sobre sus propios postulantes; Ejecutivo/Superusuario, todos. */
