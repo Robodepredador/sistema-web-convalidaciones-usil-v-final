@@ -53,4 +53,22 @@ class PostulanteAccesoTest extends TestCase
         $this->assertTrue($p->fresh()->acceso_habilitado);
         Mail::assertSent(AccesoPortalMail::class, fn ($m) => $m->hasTo('ana.reset@example.com'));
     }
+
+    public function test_reset_acceso_exige_propiedad(): void
+    {
+        Mail::fake();
+        $asesorA = $this->asesor();
+        $asesorB = $this->asesor();
+        $p = Postulante::create([
+            'codigo' => 'POST-2026-90003', 'tipo_documento' => 'DNI', 'numero_documento' => '90000003',
+            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => 'ana.reset2@example.com',
+            'usuario_id' => $asesorA->id,
+        ]);
+
+        // Un asesor distinto no puede resetear el acceso de un postulante ajeno.
+        $this->actingAs($asesorB)->patch("/postulantes/{$p->id}/reset-acceso")->assertForbidden();
+
+        // El dueño sí puede.
+        $this->actingAs($asesorA)->patch("/postulantes/{$p->id}/reset-acceso")->assertRedirect();
+    }
 }

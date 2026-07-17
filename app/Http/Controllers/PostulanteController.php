@@ -304,8 +304,9 @@ class PostulanteController extends Controller
         return back()->with('status', 'Estado del postulante actualizado.');
     }
 
-    public function resetAcceso(Postulante $postulante): RedirectResponse
+    public function resetAcceso(Request $request, Postulante $postulante): RedirectResponse
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
         abort_if(empty($postulante->email), 422, 'El postulante no tiene correo para habilitar acceso.');
 
         $temporal = Str::password(10);

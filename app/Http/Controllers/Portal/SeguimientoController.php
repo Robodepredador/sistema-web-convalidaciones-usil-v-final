@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Convalidacion;
 use App\Models\Simulacion;
 use App\Support\SeguimientoTimeline;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,7 @@ class SeguimientoController extends Controller
         $todasAprob    = $destinos->isNotEmpty() && $destinos->every(fn ($d) => $d->estado_equivalencias === 'aprobada');
         $enRevision    = $destinos->contains(fn ($d) => in_array($d->estado_equivalencias, ['en_revision', 'aprobada'], true));
         $tieneSim      = $p->simulaciones->isNotEmpty();
-        $confirmada    = $p->simulaciones->contains(fn (Simulacion $s) => (bool) $s->convalidacion);
+        $confirmada    = $p->simulaciones->contains(fn (Simulacion $s) => $s->convalidacion?->estado === Convalidacion::CONFIRMADA);
 
         return inertia('Portal/Seguimiento', [
             'postulante' => [
