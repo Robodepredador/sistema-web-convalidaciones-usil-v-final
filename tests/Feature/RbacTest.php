@@ -70,18 +70,25 @@ class RbacTest extends TestCase
         }
     }
 
-    /** Servicios Académicos (admisión) no accede a simulaciones ni equivalencias. */
-    public function test_servicios_no_gestiona_equivalencias(): void
+    /** El Asesor de Admisión registra postulantes pero no evalúa. */
+    public function test_asesor_gestiona_postulantes_no_evaluacion(): void
     {
-        $servicios = $this->usuarioConRol(Role::SERVICIOS);
+        $asesor = $this->usuarioConRol(Role::ASESOR);
 
-        $this->actingAs($servicios)->post('/equivalencias', [])->assertForbidden();
-        $this->actingAs($servicios)->post('/simulaciones', [])->assertForbidden();
-        $this->actingAs($servicios)->get('/simulaciones')->assertForbidden();
-        $this->actingAs($servicios)->get('/equivalencias')->assertForbidden();
-        // Su ámbito: postulantes y reportes.
-        $this->actingAs($servicios)->get('/postulantes')->assertOk();
-        $this->actingAs($servicios)->get('/reportes')->assertOk();
+        $this->actingAs($asesor)->get('/postulantes')->assertOk();
+        $this->actingAs($asesor)->get('/simulaciones')->assertForbidden();
+        $this->actingAs($asesor)->get('/equivalencias')->assertForbidden();
+        // (La denegación de la ruta de revisión se prueba en RevisionFlujoTest, donde ya existe la ruta.)
+    }
+
+    /** El Ejecutivo Comercial revisa expedientes y ve reportes; no evalúa. */
+    public function test_ejecutivo_revisa_y_ve_reportes(): void
+    {
+        $ejecutivo = $this->usuarioConRol(Role::EJECUTIVO);
+
+        $this->actingAs($ejecutivo)->get('/postulantes')->assertOk();
+        $this->actingAs($ejecutivo)->get('/reportes')->assertOk();
+        $this->actingAs($ejecutivo)->get('/simulaciones')->assertForbidden();
     }
 
     /** El Coordinador no accede al módulo de postulantes (lo gestiona Admisión). */

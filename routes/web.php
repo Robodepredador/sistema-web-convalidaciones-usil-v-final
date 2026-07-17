@@ -185,6 +185,17 @@ Route::middleware('auth')->group(function () {
             Route::delete('postulantes/{postulante}', [PostulanteController::class, 'destroy'])->name('postulantes.destroy');
         }); // fin solicitudes.editar (postulantes)
 
+        // Revisión de admisión: el Ejecutivo Comercial aprueba u observa.
+        Route::middleware('permission:solicitudes.validar')->group(function () {
+            Route::post('postulantes/{postulante}/revisar', [PostulanteController::class, 'revisar'])
+                ->name('postulantes.revisar');
+        });
+        // El Asesor reenvía a revisión un expediente observado (tras corregirlo).
+        Route::middleware('permission:solicitudes.editar')->group(function () {
+            Route::post('postulantes/{postulante}/reenviar-revision', [PostulanteController::class, 'reenviarRevision'])
+                ->name('postulantes.reenviar-revision');
+        });
+
         // CU-04 / CU-05: Simulación — lectura y trazabilidad (permiso evaluacion.ver)
         Route::middleware('permission:evaluacion.ver')->group(function () {
             Route::get('simulaciones', [SimulacionController::class, 'index'])->name('simulaciones.index');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Convalidacion;
+use App\Models\Postulante;
 use App\Models\PostulanteDestino;
 use App\Models\Role;
 use App\Models\Simulacion;
@@ -36,7 +37,7 @@ class DashboardController extends Controller
                 'rol'      => $rol,
                 'saludo'   => $this->saludo($user),
                 'kpis'     => $this->kpis($user, $rol, $c, $totalDestinos, $visibles),
-                'bandeja'  => $this->bandeja($destinos, $rol),
+                'bandeja'  => $this->bandeja($destinos, $rol, $user),
                 'acciones' => $this->acciones($user),
             ],
         ]);
@@ -59,12 +60,21 @@ class DashboardController extends Controller
         $convs = $this->convsScoped($visibles);
 
         switch ($rol) {
-            case Role::SERVICIOS:
+            case Role::ASESOR:
+                $mios = Postulante::where('usuario_id', $user->id);
                 return [
-                    ['label' => 'Solicitudes recibidas', 'valor' => $total, 'color' => 'blue'],
-                    ['label' => 'Pendientes de asignación', 'valor' => $pendientesAsignar, 'color' => 'amber'],
-                    ['label' => 'En evaluación', 'valor' => $enEvaluacion, 'color' => 'indigo'],
-                    ['label' => 'Finalizadas', 'valor' => $aprobadas, 'color' => 'green'],
+                    ['label' => 'Mis solicitudes', 'valor' => (clone $mios)->count(), 'color' => 'blue'],
+                    ['label' => 'En revisión', 'valor' => (clone $mios)->where('revision_estado', 'pendiente')->count(), 'color' => 'amber'],
+                    ['label' => 'Observadas por corregir', 'valor' => (clone $mios)->where('revision_estado', 'observada')->count(), 'color' => 'orange'],
+                    ['label' => 'Aprobadas', 'valor' => (clone $mios)->where('revision_estado', 'aprobada')->count(), 'color' => 'green'],
+                ];
+
+            case Role::EJECUTIVO:
+                return [
+                    ['label' => 'Por revisar', 'valor' => Postulante::where('revision_estado', 'pendiente')->count(), 'color' => 'amber'],
+                    ['label' => 'Observadas', 'valor' => Postulante::where('revision_estado', 'observada')->count(), 'color' => 'orange'],
+                    ['label' => 'Aprobadas', 'valor' => Postulante::where('revision_estado', 'aprobada')->count(), 'color' => 'green'],
+                    ['label' => 'Solicitudes totales', 'valor' => Postulante::count(), 'color' => 'blue'],
                 ];
 
             case Role::COORDINADOR:
@@ -121,22 +131,42 @@ class DashboardController extends Controller
     }
 
     /** Bandeja de pendientes (hasta 6) relevante al rol. */
-    private function bandeja($destinos, ?string $rol): array
+    private function bandeja($destinos, ?string $rol, User $user): array
     {
-        $q = (clone $destinos)->with(['postulante:id,nombres,apellido_paterno,apellido_materno', 'carrera:id,nombre']);
+        // Admisión: su bandeja se arma sobre postulantes por estado de revisión.
+        if ($rol === Role::EJECUTIVO) {
+            return $this->bandejaPostulantes(Postulante::where('revision_estado', 'pendiente'));
+        }
+        if ($rol === Role::ASESOR) {
+            return $this->bandejaPostulantes(
+                Postulante::where('usuario_id', $user->id)->where('revision_estado', 'observada')
+            );
+        }
 
-        // Servicios ve lo no asignado; el resto ve lo que aún no está aprobado.
-        $q = $rol === Role::SERVICIOS
-            ? $q->where('estado_equivalencias', 'pendiente')
-            : $q->where('estado_equivalencias', '!=', 'aprobada');
+        // Etapas de evaluación: solo expedientes ya aprobados por Admisión.
+        return (clone $destinos)
+            ->whereHas('postulante', fn ($p) => $p->where('revision_estado', 'aprobada'))
+            ->with(['postulante:id,nombres,apellido_paterno,apellido_materno', 'carrera:id,nombre'])
+            ->where('estado_equivalencias', '!=', 'aprobada')
+            ->orderByDesc('id')->limit(6)->get()
+            ->map(fn (PostulanteDestino $d) => [
+                'titulo'    => $d->postulante
+                    ? trim("{$d->postulante->apellido_paterno} {$d->postulante->apellido_materno}, {$d->postulante->nombres}")
+                    : '—',
+                'subtitulo' => $d->carrera?->nombre,
+                'estado'    => $d->estado_equivalencias,
+            ])->all();
+    }
 
-        return $q->orderByDesc('id')->limit(6)->get()->map(fn (PostulanteDestino $d) => [
-            'titulo'    => $d->postulante
-                ? trim("{$d->postulante->apellido_paterno} {$d->postulante->apellido_materno}, {$d->postulante->nombres}")
-                : '—',
-            'subtitulo' => $d->carrera?->nombre,
-            'estado'    => $d->estado_equivalencias,
-        ])->all();
+    /** Bandeja construida sobre postulantes (para los roles de Admisión). */
+    private function bandejaPostulantes($query): array
+    {
+        return $query->with('carreraDestino:id,nombre')->orderByDesc('id')->limit(6)->get()
+            ->map(fn (Postulante $p) => [
+                'titulo'    => $p->nombre_completo,
+                'subtitulo' => $p->carreraDestino?->nombre,
+                'estado'    => $p->revision_estado,
+            ])->all();
     }
 
     /** Acciones rápidas según permisos. */

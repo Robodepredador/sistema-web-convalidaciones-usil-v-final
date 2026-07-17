@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Carrera;
 use App\Models\InstitucionExterna;
 use App\Models\Postulante;
+use App\Models\Role;
 use App\Models\Simulacion;
+use App\Models\User;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,6 +47,9 @@ class PostulanteController extends Controller
                     ->orWhere('email', 'like', "%{$v}%")))
             ->when($request->estado, fn ($x, $v) => $x->where('estado', $v))
             ->when($request->carrera_destino_id, fn ($x, $v) => $x->where('carrera_destino_id', $v))
+            // El Asesor solo ve los postulantes que él registró.
+            ->when($request->user()->rol?->nombre === Role::ASESOR,
+                fn ($x) => $x->where('usuario_id', $request->user()->id))
             ->orderByDesc('id')
             ->paginate(10)->withQueryString()
             ->through(fn (Postulante $p) => [
@@ -58,6 +63,7 @@ class PostulanteController extends Controller
                 'estado'          => $p->estado,
                 'preconvalidacion' => $p->convalidaciones_count > 0 ? 'convalidada'
                     : ($p->simulaciones_count > 0 ? 'atendida' : 'pendiente'),
+                'revision'        => $p->revision_estado,
             ]);
 
         return inertia('Postulantes/Index', [
@@ -117,8 +123,10 @@ class PostulanteController extends Controller
         return redirect()->route('postulantes.index')->with('status', $msg);
     }
 
-    public function edit(Postulante $postulante)
+    public function edit(Request $request, Postulante $postulante)
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
+
         $postulante->load([
             'documentos',
             'simulaciones.carreraUsil',
@@ -164,6 +172,16 @@ class PostulanteController extends Controller
             ],
             'preconvalidaciones'       => $preconvalidaciones,
             'preconvalidacion_estado'  => $estadoPre,
+            'revision' => [
+                'estado'         => $postulante->revision_estado,
+                'observaciones'  => $postulante->revision_observaciones,
+                'revisado_en'    => optional($postulante->revisado_en)->format('d/m/Y H:i'),
+                'revisado_por'   => $postulante->revisadoPor?->nombre,
+                'puede_revisar'  => $request->user()->puede('solicitudes.validar'),
+                'puede_reenviar' => $request->user()->puede('solicitudes.editar')
+                    && ($request->user()->rol?->nombre !== Role::ASESOR
+                        || $postulante->usuario_id === $request->user()->id),
+            ],
         ]);
     }
 
@@ -235,6 +253,8 @@ class PostulanteController extends Controller
 
     public function update(Request $request, Postulante $postulante): RedirectResponse
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
+
         $borrador = $request->boolean('borrador');
         $datos = $this->validar($request, $postulante->id, $borrador);
         $destinoIds = $this->extraerDestinos($datos);
@@ -274,12 +294,68 @@ class PostulanteController extends Controller
         return back()->with('status', "Acceso restablecido para {$postulante->email}. Contraseña temporal: {$temporal}");
     }
 
-    public function destroy(Postulante $postulante): RedirectResponse
+    public function destroy(Request $request, Postulante $postulante): RedirectResponse
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
+
         $postulante->delete();
         AuditoriaService::registrar('eliminar', 'postulantes', $postulante->id);
 
         return redirect()->route('postulantes.index')->with('status', 'Postulante eliminado.');
+    }
+
+    /** El Ejecutivo Comercial aprueba u observa el expediente. */
+    public function revisar(Request $request, Postulante $postulante): RedirectResponse
+    {
+        $datos = $request->validate([
+            'accion'        => ['required', 'in:aprobar,observar'],
+            'observaciones' => ['required_if:accion,observar', 'nullable', 'string', 'max:1000'],
+        ], [
+            'observaciones.required_if' => 'Indica qué debe corregir el postulante.',
+        ]);
+
+        $aprobar = $datos['accion'] === 'aprobar';
+        $postulante->update([
+            'revision_estado'        => $aprobar ? 'aprobada' : 'observada',
+            'revision_observaciones' => $aprobar ? null : $datos['observaciones'],
+            'revisado_por'           => $request->user()->id,
+            'revisado_en'            => now(),
+        ]);
+
+        // 'accion' es un enum fijo en auditoria_log; el matiz de revisión va en el payload.
+        AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, [
+            'revision_estado' => $postulante->revision_estado,
+        ]);
+
+        return back()->with('status', $aprobar
+            ? "Expediente {$postulante->codigo} aprobado. Ya puede evaluarse."
+            : "Expediente {$postulante->codigo} observado. La observación es visible para el asesor y el postulante.");
+    }
+
+    /** El Asesor dueño reenvía a revisión un expediente observado ya corregido. */
+    public function reenviarRevision(Request $request, Postulante $postulante): RedirectResponse
+    {
+        $this->autorizarPropiedad($request->user(), $postulante);
+        abort_unless($postulante->revision_estado === 'observada', 422, 'Solo se puede reenviar un expediente observado.');
+
+        $postulante->update([
+            'revision_estado'        => 'pendiente',
+            'revision_observaciones' => null,
+            'revisado_por'           => null,
+            'revisado_en'            => null,
+        ]);
+
+        AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['revision_estado' => 'reenviada']);
+
+        return back()->with('status', 'Expediente reenviado a revisión.');
+    }
+
+    /** El Asesor solo opera sobre sus propios postulantes; Ejecutivo/Superusuario, todos. */
+    private function autorizarPropiedad(User $user, Postulante $postulante): void
+    {
+        if ($user->rol?->nombre === Role::ASESOR) {
+            abort_unless($postulante->usuario_id === $user->id, 403, 'Solo puedes gestionar los postulantes que registraste.');
+        }
     }
 
     /**

@@ -26,6 +26,7 @@ class Postulante extends Model implements Authenticatable
         'institucion_origen_id', 'carrera_externa_id', 'carrera_destino_id', 'ciclo_postulacion',
         'estado', 'estado_equivalencias', 'equivalencias_revisado_por', 'equivalencias_revisado_en',
         'observaciones', 'usuario_id',
+        'revision_estado', 'revision_observaciones', 'revisado_por', 'revisado_en',
     ];
 
     protected $hidden = ['password_hash'];
@@ -35,6 +36,7 @@ class Postulante extends Model implements Authenticatable
         'acceso_habilitado'          => 'boolean',
         'ultimo_acceso'              => 'datetime',
         'equivalencias_revisado_en'  => 'datetime',
+        'revisado_en'                => 'datetime',
     ];
 
     // --- Auth (el esquema usa 'password_hash' y no remember_token) ---
@@ -127,5 +129,10 @@ class Postulante extends Model implements Authenticatable
     public function documentos(): HasMany
     {
         return $this->hasMany(PostulanteDocumento::class, 'postulante_id');
+    }
+
+    public function revisadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'revisado_por');
     }
 }

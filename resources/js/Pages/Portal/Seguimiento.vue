@@ -44,6 +44,13 @@ const badgeEq = (e) => ESTADO_EQ[e] ?? { label: e ?? '—', clase: 'bg-slate-100
                 <p class="mt-1 text-sm text-slate-500">Solicitud <span class="font-mono font-medium text-slate-700">{{ postulante.codigo }}</span></p>
             </div>
 
+            <!-- Documentación observada por Admisión: qué debe corregir el postulante -->
+            <div v-if="postulante.revision_estado === 'observada'"
+                 class="mb-6 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                <p class="font-medium">Documentación observada</p>
+                <p class="mt-1">{{ postulante.revision_observaciones || 'Comunícate con tu asesor de admisión para más detalle.' }}</p>
+            </div>
+
             <!-- Process Timeline: avance real del proceso de convalidación -->
             <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 class="mb-5 text-sm font-semibold text-slate-700">Seguimiento del proceso</h2>

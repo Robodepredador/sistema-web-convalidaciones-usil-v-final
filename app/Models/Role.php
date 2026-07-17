@@ -14,7 +14,8 @@ class Role extends Model
     // nuevo valor) para no romper el código existente que las referencia.
     public const ADMIN = 'Superusuario';                 // antes 'Administrador'
     public const SUPERUSUARIO = 'Superusuario';
-    public const SERVICIOS = 'Servicios Académicos';
+    public const ASESOR = 'Asesor de Admisión';
+    public const EJECUTIVO = 'Ejecutivo Comercial de Admisión';
     public const COORDINADOR = 'Coordinador de Carrera'; // antes 'Coordinador'
     public const DIRECTOR = 'Director de Escuela';
     public const DECANO = 'Decano';
@@ -24,7 +25,8 @@ class Role extends Model
     /** Alcance de datos de cada rol: global | carrera | facultad. */
     public const ALCANCE = [
         self::SUPERUSUARIO => 'global',
-        self::SERVICIOS    => 'global',
+        self::ASESOR       => 'global',
+        self::EJECUTIVO    => 'global',
         self::COORDINADOR  => 'carrera',
         self::DIRECTOR     => 'carrera',
         self::DECANO       => 'facultad',
