@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Link, router } from '@inertiajs/vue3';
+import { useForm, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
 
@@ -9,6 +9,12 @@ const props = defineProps({
     revision: { type: Object, default: null },
 });
 const editando = !!props.postulante;
+
+// RBAC: distingue el flujo del Asesor (registro) del Ejecutivo (revisión).
+const permisos = computed(() => usePage().props.auth?.user?.permisos ?? []);
+const puede = (clave) => permisos.value.includes('*') || permisos.value.includes(clave);
+const esRegistrador = computed(() => puede('solicitudes.crear'));
+const esRevisor = computed(() => puede('solicitudes.validar') && !esRegistrador.value);
 
 // Revisión de admisión (aprobar / observar / reenviar).
 const obs = reactive({ observaciones: '' });
@@ -220,12 +226,16 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                     Postulantes
                 </Link>
-                <h1 class="mt-1 text-2xl font-semibold text-[#1F3864]">{{ editando ? 'Editar postulante' : 'Nuevo postulante' }}</h1>
-                <p class="mt-1 text-sm text-slate-500">Registra la información del postulante para su proceso de convalidación.</p>
+                <h1 class="mt-1 text-2xl font-semibold text-[#1F3864]">
+                    {{ !editando ? 'Nuevo postulante' : (esRevisor ? 'Revisar expediente' : 'Editar postulante') }}
+                </h1>
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ esRevisor ? 'Verifica que los datos y documentos estén completos, luego aprueba u observa.' : 'Registra la información del postulante para su proceso de convalidación.' }}
+                </p>
             </div>
             <div class="flex items-center gap-2">
                 <Link href="/postulantes" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancelar y salir</Link>
-                <button @click="enviar(true)" :disabled="form.processing"
+                <button v-if="esRegistrador" @click="enviar(true)" :disabled="form.processing"
                         class="inline-flex items-center gap-2 rounded-lg bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864] disabled:opacity-60">
                     Guardar borrador
                 </button>
@@ -236,12 +246,20 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
         <div v-if="editando && revision" class="mb-5 rounded-2xl border p-4 shadow-sm" :class="REV[revision.estado]?.clase">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 class="text-sm font-semibold">Revisión de admisión: {{ REV[revision.estado]?.label ?? revision.estado }}</h2>
-                <span v-if="revision.revisado_por" class="text-xs opacity-80">{{ revision.revisado_por }} · {{ revision.revisado_en }}</span>
+                <div class="flex items-center gap-3 text-xs opacity-80">
+                    <span v-if="revision.documentos_total">Documentos: {{ revision.documentos }}/{{ revision.documentos_total }}</span>
+                    <span v-if="revision.revisado_por">{{ revision.revisado_por }} · {{ revision.revisado_en }}</span>
+                </div>
             </div>
 
             <!-- Observación visible para el asesor -->
             <p v-if="revision.estado === 'observada' && revision.observaciones" class="mt-2 text-sm">
                 <span class="font-medium">Observación:</span> {{ revision.observaciones }}
+            </p>
+
+            <!-- Ya convalidado: la revisión queda cerrada -->
+            <p v-if="revision.convalidada" class="mt-2 text-sm">
+                El expediente ya tiene una convalidación confirmada; la revisión de admisión está cerrada.
             </p>
 
             <!-- Ejecutivo Comercial: aprobar u observar -->

@@ -101,4 +101,40 @@ class RevisionFlujoTest extends TestCase
         // No puede editar el ajeno.
         $this->actingAs($asesorA)->get("/postulantes/{$ajeno->id}/editar")->assertForbidden();
     }
+
+    public function test_aprobar_avanza_estado_a_en_evaluacion(): void
+    {
+        $asesor = $this->usuario(Role::ASESOR);
+        $ejecutivo = $this->usuario(Role::EJECUTIVO);
+        $p = $this->postulanteDe($asesor);
+        $p->update(['estado' => 'nuevo']); // como lo deja el registro del asesor (store()).
+
+        $this->actingAs($ejecutivo)->post("/postulantes/{$p->id}/revisar", ['accion' => 'aprobar']);
+
+        $this->assertSame('en_evaluacion', $p->fresh()->estado);
+    }
+
+    public function test_ejecutivo_no_puede_eliminar_ni_resetear(): void
+    {
+        $asesor = $this->usuario(Role::ASESOR);
+        $ejecutivo = $this->usuario(Role::EJECUTIVO);
+        $p = $this->postulanteDe($asesor);
+
+        // Estas acciones son de registro (solicitudes.crear); el Ejecutivo no las tiene.
+        $this->actingAs($ejecutivo)->delete("/postulantes/{$p->id}")->assertForbidden();
+        $this->actingAs($ejecutivo)->patch("/postulantes/{$p->id}/reset-acceso")->assertForbidden();
+    }
+
+    public function test_filtro_por_revision(): void
+    {
+        $asesor = $this->usuario(Role::ASESOR);
+        $ejecutivo = $this->usuario(Role::EJECUTIVO);
+        $pendiente = $this->postulanteDe($asesor);
+        $observado = $this->postulanteDe($asesor);
+        $observado->update(['revision_estado' => 'observada']);
+
+        $this->actingAs($ejecutivo)->get('/postulantes?revision=observada')
+            ->assertInertia(fn ($page) => $page->has('postulantes.data', 1)
+                ->where('postulantes.data.0.id', $observado->id));
+    }
 }

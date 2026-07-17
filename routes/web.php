@@ -171,18 +171,20 @@ Route::middleware('auth')->group(function () {
         });
 
         // Postulantes / Solicitudes — escritura (permisos solicitudes.crear / solicitudes.editar)
+        // Acciones de registro (solo el Asesor que da de alta): crear, resetear acceso, eliminar.
         Route::middleware('permission:solicitudes.crear')->group(function () {
             Route::get('postulantes/crear', [PostulanteController::class, 'create'])->name('postulantes.create');
             Route::post('postulantes', [PostulanteController::class, 'store'])->name('postulantes.store');
+            Route::patch('postulantes/{postulante}/reset-acceso', [PostulanteController::class, 'resetAcceso'])->name('postulantes.reset-acceso');
+            Route::delete('postulantes/{postulante}', [PostulanteController::class, 'destroy'])->name('postulantes.destroy');
         });
         Route::middleware('permission:solicitudes.crear,solicitudes.editar,evaluacion.editar')->group(function () {
             Route::post('catalogo/carreras-externas', [CatalogoController::class, 'crearCarreraExterna'])->name('catalogo.carreras-externas.store');
         });
+        // Edición de datos del expediente (Asesor dueño y Ejecutivo revisor).
         Route::middleware('permission:solicitudes.editar')->group(function () {
             Route::put('postulantes/{postulante}', [PostulanteController::class, 'update'])->name('postulantes.update');
             Route::patch('postulantes/{postulante}/estado', [PostulanteController::class, 'estado'])->name('postulantes.estado');
-            Route::patch('postulantes/{postulante}/reset-acceso', [PostulanteController::class, 'resetAcceso'])->name('postulantes.reset-acceso');
-            Route::delete('postulantes/{postulante}', [PostulanteController::class, 'destroy'])->name('postulantes.destroy');
         }); // fin solicitudes.editar (postulantes)
 
         // Revisión de admisión: el Ejecutivo Comercial aprueba u observa.

@@ -1,18 +1,25 @@
 <script setup>
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, nextTick } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
 
-const props = defineProps({ postulantes: Object, total: Number, carreras: Array, estados: Array, filtros: Object });
+const props = defineProps({ postulantes: Object, total: Number, carreras: Array, estados: Array, revisiones: Array, filtros: Object });
 const carrerasOpts = computed(() => props.carreras.map((c) => ({ value: c.id, label: c.nombre })));
+
+// RBAC: capacidades del usuario para separar el flujo de cada rol.
+const permisos = computed(() => usePage().props.auth?.user?.permisos ?? []);
+const puede = (clave) => permisos.value.includes('*') || permisos.value.includes(clave);
+const esRegistrador = computed(() => puede('solicitudes.crear'));           // Asesor / Superusuario
+const esRevisor = computed(() => puede('solicitudes.validar') && !esRegistrador.value); // Ejecutivo
 
 const filtro = reactive({
     q: props.filtros?.q ?? '',
     estado: props.filtros?.estado ?? '',
+    revision: props.filtros?.revision ?? '',
     carrera_destino_id: props.filtros?.carrera_destino_id ?? '',
 });
 const aplicar = () => router.get('/postulantes', filtro, { preserveState: true, preserveScroll: true, replace: true });
-const limpiar = () => { filtro.q = ''; filtro.estado = ''; filtro.carrera_destino_id = ''; router.get('/postulantes', {}, { preserveScroll: true, replace: true }); };
+const limpiar = () => { filtro.q = ''; filtro.estado = ''; filtro.revision = ''; filtro.carrera_destino_id = ''; router.get('/postulantes', {}, { preserveScroll: true, replace: true }); };
 const eliminar = (p) => { if (confirm(`¿Eliminar al postulante "${p.nombre}"?`)) router.delete(`/postulantes/${p.id}`, { preserveScroll: true }); };
 const resetearAcceso = (p) => { if (confirm(`¿Restablecer el acceso al portal de "${p.nombre}"? Se generará una contraseña temporal.`)) router.patch(`/postulantes/${p.id}/reset-acceso`, {}, { preserveScroll: true }); };
 
@@ -83,10 +90,12 @@ const cerrarModal = () => {
     <div>
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold text-[#1F3864]">Postulantes</h1>
-                <p class="mt-1 text-sm text-slate-500">Solicitantes de convalidación por traslado externo.</p>
+                <h1 class="text-2xl font-semibold text-[#1F3864]">{{ esRevisor ? 'Revisión de expedientes' : 'Postulantes' }}</h1>
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ esRevisor ? 'Verifica los datos y documentos de cada solicitud, y aprueba u observa.' : 'Solicitantes de convalidación por traslado externo.' }}
+                </p>
             </div>
-            <Link href="/postulantes/crear"
+            <Link v-if="esRegistrador" href="/postulantes/crear"
                   class="inline-flex items-center gap-2 rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2E75B6]">
                 <span class="text-base leading-none">+</span> Nuevo postulante
             </Link>
@@ -94,11 +103,18 @@ const cerrarModal = () => {
 
         <div class="mb-6 grid gap-4 lg:grid-cols-[1fr_auto]">
             <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="grid gap-3 sm:grid-cols-3">
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-500">Buscar</label>
                         <input v-model="filtro.q" type="text" placeholder="Nombre, documento, código o correo…" @keyup.enter="aplicar"
                                class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-500">Revisión</label>
+                        <select v-model="filtro.revision" class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                            <option value="">Todas</option>
+                            <option v-for="r in revisiones" :key="r" :value="r">{{ REVISION[r]?.label ?? r }}</option>
+                        </select>
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-500">Estado</label>
@@ -132,8 +148,10 @@ const cerrarModal = () => {
                             <th class="px-4 py-3 font-semibold">Código</th>
                             <th class="px-4 py-3 font-semibold">Documento</th>
                             <th class="px-4 py-3 font-semibold">Postulante</th>
+                            <th v-if="esRevisor" class="px-4 py-3 font-semibold">Asesor</th>
                             <th class="px-4 py-3 font-semibold">Carrera destino</th>
                             <th class="px-4 py-3 font-semibold">Procedencia</th>
+                            <th class="px-4 py-3 font-semibold">Docs.</th>
                             <th class="px-4 py-3 font-semibold">Estado</th>
                             <th class="px-4 py-3 font-semibold">Revisión</th>
                             <th class="px-4 py-3 font-semibold">Preconvalidación</th>
@@ -148,8 +166,13 @@ const cerrarModal = () => {
                                 <p class="font-medium text-slate-800">{{ p.nombre }}</p>
                                 <p class="text-xs text-slate-400">{{ p.email }}</p>
                             </td>
+                            <td v-if="esRevisor" class="px-4 py-3 text-slate-600">{{ p.asesor || '—' }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ p.carrera_destino || '—' }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ p.procedencia || '—' }}</td>
+                            <td class="px-4 py-3">
+                                <span :class="p.documentos >= p.documentos_total ? 'text-green-700' : 'text-amber-700'"
+                                      class="text-xs font-medium tabular-nums">{{ p.documentos }}/{{ p.documentos_total }}</span>
+                            </td>
                             <td class="px-4 py-3">
                                 <span :class="ESTADO[p.estado]?.clase" class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ estadoLabel(p.estado) }}</span>
                             </td>
@@ -176,16 +199,18 @@ const cerrarModal = () => {
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
                                     <Link :href="`/postulantes/${p.id}/editar`"
-                                          class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-[#2E75B6] hover:border-[#2E75B6] hover:bg-slate-50">Editar</Link>
-                                    <button @click="resetearAcceso(p)"
+                                          class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-[#2E75B6] hover:border-[#2E75B6] hover:bg-slate-50">
+                                        {{ esRevisor ? 'Revisar' : 'Editar' }}
+                                    </Link>
+                                    <button v-if="esRegistrador" @click="resetearAcceso(p)"
                                             class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-amber-700 hover:border-amber-300 hover:bg-amber-50">Resetear acceso</button>
-                                    <button @click="eliminar(p)"
+                                    <button v-if="esRegistrador" @click="eliminar(p)"
                                             class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:border-red-300 hover:bg-red-50">Eliminar</button>
                                 </div>
                             </td>
                         </tr>
                         <tr v-if="!postulantes.data.length">
-                            <td colspan="9" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
+                            <td :colspan="esRevisor ? 11 : 10" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
                         </tr>
                     </tbody>
                 </table>

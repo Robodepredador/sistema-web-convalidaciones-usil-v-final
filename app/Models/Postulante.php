@@ -135,4 +135,10 @@ class Postulante extends Model implements Authenticatable
     {
         return $this->belongsTo(User::class, 'revisado_por');
     }
+
+    /** Asesor de Admisión que registró al postulante. */
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
 }

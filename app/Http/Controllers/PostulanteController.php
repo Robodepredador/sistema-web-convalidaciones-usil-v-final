@@ -29,12 +29,13 @@ class PostulanteController extends Controller
         // Alcance por rol: solo postulantes con un destino dentro de las carreras visibles.
         $visibles = \App\Services\AlcanceService::carrerasVisibles($request->user());
 
-        $postulantes = Postulante::with(['carreraDestino', 'institucionOrigen'])
+        $postulantes = Postulante::with(['carreraDestino', 'institucionOrigen', 'usuario:id,nombre'])
             // Estado de preconvalidación derivado de las simulaciones/convalidaciones reales
             // (así Admisión ve si su solicitud ya fue atendida, sin tocar el estado manual).
             ->withCount([
                 'simulaciones',
                 'simulaciones as convalidaciones_count' => fn ($q) => $q->whereHas('convalidacion'),
+                'documentos',
             ])
             ->when($visibles !== null, fn ($x) => $x->whereHas('destinos',
                 fn ($d) => $d->whereIn('carrera_id', $visibles ?: [0])))
@@ -46,6 +47,7 @@ class PostulanteController extends Controller
                     ->orWhere('codigo', 'like', "%{$v}%")
                     ->orWhere('email', 'like', "%{$v}%")))
             ->when($request->estado, fn ($x, $v) => $x->where('estado', $v))
+            ->when($request->revision, fn ($x, $v) => $x->where('revision_estado', $v))
             ->when($request->carrera_destino_id, fn ($x, $v) => $x->where('carrera_destino_id', $v))
             // El Asesor solo ve los postulantes que él registró.
             ->when($request->user()->rol?->nombre === Role::ASESOR,
@@ -64,14 +66,20 @@ class PostulanteController extends Controller
                 'preconvalidacion' => $p->convalidaciones_count > 0 ? 'convalidada'
                     : ($p->simulaciones_count > 0 ? 'atendida' : 'pendiente'),
                 'revision'        => $p->revision_estado,
+                'asesor'          => $p->usuario?->nombre,
+                'documentos'      => $p->documentos_count,
+                'documentos_total' => count(self::DOCUMENTOS),
             ]);
 
         return inertia('Postulantes/Index', [
             'postulantes' => $postulantes,
-            'total'       => Postulante::count(),
+            // El Asesor solo cuenta los suyos (coherente con su listado).
+            'total'       => Postulante::when($request->user()->rol?->nombre === Role::ASESOR,
+                fn ($q) => $q->where('usuario_id', $request->user()->id))->count(),
             'carreras'    => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'estados'     => self::ESTADOS,
-            'filtros'     => $request->only(['q', 'estado', 'carrera_destino_id']),
+            'revisiones'  => ['pendiente', 'aprobada', 'observada'],
+            'filtros'     => $request->only(['q', 'estado', 'revision', 'carrera_destino_id']),
         ]);
     }
 
@@ -156,7 +164,8 @@ class PostulanteController extends Controller
             'excel'        => route('postulantes.preconvalidacion.excel', [$postulante->id, $s->id]),
         ])->values();
 
-        $estadoPre = $postulante->simulaciones->contains(fn ($s) => $s->convalidacion) ? 'convalidada'
+        $tieneConv = $postulante->simulaciones->contains(fn ($s) => $s->convalidacion);
+        $estadoPre = $tieneConv ? 'convalidada'
             : ($postulante->simulaciones->isNotEmpty() ? 'atendida' : 'pendiente');
 
         return inertia('Postulantes/Form', $this->opciones() + [
@@ -177,8 +186,12 @@ class PostulanteController extends Controller
                 'observaciones'  => $postulante->revision_observaciones,
                 'revisado_en'    => optional($postulante->revisado_en)->format('d/m/Y H:i'),
                 'revisado_por'   => $postulante->revisadoPor?->nombre,
-                'puede_revisar'  => $request->user()->puede('solicitudes.validar'),
-                'puede_reenviar' => $request->user()->puede('solicitudes.editar')
+                'convalidada'    => $tieneConv,
+                'documentos'     => $postulante->documentos->count(),
+                'documentos_total' => count(self::DOCUMENTOS),
+                // Ya no admite cambios de revisión una vez convalidado.
+                'puede_revisar'  => $request->user()->puede('solicitudes.validar') && ! $tieneConv,
+                'puede_reenviar' => $request->user()->puede('solicitudes.editar') && ! $tieneConv
                     && ($request->user()->rol?->nombre !== Role::ASESOR
                         || $postulante->usuario_id === $request->user()->id),
             ],
@@ -307,6 +320,10 @@ class PostulanteController extends Controller
     /** El Ejecutivo Comercial aprueba u observa el expediente. */
     public function revisar(Request $request, Postulante $postulante): RedirectResponse
     {
+        // Un expediente ya convalidado por el coordinador no admite más cambios de revisión.
+        abort_if($this->tieneConvalidacion($postulante), 422,
+            'El expediente ya tiene una convalidación confirmada; no admite cambios de revisión.');
+
         $datos = $request->validate([
             'accion'        => ['required', 'in:aprobar,observar'],
             'observaciones' => ['required_if:accion,observar', 'nullable', 'string', 'max:1000'],
@@ -315,12 +332,17 @@ class PostulanteController extends Controller
         ]);
 
         $aprobar = $datos['accion'] === 'aprobar';
-        $postulante->update([
+        $cambios = [
             'revision_estado'        => $aprobar ? 'aprobada' : 'observada',
             'revision_observaciones' => $aprobar ? null : $datos['observaciones'],
             'revisado_por'           => $request->user()->id,
             'revisado_en'            => now(),
-        ]);
+        ];
+        // Al aprobar, el expediente pasa a evaluación del coordinador (el "estado" avanza).
+        if ($aprobar && $postulante->estado === 'nuevo') {
+            $cambios['estado'] = 'en_evaluacion';
+        }
+        $postulante->update($cambios);
 
         // 'accion' es un enum fijo en auditoria_log; el matiz de revisión va en el payload.
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, [
@@ -356,6 +378,12 @@ class PostulanteController extends Controller
         if ($user->rol?->nombre === Role::ASESOR) {
             abort_unless($postulante->usuario_id === $user->id, 403, 'Solo puedes gestionar los postulantes que registraste.');
         }
+    }
+
+    /** ¿El expediente ya tiene una convalidación confirmada (el coordinador ya lo procesó)? */
+    private function tieneConvalidacion(Postulante $postulante): bool
+    {
+        return $postulante->simulaciones()->whereHas('convalidacion')->exists();
     }
 
     /**
