@@ -22,7 +22,7 @@ class Postulante extends Model implements Authenticatable
     protected $fillable = [
         'codigo', 'tipo_documento', 'numero_documento', 'nombres',
         'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'genero', 'nacionalidad',
-        'email', 'password_hash', 'acceso_habilitado', 'ultimo_acceso', 'telefono', 'pais_residencia', 'direccion',
+        'email', 'password_hash', 'acceso_habilitado', 'debe_cambiar_password', 'ultimo_acceso', 'telefono', 'pais_residencia', 'direccion',
         'institucion_origen_id', 'carrera_externa_id', 'carrera_destino_id', 'ciclo_postulacion',
         'estado', 'estado_equivalencias', 'equivalencias_revisado_por', 'equivalencias_revisado_en',
         'observaciones', 'usuario_id',
@@ -34,6 +34,7 @@ class Postulante extends Model implements Authenticatable
     protected $casts = [
         'fecha_nacimiento'           => 'date',
         'acceso_habilitado'          => 'boolean',
+        'debe_cambiar_password'      => 'boolean',
         'ultimo_acceso'              => 'datetime',
         'equivalencias_revisado_en'  => 'datetime',
         'revisado_en'                => 'datetime',
