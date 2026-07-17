@@ -14,8 +14,10 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
 
         return array_merge(parent::share($request), [
+            // ponytail: solo el guard 'web' (staff) tiene rol/alcance/permisos; el
+            // guard 'postulante' comparte un modelo distinto sin esos campos.
             'auth' => [
-                'user' => $user ? [
+                'user' => $user instanceof \App\Models\User ? [
                     'id'      => $user->id,
                     'nombre'  => $user->nombre,
                     'email'   => $user->email,

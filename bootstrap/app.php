@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
             'permission' => EnsurePermission::class,
+            'postulante.cambiar' => \App\Http\Middleware\PostulanteDebeCambiarPassword::class,
         ]);
 
         // Inertia: comparte datos y maneja respuestas del lado servidor.

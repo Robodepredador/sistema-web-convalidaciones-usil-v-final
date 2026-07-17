@@ -18,8 +18,12 @@ class AuditoriaService
         ?array $anteriores = null,
         ?array $nuevos = null
     ): void {
+        // ponytail: usuario_id solo aplica al staff (guard 'web'); el guard
+        // 'postulante' comparte el mismo Auth::id() pero no referencia `usuarios`.
+        $usuario = Auth::user();
+
         AuditoriaLog::create([
-            'usuario_id'         => Auth::id(),
+            'usuario_id'         => $usuario instanceof \App\Models\User ? $usuario->id : null,
             'accion'             => $accion,
             'tabla_afectada'     => $tablaAfectada,
             'registro_id'        => $registroId,

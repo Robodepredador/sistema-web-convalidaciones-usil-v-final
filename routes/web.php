@@ -18,6 +18,7 @@ use App\Http\Controllers\MallaController;
 use App\Http\Controllers\MallaExternaController;
 use App\Http\Controllers\MallaImportController;
 use App\Http\Controllers\Portal\AccesoController as PortalAccesoController;
+use App\Http\Controllers\Portal\PasswordController as PortalPasswordController;
 use App\Http\Controllers\Portal\SeguimientoController as PortalSeguimientoController;
 use App\Http\Controllers\PostulanteController;
 use App\Http\Controllers\ReporteController;
@@ -262,7 +263,15 @@ Route::prefix('portal')->group(function () {
     });
 
     Route::middleware('auth:postulante')->group(function () {
-        Route::get('/', [PortalSeguimientoController::class, 'index'])->name('portal.seguimiento');
+        // Cambio de contraseña (sin el gate 'postulante.cambiar' para evitar bucle).
+        Route::get('/password/cambiar', [PortalPasswordController::class, 'mostrar'])->name('portal.password.cambiar.form');
+        Route::post('/password/cambiar', [PortalPasswordController::class, 'actualizar'])->name('portal.password.cambiar');
+
+        // El seguimiento exige tener la contraseña ya cambiada.
+        Route::middleware('postulante.cambiar')->group(function () {
+            Route::get('/', [PortalSeguimientoController::class, 'index'])->name('portal.seguimiento');
+        });
+
         Route::post('/logout', [PortalAccesoController::class, 'logout'])->name('portal.logout');
     });
 });
