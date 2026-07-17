@@ -92,7 +92,23 @@ recorrer el expediente por cada etapa y assert el estado del timeline
 - **Ruta de rechazo**: con `estado = 'rechazado'`, el timeline devuelve la única etapa
   "Solicitud rechazada".
 
-### 4. Menor
+### 4. Verificación en navegador (manual, con capturas)
+
+Además de las pruebas automatizadas, levantar la app y recorrer el flujo real en el
+navegador, tomando capturas en cada hito y **corrigiendo incoherencias/problemas de UX**
+que aparezcan:
+1. Login del Asesor → registrar un postulante con correo → confirmar el flash con las
+   credenciales y que el correo salió (revisar `storage/logs/laravel.log`, mailer `log`).
+2. Ir a `/portal/login` → iniciar sesión con las credenciales → verificar la redirección
+   forzada a cambiar contraseña.
+3. Cambiar la contraseña → llegar al seguimiento → verificar timeline, estado y
+   observaciones.
+4. Recorrer visualmente las fases del seguimiento a medida que avanza el expediente.
+
+Cualquier incoherencia detectada (textos, estados, enlaces rotos, redirecciones,
+mensajes) se corrige como parte de esta entrega.
+
+### 5. Menor
 - Documentar variables `MAIL_*` en `.env.example` (mailer, host, from) para habilitar
   entrega real cuando se configure SMTP.
 
@@ -115,3 +131,5 @@ recorrer el expediente por cada etapa y assert el estado del timeline
   timeline y valida sus estados.
 - El registro no se rompe si no hay SMTP configurado (correo falla en silencio, flash de
   respaldo intacto).
+- El flujo completo se verifica en el navegador con capturas y se corrigen las
+  incoherencias de UX encontradas.
