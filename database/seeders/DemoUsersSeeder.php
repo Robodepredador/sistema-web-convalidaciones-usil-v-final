@@ -21,7 +21,8 @@ class DemoUsersSeeder extends Seeder
             ['email' => 'coord.demo@usil.edu.pe',      'rol' => Role::COORDINADOR,  'nombre' => 'Coordinador Demo'],
             ['email' => 'decano.demo@usil.edu.pe',     'rol' => Role::DECANO,       'nombre' => 'Decano Demo'],
             ['email' => 'consulta.demo@usil.edu.pe',   'rol' => Role::CONSULTA,     'nombre' => 'Consulta Demo'],
-            ['email' => 'servicios.demo@usil.edu.pe',  'rol' => Role::SERVICIOS,    'nombre' => 'Servicios Demo'],
+            ['email' => 'asesor.demo@usil.edu.pe',     'rol' => Role::ASESOR,       'nombre' => 'Asesor Demo'],
+            ['email' => 'ejecutivo.demo@usil.edu.pe',  'rol' => Role::EJECUTIVO,    'nombre' => 'Ejecutivo Demo'],
             ['email' => 'director.demo@usil.edu.pe',   'rol' => Role::DIRECTOR,     'nombre' => 'Director Demo'],
             ['email' => 'auditor.demo@usil.edu.pe',    'rol' => Role::AUDITOR,      'nombre' => 'Auditor Demo'],
         ];

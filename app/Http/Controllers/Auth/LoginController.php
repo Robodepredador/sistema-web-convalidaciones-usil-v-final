@@ -27,7 +27,8 @@ class LoginController extends Controller
         // Solo en entorno local: accesos rápidos para pruebas (no se exponen en producción).
         $usuariosDemo = app()->environment('local') ? [
             ['label' => 'Superusuario', 'email' => 'admin.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Servicios Académicos', 'email' => 'servicios.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Asesor de Admisión', 'email' => 'asesor.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Ejecutivo Comercial de Admisión', 'email' => 'ejecutivo.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Coordinador de Carrera', 'email' => 'coord.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Director de Escuela', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Decano', 'email' => 'decano.demo@usil.edu.pe', 'password' => 'Demo#1234'],
