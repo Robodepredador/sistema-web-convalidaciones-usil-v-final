@@ -14,9 +14,7 @@ class SeguimientoTimeline
         string $estado,
         ?string $registradaEl,
         int $docsCount,
-        bool $docsCompletos,
-        bool $todasAprob,
-        bool $enRevision,
+        string $revisionEstado,
         bool $tieneSim,
         bool $confirmada,
     ): array {
@@ -27,13 +25,21 @@ class SeguimientoTimeline
             ]];
         }
 
+        // La aprobación del Ejecutivo Comercial (revision_estado) es la señal real que
+        // habilita la evaluación del coordinador; el conteo de documentos es solo el avance previo.
+        $aprobada  = $revisionEstado === 'aprobada';
+        $observada = $revisionEstado === 'observada';
+        $detalleDocs = match (true) {
+            $aprobada  => 'Documentos revisados y aprobados por Admisión',
+            $observada => 'Documentación observada: revisa las indicaciones',
+            default    => "{$docsCount} de 3 documentos entregados",
+        };
+
         $etapas = [
             ['label' => 'Solicitud registrada', 'done' => true,
                 'detalle' => 'Recibida el ' . ($registradaEl ?? '—')],
-            ['label' => 'Documentos recibidos', 'done' => $docsCompletos,
-                'detalle' => $docsCompletos ? 'Expediente completo' : "{$docsCount} de 3 documentos entregados"],
-            ['label' => 'Revisión de equivalencias', 'done' => $todasAprob,
-                'detalle' => $todasAprob ? 'Equivalencias aprobadas' : ($enRevision ? 'En revisión por la coordinación' : 'En espera de revisión')],
+            ['label' => 'Revisión de documentos', 'done' => $aprobada,
+                'detalle' => $detalleDocs],
             ['label' => 'Simulación de convalidación', 'done' => $tieneSim,
                 'detalle' => $tieneSim ? 'Simulación generada' : 'Aún no generada'],
             ['label' => 'Convalidación confirmada', 'done' => $confirmada,

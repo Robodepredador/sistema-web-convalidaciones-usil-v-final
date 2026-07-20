@@ -9,12 +9,6 @@ const flash = computed(() => page.props.flash?.status ?? null);
 const logout = () => router.post('/portal/logout');
 
 const ESTADO_SIM = { generada: 'Generada', confirmada: 'Confirmada', borrador: 'Borrador', enviada: 'Enviada' };
-const ESTADO_EQ = {
-    pendiente:   { label: 'En espera de revisión', clase: 'bg-amber-50 text-amber-700 ring-amber-200' },
-    en_revision: { label: 'En revisión', clase: 'bg-blue-50 text-blue-700 ring-blue-200' },
-    aprobada:    { label: 'Aprobada', clase: 'bg-green-50 text-green-700 ring-green-200' },
-};
-const badgeEq = (e) => ESTADO_EQ[e] ?? { label: e ?? '—', clase: 'bg-slate-100 text-slate-600 ring-slate-200' };
 </script>
 
 <template>
@@ -95,9 +89,8 @@ const badgeEq = (e) => ESTADO_EQ[e] ?? { label: e ?? '—', clase: 'bg-slate-100
             <div v-if="destinos.length" class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 class="mb-3 text-sm font-semibold text-slate-700">Carreras solicitadas</h2>
                 <ul class="space-y-2">
-                    <li v-for="(d, i) in destinos" :key="i" class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                    <li v-for="(d, i) in destinos" :key="i" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
                         <span class="font-medium text-slate-700">{{ d.carrera }}</span>
-                        <span :class="badgeEq(d.estado).clase" class="rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ badgeEq(d.estado).label }}</span>
                     </li>
                 </ul>
             </div>

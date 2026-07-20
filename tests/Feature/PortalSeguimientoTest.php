@@ -43,29 +43,27 @@ class PortalSeguimientoTest extends TestCase
         $this->actingAs($p->fresh(), 'postulante')->get('/portal/')->assertOk();
     }
 
-    public function test_seguimiento_avanza_con_documentos(): void
+    public function test_seguimiento_avanza_con_aprobacion_de_admision(): void
     {
-        $p = $this->postulanteConAcceso(false); // sin forzar cambio
+        $p = $this->postulanteConAcceso(false); // revision_estado='pendiente' por defecto
 
-        // Fase 1 (registro) completada, fase 2 (documentos) actual.
+        // 4 etapas. Etapa 1 (registro) completada, etapa 2 (revisión de documentos) actual.
         $this->actingAs($p, 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
+                ->has('timeline', 4)
                 ->where('timeline.0.estado', 'completado')
+                ->where('timeline.1.label', 'Revisión de documentos')
                 ->where('timeline.1.estado', 'actual')
                 ->where('postulante.estado', 'en_evaluacion'));
 
-        // Cargar los 3 documentos del expediente.
-        foreach (['certificado', 'silabos', 'constancia'] as $tipo) {
-            $p->documentos()->create([
-                'tipo' => $tipo, 'nombre_original' => "{$tipo}.pdf",
-                'ruta' => "postulantes/{$p->id}/{$tipo}.pdf", 'tamano' => 1000,
-            ]);
-        }
+        // El Ejecutivo Comercial de Admisión aprueba el expediente.
+        $p->update(['revision_estado' => 'aprobada']);
 
-        // Fase 2 completada, fase 3 (equivalencias) actual.
-        $this->actingAs($p, 'postulante')->get('/portal/')
+        // Etapa 2 completada, etapa 3 (simulación) actual.
+        $this->actingAs($p->fresh(), 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
                 ->where('timeline.1.estado', 'completado')
+                ->where('timeline.2.label', 'Simulación de convalidación')
                 ->where('timeline.2.estado', 'actual'));
     }
 }

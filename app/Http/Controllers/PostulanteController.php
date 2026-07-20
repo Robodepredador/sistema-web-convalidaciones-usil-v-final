@@ -471,7 +471,9 @@ class PostulanteController extends Controller
             'fecha_nacimiento'      => ['nullable', 'date', 'before:today'],
             'genero'                => ['nullable', 'in:masculino,femenino,otro,no_especifica'],
             'nacionalidad'          => ['nullable', 'string', 'max:60'],
-            'email'                 => [$borrador ? 'nullable' : 'required', 'email', 'max:150'],
+            'email'                 => [$borrador ? 'nullable' : 'required', 'email', 'max:150',
+                // El correo es la identidad de acceso al portal: único entre postulantes activos.
+                Rule::unique('postulantes', 'email')->ignore($id)->whereNull('deleted_at')],
             'telefono'              => ['nullable', 'string', 'max:20'],
             'pais_residencia'       => ['nullable', 'string', 'max:60'],
             'direccion'             => ['nullable', 'string', 'max:200'],
@@ -499,6 +501,7 @@ class PostulanteController extends Controller
             'ciclo_postulacion.regex' => 'El ciclo debe tener el formato AAAA-N (por ejemplo, 2026-1).',
             'carrera_destino_id.required' => 'Selecciona la carrera destino en USIL.',
             'email.required'          => 'El correo es obligatorio para registrar al postulante.',
+            'email.unique'            => 'Ya existe un postulante registrado con ese correo.',
         ]);
 
         // Solo columnas persistibles (los archivos se procesan aparte).

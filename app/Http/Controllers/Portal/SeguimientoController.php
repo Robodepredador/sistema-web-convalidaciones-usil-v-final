@@ -19,13 +19,10 @@ class SeguimientoController extends Controller
         $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera', 'simulaciones.detalles', 'simulaciones.convalidacion']);
 
         // Señales reales del avance del expediente.
-        $docsCount     = $p->documentos()->count();
-        $docsCompletos = $docsCount >= 3;
-        $destinos      = $p->destinos;
-        $todasAprob    = $destinos->isNotEmpty() && $destinos->every(fn ($d) => $d->estado_equivalencias === 'aprobada');
-        $enRevision    = $destinos->contains(fn ($d) => in_array($d->estado_equivalencias, ['en_revision', 'aprobada'], true));
-        $tieneSim      = $p->simulaciones->isNotEmpty();
-        $confirmada    = $p->simulaciones->contains(fn (Simulacion $s) => $s->convalidacion?->estado === Convalidacion::CONFIRMADA);
+        $docsCount  = $p->documentos()->count();
+        $destinos   = $p->destinos;
+        $tieneSim   = $p->simulaciones->isNotEmpty();
+        $confirmada = $p->simulaciones->contains(fn (Simulacion $s) => $s->convalidacion?->estado === Convalidacion::CONFIRMADA);
 
         return inertia('Portal/Seguimiento', [
             'postulante' => [
@@ -41,16 +38,15 @@ class SeguimientoController extends Controller
                 'revision_estado'        => $p->revision_estado,
                 'revision_observaciones' => $p->revision_observaciones,
             ],
-            // Carreras solicitadas (una o más) con su estado de revisión.
+            // Carreras solicitadas (una o más).
             'destinos' => $destinos->map(fn ($d) => [
                 'carrera' => $d->carrera?->nombre,
-                'estado'  => $d->estado_equivalencias,
             ])->values(),
             // Process Timeline del proceso de convalidación.
             'timeline' => SeguimientoTimeline::construir(
                 $p->estado,
                 $p->created_at?->format('d/m/Y'),
-                $docsCount, $docsCompletos, $todasAprob, $enRevision, $tieneSim, $confirmada
+                $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim, $confirmada
             ),
             'simulaciones' => $p->simulaciones->map(fn (Simulacion $s) => [
                 'id'        => $s->id,

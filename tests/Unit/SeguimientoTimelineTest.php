@@ -15,43 +15,46 @@ class SeguimientoTimelineTest extends TestCase
 
     public function test_fase_1_solo_registro(): void
     {
-        $t = SeguimientoTimeline::construir('nuevo', '01/01/2026', 0, false, false, false, false, false);
-        $this->assertSame(['completado', 'actual', 'pendiente', 'pendiente', 'pendiente'], $this->estados($t));
+        $t = SeguimientoTimeline::construir('nuevo', '01/01/2026', 0, 'pendiente', false, false);
+        $this->assertSame(['completado', 'actual', 'pendiente', 'pendiente'], $this->estados($t));
     }
 
-    public function test_fase_2_documentos_completos(): void
+    public function test_fase_2_documentos_aprobados_por_admision(): void
     {
-        $t = SeguimientoTimeline::construir('nuevo', '01/01/2026', 3, true, false, false, false, false);
-        $this->assertSame(['completado', 'completado', 'actual', 'pendiente', 'pendiente'], $this->estados($t));
+        $t = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'aprobada', false, false);
+        $this->assertSame(['completado', 'completado', 'actual', 'pendiente'], $this->estados($t));
     }
 
-    public function test_fase_3_equivalencias_aprobadas(): void
+    public function test_fase_3_simulacion(): void
     {
-        $t = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, true, true, true, false, false);
-        $this->assertSame(['completado', 'completado', 'completado', 'actual', 'pendiente'], $this->estados($t));
+        $t = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'aprobada', true, false);
+        $this->assertSame(['completado', 'completado', 'completado', 'actual'], $this->estados($t));
     }
 
-    public function test_fase_4_simulacion(): void
+    public function test_fase_4_convalidacion_confirmada(): void
     {
-        $t = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, true, true, true, true, false);
-        $this->assertSame(['completado', 'completado', 'completado', 'completado', 'actual'], $this->estados($t));
+        $t = SeguimientoTimeline::construir('admitido', '01/01/2026', 3, 'aprobada', true, true);
+        $this->assertSame(['completado', 'completado', 'completado', 'completado'], $this->estados($t));
     }
 
-    public function test_fase_5_convalidacion_confirmada(): void
+    public function test_detalle_documentos_segun_revision(): void
     {
-        $t = SeguimientoTimeline::construir('admitido', '01/01/2026', 3, true, true, true, true, true);
-        $this->assertSame(['completado', 'completado', 'completado', 'completado', 'completado'], $this->estados($t));
-    }
+        // Pendiente: muestra el avance de entrega de documentos.
+        $pendiente = SeguimientoTimeline::construir('nuevo', '01/01/2026', 1, 'pendiente', false, false);
+        $this->assertSame('1 de 3 documentos entregados', $pendiente[1]['detalle']);
 
-    public function test_equivalencias_en_revision_muestra_detalle(): void
-    {
-        $t = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, true, false, true, false, false);
-        $this->assertSame('En revisión por la coordinación', $t[2]['detalle']);
+        // Observada: pide corregir.
+        $observada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'observada', false, false);
+        $this->assertSame('Documentación observada: revisa las indicaciones', $observada[1]['detalle']);
+
+        // Aprobada: expediente validado por Admisión.
+        $aprobada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'aprobada', false, false);
+        $this->assertSame('Documentos revisados y aprobados por Admisión', $aprobada[1]['detalle']);
     }
 
     public function test_rechazado_devuelve_una_sola_etapa(): void
     {
-        $t = SeguimientoTimeline::construir('rechazado', '01/01/2026', 0, false, false, false, false, false);
+        $t = SeguimientoTimeline::construir('rechazado', '01/01/2026', 0, 'pendiente', false, false);
         $this->assertCount(1, $t);
         $this->assertSame('rechazado', $t[0]['estado']);
     }
