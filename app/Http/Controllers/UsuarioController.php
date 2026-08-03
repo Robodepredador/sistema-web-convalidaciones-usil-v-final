@@ -23,36 +23,39 @@ class UsuarioController extends Controller
     public function index(Request $request)
     {
         $usuarios = User::with('rol')
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$v}%")->orWhere('email', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('email', 'like', "%{$v}%")))
             ->when($request->rol_id, fn ($x, $v) => $x->where('rol_id', $v))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
             ->when($request->estado === 'inactivo', fn ($x) => $x->where('activo', false))
             ->orderBy('nombre')
             ->paginate(10)->withQueryString()
             ->through(fn (User $u) => [
-                'id'            => $u->id,
-                'nombre'        => $u->nombre,
-                'email'         => $u->email,
-                'rol'           => $u->rol?->nombre,
-                'activo'        => $u->activo,
+                'id' => $u->id,
+                'nombre' => $u->nombre,
+                'email' => $u->email,
+                'rol' => $u->rol?->nombre,
+                'activo' => $u->activo,
                 'primer_acceso' => $u->primer_acceso,
+                // Auditor y Consulta conservan permisos pero no inician sesión:
+                // sin esto la pantalla los muestra "Activo" sin más y el
+                // administrador no entiende por qué no pueden entrar.
+                'sin_acceso' => $u->rol && ! $u->rol->puedeIniciarSesion(),
             ]);
 
         return inertia('Usuarios/Index', [
             'usuarios' => $usuarios,
-            'activos'  => User::where('activo', true)->count(),
-            'roles'    => Role::orderBy('nombre')->get(['id', 'nombre']),
-            'filtros'  => $request->only(['q', 'rol_id', 'estado']),
+            'activos' => User::where('activo', true)->count(),
+            'roles' => Role::orderBy('nombre')->get(['id', 'nombre']),
+            'filtros' => $request->only(['q', 'rol_id', 'estado']),
         ]);
     }
 
     public function create()
     {
         return inertia('Usuarios/Form', [
-            'usuario'    => null,
-            'roles'      => $this->rolesConAlcance(),
-            'carreras'   => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'usuario' => null,
+            'roles' => $this->rolesConAlcance(),
+            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'facultades' => Facultad::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
@@ -72,11 +75,11 @@ class UsuarioController extends Controller
         $temporal = Str::password(12);
 
         $user = User::create([
-            'nombre'        => $datos['nombre'],
-            'email'         => $datos['email'],
+            'nombre' => $datos['nombre'],
+            'email' => $datos['email'],
             'password_hash' => Hash::make($temporal),
-            'rol_id'        => $datos['rol_id'],
-            'activo'        => $datos['activo'] ?? true,
+            'rol_id' => $datos['rol_id'],
+            'activo' => $datos['activo'] ?? true,
             'primer_acceso' => true,
         ]);
 
@@ -92,16 +95,16 @@ class UsuarioController extends Controller
     {
         return inertia('Usuarios/Form', [
             'usuario' => [
-                'id'         => $usuario->id,
-                'nombre'     => $usuario->nombre,
-                'email'      => $usuario->email,
-                'rol_id'     => $usuario->rol_id,
-                'activo'     => $usuario->activo,
-                'carreras'   => $usuario->carrerasPermitidas()->pluck('carreras.id'),
+                'id' => $usuario->id,
+                'nombre' => $usuario->nombre,
+                'email' => $usuario->email,
+                'rol_id' => $usuario->rol_id,
+                'activo' => $usuario->activo,
+                'carreras' => $usuario->carrerasPermitidas()->pluck('carreras.id'),
                 'facultades' => $usuario->facultadesPermitidas()->pluck('facultades.id'),
             ],
-            'roles'      => $this->rolesConAlcance(),
-            'carreras'   => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'roles' => $this->rolesConAlcance(),
+            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'facultades' => Facultad::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
@@ -113,7 +116,7 @@ class UsuarioController extends Controller
 
         $usuario->update([
             'nombre' => $datos['nombre'],
-            'email'  => $datos['email'],
+            'email' => $datos['email'],
             'rol_id' => $datos['rol_id'],
             'activo' => $datos['activo'] ?? $usuario->activo,
         ]);
@@ -143,10 +146,10 @@ class UsuarioController extends Controller
         $temporal = Str::password(12);
 
         $usuario->forceFill([
-            'password_hash'     => Hash::make($temporal),
-            'primer_acceso'     => true,
+            'password_hash' => Hash::make($temporal),
+            'primer_acceso' => true,
             'intentos_fallidos' => 0,
-            'bloqueado_hasta'   => null,
+            'bloqueado_hasta' => null,
         ])->save();
 
         AuditoriaService::registrar('editar', 'usuarios', $usuario->id, null, ['reset_password' => true]);

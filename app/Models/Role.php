@@ -13,25 +13,47 @@ class Role extends Model
     // Nomenclatura RBAC. Se conservan ADMIN/COORDINADOR como constantes (con su
     // nuevo valor) para no romper el código existente que las referencia.
     public const ADMIN = 'Superusuario';                 // antes 'Administrador'
+
     public const SUPERUSUARIO = 'Superusuario';
+
     public const ASESOR = 'Asesor de Admisión';
+
     public const EJECUTIVO = 'Ejecutivo Comercial de Admisión';
+
     public const COORDINADOR = 'Coordinador de Carrera'; // antes 'Coordinador'
-    public const DIRECTOR = 'Director de Escuela';
+
+    public const DIRECTOR = 'Director de Carrera';       // antes 'Director de Escuela'
+
     public const DECANO = 'Decano';
+
     public const AUDITOR = 'Auditor';
+
     public const CONSULTA = 'Consulta / Alta Dirección';
+
+    /**
+     * Roles inhabilitados: siguen existiendo en el RBAC (conservan permisos y
+     * alcance) pero no pueden iniciar sesión. Vive aquí, y no en el
+     * LoginController, para que la pantalla de Usuarios muestre la misma verdad
+     * que aplica el login.
+     */
+    public const SIN_ACCESO = [self::AUDITOR, self::CONSULTA];
+
+    /** ¿Este rol habilita el inicio de sesión? */
+    public function puedeIniciarSesion(): bool
+    {
+        return ! in_array($this->nombre, self::SIN_ACCESO, true);
+    }
 
     /** Alcance de datos de cada rol: global | carrera | facultad. */
     public const ALCANCE = [
         self::SUPERUSUARIO => 'global',
-        self::ASESOR       => 'global',
-        self::EJECUTIVO    => 'global',
-        self::COORDINADOR  => 'carrera',
-        self::DIRECTOR     => 'carrera',
-        self::DECANO       => 'facultad',
-        self::AUDITOR      => 'global',
-        self::CONSULTA     => 'global',
+        self::ASESOR => 'global',
+        self::EJECUTIVO => 'global',
+        self::COORDINADOR => 'carrera',
+        self::DIRECTOR => 'carrera',
+        self::DECANO => 'facultad',
+        self::AUDITOR => 'global',
+        self::CONSULTA => 'global',
     ];
 
     protected $fillable = ['nombre', 'descripcion'];

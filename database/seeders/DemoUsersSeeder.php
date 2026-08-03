@@ -2,20 +2,33 @@
 
 namespace Database\Seeders;
 
+use App\Models\Carrera;
+use App\Models\Facultad;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Crea las 7 cuentas demo del login (contraseña Demo#1234), una por perfil.
+ * Cuentas demo del login (contraseña Demo#1234), una por perfil.
  * Idempotente y no destructivo: usa updateOrCreate, así se puede correr en
  * cualquier momento (incluido dentro de DatabaseSeeder) sin borrar usuarios reales.
+ *
+ * NUNCA en producción: la contraseña es pública (aparece en la pantalla de login
+ * y en el repositorio) y una de las cuentas es Superusuario. La guarda vive aquí
+ * —y no en DatabaseSeeder— para que también proteja la invocación directa
+ * `php artisan db:seed --class=DemoUsersSeeder --force`.
  */
 class DemoUsersSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command?->warn('DemoUsersSeeder omitido: no se crean cuentas demo en producción.');
+
+            return;
+        }
+
         $usuariosDemo = [
             ['email' => 'admin.demo@usil.edu.pe',      'rol' => Role::SUPERUSUARIO, 'nombre' => 'Superusuario Demo'],
             ['email' => 'coord.demo@usil.edu.pe',      'rol' => Role::COORDINADOR,  'nombre' => 'Coordinador Demo'],
@@ -36,10 +49,10 @@ class DemoUsersSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => $u['email']],
                 [
-                    'nombre'        => $u['nombre'],
+                    'nombre' => $u['nombre'],
                     'password_hash' => Hash::make('Demo#1234'),
-                    'rol_id'        => $rol->id,
-                    'activo'        => true,
+                    'rol_id' => $rol->id,
+                    'activo' => true,
                     'primer_acceso' => false, // Pueden navegar sin cambiar clave de inmediato.
                 ]
             );
@@ -47,9 +60,9 @@ class DemoUsersSeeder extends Seeder
             // Alcance de datos: sin asignaciones, los roles con alcance carrera/facultad
             // ven los listados vacíos. Las cuentas demo reciben todo lo existente.
             if ($rol->alcance() === 'carrera') {
-                $user->carrerasPermitidas()->sync(\App\Models\Carrera::pluck('id'));
+                $user->carrerasPermitidas()->sync(Carrera::pluck('id'));
             } elseif ($rol->alcance() === 'facultad') {
-                $user->facultadesPermitidas()->sync(\App\Models\Facultad::pluck('id'));
+                $user->facultadesPermitidas()->sync(Facultad::pluck('id'));
             }
         }
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 class LoginController extends Controller
 {
     private const MAX_INTENTOS = 5;
+
     private const MINUTOS_BLOQUEO = 15;
 
     public function mostrar()
@@ -30,10 +32,8 @@ class LoginController extends Controller
             ['label' => 'Asesor de Admisión', 'email' => 'asesor.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Ejecutivo Comercial de Admisión', 'email' => 'ejecutivo.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Coordinador de Carrera', 'email' => 'coord.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Director de Escuela', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Director de Carrera', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Decano', 'email' => 'decano.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Auditor', 'email' => 'auditor.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Consulta / Alta Dirección', 'email' => 'consulta.demo@usil.edu.pe', 'password' => 'Demo#1234'],
         ] : [];
 
         return inertia('Auth/Login', ['usuariosDemo' => $usuariosDemo]);
@@ -72,10 +72,18 @@ class LoginController extends Controller
             ]);
         }
 
+        // Rol inhabilitado: se valida con la contraseña ya verificada para no
+        // revelar el perfil de una cuenta a quien no conoce sus credenciales.
+        if (in_array($user->rol?->nombre, Role::SIN_ACCESO, true)) {
+            throw ValidationException::withMessages([
+                'email' => 'El perfil asignado no tiene acceso al sistema.',
+            ]);
+        }
+
         // Éxito: limpiar contadores y abrir sesión
         $user->forceFill([
             'intentos_fallidos' => 0,
-            'bloqueado_hasta'   => null,
+            'bloqueado_hasta' => null,
         ])->save();
 
         Auth::login($user, $request->boolean('remember'));
