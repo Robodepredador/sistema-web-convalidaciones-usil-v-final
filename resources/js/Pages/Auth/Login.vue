@@ -9,6 +9,7 @@ defineProps({
 const form = useForm({ email: '', password: '', remember: false });
 const mostrarPassword = ref(false);
 const enviar = () => form.post('/login');
+const anio = new Date().getFullYear();
 
 // Accesos rápidos de prueba: completa las credenciales y entra.
 const usar = (u) => {
@@ -24,7 +25,7 @@ const usar = (u) => {
         <div class="relative hidden min-h-[16rem] overflow-hidden lg:flex lg:w-1/2">
             <div
                 class="absolute inset-0 bg-cover bg-center"
-                style="background-image: linear-gradient(135deg, rgba(31,56,100,0.55), rgba(46,117,182,0.55)), url('/images/login-bg.jpg'), linear-gradient(135deg, #1F3864, #2E75B6)"
+                style="background-image: linear-gradient(135deg, #1F3864, #2E75B6)"
             ></div>
 
             <!-- Marca de agua USIL -->
@@ -68,7 +69,7 @@ const usar = (u) => {
                     <form @submit.prevent="enviar" class="space-y-5">
                         <!-- Correo -->
                         <div>
-                            <label class="mb-1.5 block text-sm font-medium text-slate-700">Correo Institucional</label>
+                            <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Correo Institucional</label>
                             <div class="relative">
                                 <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -76,7 +77,7 @@ const usar = (u) => {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9 6 9-6" />
                                     </svg>
                                 </span>
-                                <input v-model="form.email" type="email" autocomplete="username"
+                                <input id="email" v-model="form.email" type="email" autocomplete="username"
                                        placeholder="ejemplo@usil.edu.pe"
                                        class="w-full rounded-lg border-slate-300 py-2.5 pl-10 pr-3 text-sm text-slate-700 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                             </div>
@@ -85,17 +86,18 @@ const usar = (u) => {
 
                         <!-- Contraseña -->
                         <div>
-                            <label class="mb-1.5 block text-sm font-medium text-slate-700">Contraseña</label>
+                            <label for="password" class="mb-1.5 block text-sm font-medium text-slate-700">Contraseña</label>
                             <div class="relative">
                                 <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V7.5a4.5 4.5 0 00-9 0v3M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v6a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5v-6a1.5 1.5 0 011.5-1.5z" />
                                     </svg>
                                 </span>
-                                <input v-model="form.password" :type="mostrarPassword ? 'text' : 'password'"
+                                <input id="password" v-model="form.password" :type="mostrarPassword ? 'text' : 'password'"
                                        autocomplete="current-password" placeholder="••••••••"
                                        class="w-full rounded-lg border-slate-300 py-2.5 pl-10 pr-10 text-sm text-slate-700 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                                 <button type="button" @click="mostrarPassword = !mostrarPassword"
+                                        :aria-label="mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                                         class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600">
                                     <svg v-if="!mostrarPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
@@ -131,21 +133,9 @@ const usar = (u) => {
                     <!-- Divisor -->
                     <div class="my-6 flex items-center gap-3">
                         <span class="h-px flex-1 bg-slate-200"></span>
-                        <span class="text-xs text-slate-400">o continúa con</span>
+                        <span class="text-xs text-slate-400">o</span>
                         <span class="h-px flex-1 bg-slate-200"></span>
                     </div>
-
-                    <!-- Microsoft 365 -->
-                    <button type="button"
-                            class="flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-300 bg-white py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                        <svg class="h-4 w-4" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
-                            <path fill="#f25022" d="M1 1h10v10H1z" />
-                            <path fill="#7fba00" d="M12 1h10v10H12z" />
-                            <path fill="#00a4ef" d="M1 12h10v10H1z" />
-                            <path fill="#ffb900" d="M12 12h10v10H12z" />
-                        </svg>
-                        Acceso con Microsoft 365
-                    </button>
 
                     <!-- Portal del postulante -->
                     <a href="/portal/login"
@@ -179,12 +169,7 @@ const usar = (u) => {
                 <div class="flex flex-col items-center justify-between gap-2 text-xs text-slate-400 sm:flex-row">
                     <div>
                         <span class="font-semibold text-slate-500">USIL Convalidaciones</span>
-                        <span class="ml-3">© 2024 Universidad San Ignacio de Loyola. All rights reserved.</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <a href="#" class="hover:text-slate-600">Privacy Policy</a>
-                        <a href="#" class="hover:text-slate-600">Terms of Service</a>
-                        <a href="#" class="hover:text-slate-600">IT Support</a>
+                        <span class="ml-3">© {{ anio }} Universidad San Ignacio de Loyola. Todos los derechos reservados.</span>
                     </div>
                 </div>
             </footer>
