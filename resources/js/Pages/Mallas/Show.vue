@@ -25,7 +25,6 @@ const TIPO = { teorico: 'Teórico', practico: 'Práctico', teorico_practico: 'Te
 const tabs = [
     { id: 'info', label: 'Información' },
     { id: 'competencias', label: 'Competencias' },
-    { id: 'equivalencias', label: 'Equivalencias' },
     { id: 'convalidaciones', label: 'Convalidaciones' },
     { id: 'historial', label: 'Historial' },
 ];
@@ -339,7 +338,6 @@ const tarjetas = computed(() => [
                                 :class="tab === t.id ? 'border-[#2E75B6] text-[#1F3864]' : 'border-transparent text-slate-400 hover:text-slate-600'"
                                 class="-mb-px shrink-0 border-b-2 pb-2 font-medium">
                             {{ t.label }}
-                            <span v-if="t.id === 'equivalencias' && cursoSel.equivalencias.length" class="ml-1 rounded-full bg-slate-100 px-1.5 text-xs">{{ cursoSel.equivalencias.length }}</span>
                             <span v-if="t.id === 'convalidaciones' && cursoSel.convalidaciones.length" class="ml-1 rounded-full bg-slate-100 px-1.5 text-xs">{{ cursoSel.convalidaciones.length }}</span>
                         </button>
                     </div>
@@ -368,15 +366,6 @@ const tarjetas = computed(() => [
                             <p class="mb-1 text-xs font-medium text-slate-400">Resultados de aprendizaje</p>
                             <p class="whitespace-pre-line text-slate-600">{{ cursoSel.resultados_aprendizaje || '—' }}</p>
                         </div>
-                    </div>
-
-                    <div v-else-if="tab === 'equivalencias'" class="space-y-2 text-sm">
-                        <div v-for="(e, i) in cursoSel.equivalencias" :key="i" class="rounded-lg border border-slate-200 p-3">
-                            <p class="font-medium text-slate-700">{{ e.curso_externo }}</p>
-                            <p class="text-xs text-slate-500">{{ e.institucion }} · {{ e.carrera }}</p>
-                            <span class="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-600">{{ e.tipo }} · {{ e.origen }}</span>
-                        </div>
-                        <p v-if="!cursoSel.equivalencias.length" class="py-4 text-center text-slate-400">Este curso no tiene equivalencias registradas.</p>
                     </div>
 
                     <div v-else-if="tab === 'convalidaciones'" class="space-y-2 text-sm">

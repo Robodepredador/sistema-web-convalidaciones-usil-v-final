@@ -227,7 +227,6 @@ class MallaController extends Controller
             'ciclos' => fn ($q) => $q->orderBy('numero'),
             'ciclos.cursos' => fn ($q) => $q->orderBy('codigo'),
             'ciclos.cursos.prerequisito',
-            'ciclos.cursos.equivalencias.cursoExterno.carreraExterna.institucion',
             'ciclos.cursos.detallesSimulacion.simulacion',
         ]);
 
@@ -268,13 +267,6 @@ class MallaController extends Controller
                     'resultados_aprendizaje' => $cu->resultados_aprendizaje,
                     'creado' => $cu->created_at?->format('Y-m-d H:i'),
                     'actualizado' => $cu->updated_at?->format('Y-m-d H:i'),
-                    'equivalencias' => $cu->equivalencias->map(fn ($e) => [
-                        'institucion' => $e->cursoExterno?->carreraExterna?->institucion?->nombre,
-                        'carrera' => $e->cursoExterno?->carreraExterna?->nombre,
-                        'curso_externo' => trim(($e->cursoExterno?->codigo ? $e->cursoExterno->codigo.' — ' : '').$e->cursoExterno?->nombre),
-                        'tipo' => $e->tipo_equivalencia,
-                        'origen' => $e->origen,
-                    ])->values(),
                     'convalidaciones' => $cu->detallesSimulacion->map(fn ($d) => [
                         'estudiante' => trim(($d->simulacion?->nombres ?? '').' '.($d->simulacion?->apellidos ?? '')),
                         'estado' => $d->simulacion?->estado,

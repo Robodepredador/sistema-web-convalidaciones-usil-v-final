@@ -8,7 +8,7 @@ use App\Models\User;
 /**
  * Resuelve el ALCANCE de datos de un usuario según su rol:
  *  - global   → ve todas las carreras (Superusuario, Servicios, Auditor, Consulta).
- *  - carrera  → solo sus carreras asignadas (Coordinador, Director de Escuela).
+ *  - carrera  → solo sus carreras asignadas (Coordinador, Director de Carrera).
  *  - facultad → todas las carreras de su(s) facultad(es) (Decano).
  *
  * Devuelve la lista de carrera_id visibles, o null cuando no hay restricción.

@@ -8,16 +8,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SimulacionDetalle extends Model
 {
     protected $table = 'simulacion_detalle';
+
     protected $fillable = [
-        'simulacion_id', 'curso_usil_id', 'curso_externo_id', 'equivalencia_id',
+        'simulacion_id', 'curso_usil_id', 'curso_externo_id',
         'curso_origen_nombre', 'nota_origen', 'creditos_origen', 'ciclo_origen',
         'clasificacion', 'confianza', 'creditos_reconocidos', 'excluido', 'origen',
     ];
+
     protected $casts = [
-        'excluido'             => 'boolean',
+        'excluido' => 'boolean',
         'creditos_reconocidos' => 'decimal:1',
-        'creditos_origen'      => 'decimal:1',
-        'confianza'            => 'decimal:1',
+        'creditos_origen' => 'decimal:1',
+        'confianza' => 'decimal:1',
     ];
 
     public function simulacion(): BelongsTo

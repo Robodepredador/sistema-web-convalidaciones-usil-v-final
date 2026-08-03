@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -34,11 +35,11 @@ class RbacTest extends TestCase
     /** Crea un usuario con el rol indicado y sus permisos reales (RoleSeeder). */
     private function usuarioConRol(string $rolNombre): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $rol = Role::where('nombre', $rolNombre)->firstOrFail();
 
         return User::create([
-            'nombre' => $rolNombre, 'email' => strtolower(str_replace([' ', '/'], '', $rolNombre)) . '@usil.edu.pe',
+            'nombre' => $rolNombre, 'email' => strtolower(str_replace([' ', '/'], '', $rolNombre)).'@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
@@ -50,14 +51,13 @@ class RbacTest extends TestCase
         $auditor = $this->usuarioConRol(Role::AUDITOR);
 
         // Rutas sin binding: el middleware responde 403 directo.
-        $this->actingAs($auditor)->post('/equivalencias', [])->assertForbidden();
+        $this->actingAs($auditor)->post('/mallas-externas', [])->assertForbidden();
         $this->actingAs($auditor)->post('/simulaciones', [])->assertForbidden();
         $this->actingAs($auditor)->post('/postulantes', [])->assertForbidden();
 
         // Rutas con binding {id}: el binding (404) corre antes que el permiso (403);
         // ambos deniegan — lo importante es que nunca sea 2xx/302 de éxito.
         foreach ([
-            fn () => $this->delete('/equivalencias/1'),
             fn () => $this->put('/simulaciones/1', []),
             fn () => $this->delete('/simulaciones/1'),
             fn () => $this->post('/simulaciones/1/confirmar'),
@@ -99,17 +99,26 @@ class RbacTest extends TestCase
         $this->actingAs($coordinador)->get('/postulantes')->assertForbidden();
         $this->actingAs($coordinador)->post('/postulantes', [])->assertForbidden();
         // Pero conserva su módulo de evaluación.
-        $this->actingAs($coordinador)->get('/equivalencias')->assertOk();
         $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
     }
 
-    /** El Decano sí puede gestionar equivalencias (pasa el middleware de permiso). */
-    public function test_decano_puede_gestionar_equivalencias(): void
+    /** El Coordinador no gestiona mallas externas, pero sí conserva Simulaciones. */
+    public function test_coordinador_no_accede_a_mallas_externas(): void
+    {
+        $coordinador = $this->usuarioConRol(Role::COORDINADOR);
+
+        $this->actingAs($coordinador)->get('/equivalencias')->assertForbidden();
+        $this->actingAs($coordinador)->post('/mallas-externas', [])->assertForbidden();
+        $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
+    }
+
+    /** El Decano sí puede gestionar mallas externas (pasa el middleware de permiso). */
+    public function test_decano_puede_gestionar_mallas_externas(): void
     {
         $decano = $this->usuarioConRol(Role::DECANO);
 
         // 302 (redirect con errores de validación) = pasó la autorización; 403 = bloqueado.
-        $this->actingAs($decano)->post('/equivalencias', [])->assertStatus(302);
+        $this->actingAs($decano)->post('/mallas-externas', [])->assertStatus(302);
         $this->actingAs($decano)->get('/equivalencias')->assertOk();
     }
 }

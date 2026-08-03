@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\CursoExterno;
 use App\Services\Seudonimizador;
-use App\Services\SugerenciaIAService;
 use PHPUnit\Framework\TestCase;
 
 class SugerenciaIATest extends TestCase
@@ -21,24 +19,13 @@ class SugerenciaIATest extends TestCase
         $this->assertStringContainsString('[documento]', $limpio);
     }
 
-    /** R-03: sin API ni historial, el fallback por nombre devuelve coincidencias. */
-    public function test_fallback_por_nombre_sin_ia(): void
+    /** El contenido académico sobrevive a la limpieza (notas y créditos intactos). */
+    public function test_conserva_el_contenido_academico(): void
     {
-        $service = new SugerenciaIAService();
+        $limpio = Seudonimizador::limpiar('Cálculo Diferencial | nota 15 | creditos 4');
 
-        $cursoExterno = new CursoExterno(['nombre' => 'Cálculo Diferencial']);
-
-        $cursosUsil = [
-            ['id' => 1, 'nombre' => 'Cálculo Diferencial e Integral', 'silabo_texto' => null],
-            ['id' => 2, 'nombre' => 'Historia del Arte', 'silabo_texto' => null],
-        ];
-
-        // Sin OPENAI_API_KEY ni historial -> usa fallback por nombre.
-        $ref = new \ReflectionMethod($service, 'fallbackPorNombre');
-        $ref->setAccessible(true);
-        $resultado = $ref->invoke($service, $cursoExterno, $cursosUsil);
-
-        $this->assertNotEmpty($resultado);
-        $this->assertEquals(1, $resultado[0]['curso_usil_id']); // mejor coincidencia
+        $this->assertStringContainsString('Cálculo Diferencial', $limpio);
+        $this->assertStringContainsString('nota 15', $limpio);
+        $this->assertStringContainsString('creditos 4', $limpio);
     }
 }

@@ -1,27 +1,21 @@
 <script setup>
-import { router, Link, usePage } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import { reactive, ref, computed } from 'vue';
 
-const permisos = computed(() => usePage().props.auth?.user?.permisos ?? []);
-const puedeEditar = computed(() => permisos.value.includes('*') || permisos.value.includes('evaluacion.editar'));
-
 const props = defineProps({
-    carreras: Array, mallasUsil: Array,
-    cursosUsil: Array, previas: Array, seleccion: Object,
     malla: { type: Object, default: null },
     instituciones: Array,
 });
 
-// --- Navegación del wizard (Pipeline IA) ---
-const paso = ref(props.malla ? 4 : 1);
-const irA = (n) => { paso.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+// --- Navegación del wizard ---
+// Los pasos 4 (Mapeo Maestro) y 5 (Diccionario) pertenecían al catálogo de
+// equivalencias, hoy desactivado. El wizard termina al crear la malla.
+const paso = ref(1);
 
 const PASOS = [
     { n: 1, label: 'Recepción' },
     { n: 2, label: 'Extracción IA' },
     { n: 3, label: 'Catálogo Extraído' },
-    { n: 4, label: 'Mapeo Maestro' },
-    { n: 5, label: 'Diccionario Generado' },
 ];
 
 // ===================== ETAPAS 1-3: CREACIÓN DE LA MALLA EXTERNA =====================
@@ -92,109 +86,20 @@ const guardarMallaOficial = () => {
     formData.append('pdf', formRecepcion.pdf);
     formData.append('cursos', JSON.stringify(cursosExtraidos.value));
 
-    window.axios.post('/mallas-externas', formData).then(res => {
-        // Redirige al step 4 (Mapeo) pasándole el malla_id que acaba de crearse
-        router.get(`/equivalencias/crear`, { malla_id: res.data.id }, { preserveScroll: true });
+    window.axios.post('/mallas-externas', formData).then(() => {
+        router.get('/equivalencias');
     }).catch(e => {
         alert('Error al guardar la malla: ' + (e.response?.data?.message || 'Revisa consola'));
     });
 };
-
-
-// ===================== ETAPAS 4-5: MAPEO Y DICCIONARIO =====================
-const sel = reactive({
-    carrera_usil_id: props.seleccion?.carrera_usil_id ?? '',
-    malla_usil_id: props.seleccion?.malla_usil_id ?? '',
-});
-
-const recargarMapeo = () => router.get('/equivalencias/crear',
-    { malla_id: props.malla?.id, ...sel },
-    { preserveState: true, preserveScroll: true, replace: true });
-
-const aniosMallaUsil = computed(() => {
-    const vistos = new Map();
-    props.mallasUsil.filter((m) => m.carrera_id == sel.carrera_usil_id)
-        .forEach((m) => { if (!vistos.has(m.anio)) vistos.set(m.anio, m); });
-    return [...vistos.keys()].sort((a, b) => b - a);
-});
-const anioUsilSeleccionado = computed(() => props.mallasUsil.find((m) => m.id == sel.malla_usil_id)?.anio ?? '');
-
-const onCarreraUsil = (e) => { sel.carrera_usil_id = e.target.value; sel.malla_usil_id = ''; recargarMapeo(); };
-const onAnioUsil = (e) => {
-    const anio = e.target.value;
-    const candidatas = props.mallasUsil.filter((m) => m.carrera_id == sel.carrera_usil_id && m.anio == anio);
-    const elegida = candidatas.find((m) => m.activa) ?? candidatas[0];
-    sel.malla_usil_id = elegida?.id ?? '';
-    recargarMapeo();
-};
-
-const contextoListo = computed(() => !!sel.carrera_usil_id && !!sel.malla_usil_id && props.cursosUsil.length > 0);
-const cursosExternosFinales = computed(() => props.malla?.cursos ?? []);
-
-const yaEquivalente = (ce, cu) => props.previas?.some((p) => p.curso_externo_id == ce && p.curso_usil_id == cu);
-const seleccionUsil = reactive({});
-const sugerencias = ref({});
-const cargandoIA = ref(null);
-
-const pedirSugerencias = async (cursoExternoId) => {
-    cargandoIA.value = cursoExternoId;
-    try {
-        const { data } = await window.axios.post('/sugerencias', {
-            curso_externo_id: cursoExternoId,
-            carrera_usil_id: sel.carrera_usil_id,
-            malla_id: sel.malla_usil_id,
-        });
-        sugerencias.value[cursoExternoId] = data.sugerencias;
-    } finally {
-        cargandoIA.value = null;
-    }
-};
-
-const guardarMapeo = (cursoExternoId, cursoUsilId, origenIa = false, confianza = null) => {
-    if (!cursoUsilId) return;
-    const ruta = origenIa ? '/sugerencias/aceptar' : '/equivalencias';
-    router.post(ruta, {
-        carrera_externa_id: props.malla.carrera_externa_id,
-        carrera_usil_id: sel.carrera_usil_id,
-        curso_externo_id: cursoExternoId,
-        curso_usil_id: cursoUsilId,
-        tipo_equivalencia: 'completa',
-        confianza,
-    }, { preserveScroll: true, preserveState: true });
-};
-
-const cursoUsilDe = (id) => props.cursosUsil.find((c) => c.id == id);
-const cursoExtDe = (id) => cursosExternosFinales.value.find((c) => c.id == id);
-const resumen = computed(() => (props.previas ?? []).map((p) => {
-    const u = cursoUsilDe(p.curso_usil_id);
-    const e = cursoExtDe(p.curso_externo_id);
-    return {
-        id: p.id,
-        externo: e ? `${e.codigo || ''} ${e.nombre}` : `#${p.curso_externo_id}`,
-        usil: u ? `${u.codigo || ''} ${u.nombre}` : `#${p.curso_usil_id}`,
-        creditos: u ? Number(u.creditos) : 0,
-        tipo: p.tipo_equivalencia,
-        origen: p.origen,
-    };
-}));
-const totalCreditos = computed(() => resumen.value.reduce((s, r) => s + r.creditos, 0));
-const cobertura = computed(() => cursosExternosFinales.value.length
-    ? Math.round((resumen.value.length / cursosExternosFinales.value.length) * 100) : 0);
-
-const eliminarEquivalencia = (id) => {
-    if(confirm('¿Eliminar esta equivalencia de la base de conocimiento?')) {
-        router.delete(`/equivalencias/${id}`, { preserveScroll: true });
-    }
-};
-
 </script>
 
 <template>
     <div class="max-w-6xl">
         <!-- Encabezado -->
         <div class="mb-5">
-            <h1 class="text-2xl font-semibold text-[#1F3864]">Pipeline IA: Base de Conocimiento</h1>
-            <p class="mt-1 text-sm text-slate-500">Mapeo maestro automatizado: Sube una malla, extrae los cursos y empareja.</p>
+            <h1 class="text-2xl font-semibold text-[#1F3864]">Registrar Malla Externa</h1>
+            <p class="mt-1 text-sm text-slate-500">Sube la malla oficial en PDF y extrae su catálogo de cursos con IA.</p>
         </div>
 
         <div class="mb-6 flex gap-6 border-b border-slate-200 text-sm font-medium">
@@ -369,134 +274,6 @@ const eliminarEquivalencia = (id) => {
                                 class="rounded-md bg-green-600 px-6 py-3 text-sm font-bold text-white shadow hover:bg-green-700">
                             ✓ Confirmar y Crear Malla
                         </button>
-                    </div>
-                </section>
-
-                <!-- PASO 4: Mapeo Maestro -->
-                <section v-if="paso === 4 && malla" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h2 class="text-lg font-semibold text-[#1F3864]">Emparejamiento Maestro</h2>
-                            <p class="text-sm text-slate-500 mt-1">Selecciona el destino y busca la equivalencia para los cursos extraídos.</p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm">
-                            <div class="flex gap-2 items-center mb-2">
-                                <span class="font-medium text-slate-700">Target USIL:</span>
-                                <select :value="sel.carrera_usil_id" @change="onCarreraUsil" class="rounded-md border-slate-300 text-xs py-1 focus:border-[#2E75B6]">
-                                    <option value="">Seleccione carrera...</option>
-                                    <option v-for="c in carreras" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                                </select>
-                            </div>
-                            <div class="flex gap-2 items-center">
-                                <span class="font-medium text-slate-700">Año Malla:</span>
-                                <select :value="anioUsilSeleccionado" @change="onAnioUsil" :disabled="!sel.carrera_usil_id" class="rounded-md border-slate-300 text-xs py-1 focus:border-[#2E75B6] disabled:opacity-50">
-                                    <option value="">Año...</option>
-                                    <option v-for="a in aniosMallaUsil" :key="a" :value="a">{{ a }}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="contextoListo" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 mt-6 border-t border-slate-200 pt-6">
-                        <div v-for="ce in cursosExternosFinales" :key="ce.id" class="rounded-lg border border-slate-200 p-4 hover:border-[#2E75B6] transition-colors">
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                                <div class="min-w-[250px] flex-1">
-                                    <p class="text-sm font-semibold text-slate-800">{{ ce.nombre }}</p>
-                                    <p class="text-xs text-slate-400 font-mono">{{ ce.codigo || 'S/N' }} • {{ Number(ce.creditos) }} cr.</p>
-                                </div>
-                                <div class="flex-1 w-full">
-                                    <select v-model="seleccionUsil[ce.id]" class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6]">
-                                        <option value="">Buscar equivalencia USIL…</option>
-                                        <option v-for="cu in cursosUsil" :key="cu.id" :value="cu.id" :disabled="yaEquivalente(ce.id, cu.id)">
-                                            {{ cu.nombre }} {{ yaEquivalente(ce.id, cu.id) ? '(Ya mapeado)' : '' }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button v-if="puedeEditar" @click="guardarMapeo(ce.id, seleccionUsil[ce.id])" :disabled="!seleccionUsil[ce.id]"
-                                            class="rounded-md bg-[#2E75B6] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1F3864] disabled:opacity-50">
-                                        Guardar
-                                    </button>
-                                    <button v-if="puedeEditar" @click="pedirSugerencias(ce.id)" :disabled="cargandoIA === ce.id"
-                                            class="rounded-md border border-[#7030A0] px-3 py-1.5 text-xs font-medium text-[#7030A0] hover:bg-purple-50 disabled:opacity-50" title="Usar Inteligencia Artificial">
-                                        {{ cargandoIA === ce.id ? 'IA...' : '✨ Sugerir' }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Sugerencias IA -->
-                            <div v-if="sugerencias[ce.id]" class="mt-3 space-y-2 rounded-md bg-purple-50 border border-purple-100 p-3">
-                                <p v-if="!sugerencias[ce.id].length" class="text-xs text-slate-500">Sin sugerencias con confianza suficiente.</p>
-                                <div v-for="(s, i) in sugerencias[ce.id]" :key="i" class="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-                                    <div class="flex-1">
-                                        <strong class="text-slate-800">{{ s.nombre }}</strong>
-                                        <span class="ml-2 rounded bg-white font-medium border border-purple-200 px-1.5 py-0.5 text-[#7030A0]">{{ Number(s.confianza).toFixed(0) }}%</span>
-                                        <p class="mt-1 text-slate-500 italic">"{{ s.justificacion }}"</p>
-                                    </div>
-                                    <button @click="guardarMapeo(ce.id, s.curso_usil_id, true, s.confianza)"
-                                            class="shrink-0 rounded bg-[#7030A0] px-3 py-1.5 font-medium text-white shadow-sm hover:opacity-90">Aceptar Sugerencia</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else class="mt-6 rounded-md bg-slate-50 border border-slate-200 p-8 text-center text-slate-500">
-                        Selecciona el Target USIL en la parte superior para comenzar el emparejamiento.
-                    </div>
-
-                    <div class="mt-8 flex justify-end">
-                        <button @click="irA(5)" :disabled="!contextoListo" class="rounded-md bg-[#1F3864] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#2E75B6] disabled:opacity-50">
-                            Siguiente: Ver Diccionario →
-                        </button>
-                    </div>
-                </section>
-
-                <!-- PASO 5: Diccionario Generado -->
-                <section v-if="paso === 5 && malla" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm min-h-[400px]">
-                    <div class="mb-5 flex justify-between items-end">
-                        <div>
-                            <h2 class="text-lg font-semibold text-[#1F3864]">Diccionario Generado</h2>
-                            <p class="text-sm text-slate-500 mt-1">Estas reglas ya están activas y alimentando la base de conocimiento para la IA.</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-2xl font-bold text-[#1F3864]">{{ cobertura }}%</span>
-                            <span class="text-xs text-slate-400 uppercase tracking-wide">Cobertura Malla</span>
-                        </div>
-                    </div>
-
-                    <div class="overflow-hidden rounded-lg border border-slate-200">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                                <tr>
-                                    <th class="px-4 py-3 font-semibold w-5/12">Curso Origen</th>
-                                    <th class="px-4 py-3 font-semibold w-5/12">Curso USIL (Target)</th>
-                                    <th class="px-4 py-3 font-semibold w-1/12 text-center">IA</th>
-                                    <th class="px-4 py-3 font-semibold w-1/12 text-right">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <tr v-for="(r, i) in resumen" :key="i" class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 text-slate-700">{{ r.externo }}</td>
-                                    <td class="px-4 py-3 font-medium text-[#1F3864]">{{ r.usil }}</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span v-if="r.origen === 'ia'" class="text-xs font-semibold text-[#7030A0]">Sí</span>
-                                        <span v-else class="text-xs text-slate-400">Manual</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <button @click="eliminarEquivalencia(r.id)" class="text-red-500 hover:text-red-700 font-medium text-xs">Quitar</button>
-                                    </td>
-                                </tr>
-                                <tr v-if="!resumen.length">
-                                    <td colspan="4" class="px-4 py-12 text-center text-slate-400">No has generado ninguna regla de equivalencia aún.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-6 flex items-center justify-between">
-                        <button @click="irA(4)" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">← Seguir Mapeando</button>
-                        <Link href="/equivalencias" class="rounded-md bg-[#1F3864] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#2E75B6]">
-                            ✓ Finalizar Pipeline
-                        </Link>
                     </div>
                 </section>
 

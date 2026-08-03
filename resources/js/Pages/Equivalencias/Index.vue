@@ -1,7 +1,6 @@
 <script setup>
-import { Link, router, useForm } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
-import Autocomplete from '../../Components/Autocomplete.vue';
+import { Link, router } from '@inertiajs/vue3';
+import { reactive } from 'vue';
 
 const props = defineProps({
     mallas: Object,
@@ -14,40 +13,15 @@ const filtro = reactive({
 });
 
 const aplicar = () => router.get('/equivalencias', filtro, { preserveState: true, preserveScroll: true, replace: true });
-
-// Formulario para subir nueva Malla
-const showModal = ref(false);
-const form = useForm({
-    carrera_externa_id: '',
-    anio: new Date().getFullYear().toString(),
-    version: '1',
-    pdf: null,
-});
-
-const submitMalla = () => {
-    form.post('/mallas-externas', {
-        onSuccess: () => {
-            showModal.value = false;
-            form.reset();
-        }
-    });
-};
-
-const handleFile = (e) => {
-    form.pdf = e.target.files[0];
-};
-
-const editarMalla = (m) => router.get(`/equivalencias/crear`, { malla_id: m.id });
-
 </script>
 
 <template>
     <div>
-        // Encabezado
+        <!-- Encabezado -->
         <div class="mb-5 flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-semibold text-[#1F3864]">Base de Conocimiento (Equivalencias)</h1>
-                <p class="mt-1 text-sm text-slate-500">Gestor maestro de Mallas Curriculares externas y sus reglas de equivalencia para la IA.</p>
+                <h1 class="text-2xl font-semibold text-[#1F3864]">Mallas Externas</h1>
+                <p class="mt-1 text-sm text-slate-500">Catálogo de las mallas curriculares oficiales de las instituciones de origen.</p>
             </div>
             <Link href="/equivalencias/crear" class="rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">
                 + Extraer Malla con IA
@@ -89,8 +63,7 @@ const editarMalla = (m) => router.get(`/equivalencias/crear`, { malla_id: m.id }
                             <th class="px-4 py-3 font-semibold">Carrera Origen</th>
                             <th class="px-4 py-3 font-semibold text-center">Año / Versión</th>
                             <th class="px-4 py-3 font-semibold text-center">Malla Oficial (PDF)</th>
-                            <th class="px-4 py-3 font-semibold text-center">Cursos / Mapeados</th>
-                            <th class="px-4 py-3 text-right font-semibold">Acciones</th>
+                            <th class="px-4 py-3 font-semibold text-center">Cursos</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -107,16 +80,11 @@ const editarMalla = (m) => router.get(`/equivalencias/crear`, { malla_id: m.id }
                                 <span v-else class="text-slate-400">Sin archivo</span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="font-medium text-[#1F3864]">{{ m.cursos_mapeados }}</span> / <span class="text-slate-500">{{ m.total_cursos }}</span>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <button @click="editarMalla(m)" class="rounded-md bg-[#1F3864] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#2E75B6]">
-                                    Mapear Cursos
-                                </button>
+                                <span class="font-medium text-[#1F3864]">{{ m.total_cursos }}</span>
                             </td>
                         </tr>
                         <tr v-if="!mallas.data.length">
-                            <td colspan="6" class="px-4 py-10 text-center text-slate-400">
+                            <td colspan="5" class="px-4 py-10 text-center text-slate-400">
                                 No hay mallas externas registradas con los filtros actuales.
                             </td>
                         </tr>

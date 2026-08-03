@@ -38,7 +38,7 @@ const nav = computed(() => {
     else if (puede('catalogos.gestionar')) items.push({ label: 'Mallas Curriculares', href: '/mallas', icon: ICON.mallas });
 
     if (puede('catalogos.gestionar')) items.push({ label: 'Instituciones Externas', href: '/instituciones', icon: ICON.building });
-    if (puede('evaluacion.ver')) items.push({ label: 'Equivalencias', href: '/equivalencias', icon: ICON.swap });
+    if (puede('mallas_externas.gestionar')) items.push({ label: 'Mallas Externas', href: '/equivalencias', icon: ICON.swap });
     if (puede('solicitudes.ver')) items.push({ label: 'Postulantes', href: '/postulantes', icon: ICON.postulante });
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
     if (puede('convalidacion.ver')) items.push({ label: 'Convalidaciones', href: '/convalidaciones', icon: ICON.check });

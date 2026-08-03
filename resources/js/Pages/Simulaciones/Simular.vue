@@ -1,7 +1,12 @@
 <script setup>
-import { Link, router } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import MapeoUsilMatch from '../../Components/MapeoUsilMatch.vue';
+
+// El Coordinador evalúa pero no ve Convalidaciones: el popup no debe ofrecerle
+// un enlace que le devolvería un 403.
+const permisos = computed(() => usePage().props.auth?.user?.permisos ?? []);
+const veConvalidaciones = computed(() => permisos.value.includes('*') || permisos.value.includes('convalidacion.ver'));
 
 const props = defineProps({
     postulante: Object,
@@ -142,22 +147,19 @@ const aplicarMapa = (mapa) => {
     });
 };
 
-// origen: 'ia' | 'similitud' | 'catalogo' — las tres alimentan el mismo panel de emparejamiento.
+// origen: 'ia' | 'similitud' — ambas alimentan el mismo panel de emparejamiento.
 const sugerir = async (origenSugerencia) => {
     if (!props.postulante.carrera_destino_id) { mensaje.value = { tipo: 'error', texto: 'El postulante no tiene carrera destino.' }; return; }
     const cursos = nombresConvalidables();
     if (!cursos.length) { mensaje.value = { tipo: 'error', texto: 'No hay cursos convalidables para mapear.' }; return; }
     procesando.value = true; mensaje.value = null;
     try {
-        const url = { ia: '/simulaciones/sugerir-ia', similitud: '/simulaciones/sugerir-similitud', catalogo: '/simulaciones/sugerir-catalogo' }[origenSugerencia];
+        const url = { ia: '/simulaciones/sugerir-ia', similitud: '/simulaciones/sugerir-similitud' }[origenSugerencia];
         const payload = { carrera_usil_id: props.postulante.carrera_destino_id, cursos };
-        if (origenSugerencia === 'catalogo') payload.carrera_externa_id = props.postulante.carrera_externa_id;
         const { data } = await window.axios.post(url, payload);
-        const antes = Object.keys(data.mapa || {}).length;
         aplicarMapa(data.mapa || {});
         filas.forEach((f) => { if (f.confianza !== null || Object.prototype.hasOwnProperty.call(data.mapa || {}, f.curso_origen_nombre.trim())) f.origen = origenSugerencia; });
-        const etiqueta = { ia: 'Sugerencias de IA aplicadas.', similitud: 'Mapeo por similitud aplicado.', catalogo: `Se reutilizaron ${antes} equivalencia(s) del catálogo.` }[origenSugerencia];
-        mensaje.value = { tipo: antes || origenSugerencia !== 'catalogo' ? 'ok' : 'error', texto: antes === 0 && origenSugerencia === 'catalogo' ? 'No se encontraron equivalencias registradas para esta institución y carrera.' : etiqueta };
+        mensaje.value = { tipo: 'ok', texto: { ia: 'Sugerencias de IA aplicadas.', similitud: 'Mapeo por similitud aplicado.' }[origenSugerencia] };
     } catch (e) {
         mensaje.value = { tipo: 'error', texto: e.response?.data?.message || 'No se pudo generar la sugerencia.' };
     } finally { procesando.value = false; }
@@ -290,6 +292,13 @@ watch(metodo, (m) => { if (m === 'ia') { pasoIA.value = 1; mensaje.value = null;
 
 // ---------------------------------------------------------------- guardar
 const guardadoId = ref(null);   // id de la preconvalidación guardada (habilita descargas)
+const modalGuardado = ref(false);   // el resumen se muestra como popup al terminar
+const cerrarModalGuardado = () => { modalGuardado.value = false; };
+
+// Esc cierra el popup (mismo gesto que el clic en el fondo).
+const onEsc = (e) => { if (e.key === 'Escape' && modalGuardado.value) cerrarModalGuardado(); };
+onMounted(() => window.addEventListener('keydown', onEsc));
+onBeforeUnmount(() => window.removeEventListener('keydown', onEsc));
 
 // Convierte créditos (que la IA puede devolver como "3,000", "3.0", "4") a número o null.
 const aNumero = (v) => {
@@ -332,7 +341,8 @@ const guardar = () => {
     peticion
         .then(({ data }) => {
             guardadoId.value = data.id;
-            mensaje.value = { tipo: 'ok', texto: `Preconvalidación ${editando ? 'actualizada' : 'guardada'}. Revisa el resumen; descarga los documentos en Convalidaciones.` };
+            modalGuardado.value = true;
+            mensaje.value = { tipo: 'ok', texto: `Simulación #${data.id} ${editando ? 'actualizada' : 'guardada'}.` };
         })
         .catch((e) => {
             const errs = e.response?.data?.errors;
@@ -423,37 +433,6 @@ const eliminarSimulacion = (s) => {
             </div>
         </Transition>
 
-        <!-- Resumen de la simulación guardada. Las descargas (PDF/Excel) se hacen en Convalidaciones. -->
-        <div v-if="guardadoId" class="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
-            <div class="flex items-start gap-3">
-                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                </span>
-                <div class="min-w-0">
-                    <p class="font-heading text-base font-bold text-emerald-900">Preconvalidación guardada · Expediente #{{ guardadoId }}</p>
-                    <p class="mt-0.5 text-sm text-emerald-700">Resumen de la simulación de <strong>{{ postulante.nombre }}</strong>. Los documentos (PDF y Excel) se descargan desde el módulo <strong>Convalidaciones</strong>.</p>
-                </div>
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div class="rounded-xl border border-emerald-200 bg-white p-3 text-center">
-                    <p class="text-2xl font-bold text-[#1F3864]">{{ resumen.total }}</p><p class="text-xs text-slate-500">Cursos evaluados</p>
-                </div>
-                <div class="rounded-xl border border-emerald-200 bg-white p-3 text-center">
-                    <p class="text-2xl font-bold text-emerald-600">{{ resumen.convalidados }}</p><p class="text-xs text-slate-500">Convalidados</p>
-                </div>
-                <div class="rounded-xl border border-emerald-200 bg-white p-3 text-center">
-                    <p class="text-2xl font-bold text-[#2E75B6]">{{ resumen.creditos.toFixed(1) }}</p><p class="text-xs text-slate-500">Créditos reconocidos</p>
-                </div>
-                <div class="rounded-xl border border-emerald-200 bg-white p-3 text-center">
-                    <p class="text-2xl font-bold" :class="sinAsignar ? 'text-amber-500' : 'text-slate-400'">{{ sinAsignar }}</p><p class="text-xs text-slate-500">Sin asignar</p>
-                </div>
-            </div>
-            <div class="mt-4 flex flex-wrap gap-3">
-                <Link href="/convalidaciones" class="rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">Ir a Convalidaciones</Link>
-                <Link :href="`/simulaciones/${guardadoId}`" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Ver detalle</Link>
-            </div>
-        </div>
-
         <!-- ============================= MODO MANUAL ============================= -->
         <template v-if="metodo === 'manual'">
             <!-- Tarjeta de configuración: método, escala/universidad y carga desde el récord -->
@@ -509,8 +488,8 @@ const eliminarSimulacion = (s) => {
             </div>
 
             <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
-                             :ia="ia" :carrera-externa-id="postulante.carrera_externa_id"
-                             @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')" @sugerir-catalogo="sugerir('catalogo')"
+                             :ia="ia"
+                             @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')"
                              @agregar="agregarFila" @quitar="(f) => quitarFila(filas.indexOf(f))" />
 
             <p v-if="duplicados.length" class="mt-2 text-xs text-red-600">⚠️ Hay cursos USIL asignados más de una vez. La convalidación es 1 a 1.</p>
@@ -648,8 +627,8 @@ const eliminarSimulacion = (s) => {
                     <p class="mb-3 text-sm text-slate-500">Cada curso aprobado se empareja con un curso USIL (incluye electivos). Regla 1‑a‑1: cada curso USIL solo puede usarse una vez.</p>
 
                     <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
-                                     :ia="ia" :carrera-externa-id="postulante.carrera_externa_id" solo-lectura
-                                     @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')" @sugerir-catalogo="sugerir('catalogo')" />
+                                     :ia="ia" solo-lectura
+                                     @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')" />
 
                     <p v-if="duplicados.length" class="mt-2 text-xs text-red-600">⚠️ Hay cursos USIL asignados más de una vez. Corrige los duplicados (regla 1 a 1).</p>
 
@@ -775,5 +754,70 @@ const eliminarSimulacion = (s) => {
                 </tbody></table>
             </div>
         </div>
+
+        <!-- Popup de cierre: resumen de la preconvalidación guardada.
+             Las descargas (PDF/Excel) se hacen en Convalidaciones. -->
+        <Transition enter-from-class="opacity-0" leave-to-class="opacity-0"
+                    enter-active-class="transition duration-150" leave-active-class="transition duration-150">
+            <div v-if="modalGuardado" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                 role="dialog" aria-modal="true" aria-labelledby="titulo-guardado">
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="cerrarModalGuardado"></div>
+                <div class="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                    <button type="button" @click="cerrarModalGuardado" title="Cerrar"
+                            class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    </button>
+
+                    <div class="border-b border-emerald-100 bg-emerald-50 px-6 py-5">
+                        <div class="flex items-start gap-3 pr-8">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p id="titulo-guardado" class="font-heading text-base font-bold text-emerald-900">Simulación #{{ guardadoId }} guardada</p>
+                                <p class="mt-0.5 text-sm text-emerald-700">{{ postulante.nombre }} · {{ postulante.carrera_destino }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-5">
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            <div class="rounded-xl border border-slate-200 p-3 text-center">
+                                <p class="text-2xl font-bold text-[#1F3864]">{{ resumen.total }}</p><p class="text-xs text-slate-500">Cursos evaluados</p>
+                            </div>
+                            <div class="rounded-xl border border-slate-200 p-3 text-center">
+                                <p class="text-2xl font-bold text-emerald-600">{{ resumen.convalidados }}</p><p class="text-xs text-slate-500">Convalidados</p>
+                            </div>
+                            <div class="rounded-xl border border-slate-200 p-3 text-center">
+                                <p class="text-2xl font-bold text-[#2E75B6]">{{ resumen.creditos.toFixed(1) }}</p><p class="text-xs text-slate-500">Créditos reconocidos</p>
+                            </div>
+                            <div class="rounded-xl p-3 text-center" :class="sinAsignar ? 'border border-amber-300 bg-amber-50' : 'border border-slate-200'">
+                                <p class="text-2xl font-bold" :class="sinAsignar ? 'text-amber-600' : 'text-slate-400'">{{ sinAsignar }}</p><p class="text-xs text-slate-500">Sin asignar</p>
+                            </div>
+                        </div>
+
+                        <p v-if="sinAsignar" class="mt-3 text-sm text-amber-800">
+                            Quedaron <strong>{{ sinAsignar }}</strong> curso(s) aprobado(s) sin equivalencia USIL; no suman créditos.
+                            Puedes cerrar este aviso y seguir asignándolos.
+                        </p>
+                        <p v-else class="mt-3 text-sm text-slate-500">
+                            Todos los cursos aprobados quedaron resueltos.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+                        <Link :href="`/simulaciones/${guardadoId}`" class="rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">
+                            Ver la preconvalidación
+                        </Link>
+                        <Link v-if="veConvalidaciones" href="/convalidaciones" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-white/60">
+                            Ir a Convalidaciones
+                        </Link>
+                        <button type="button" @click="cerrarModalGuardado" class="ml-auto text-sm text-slate-500 hover:text-slate-700 hover:underline">
+                            Seguir editando
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>

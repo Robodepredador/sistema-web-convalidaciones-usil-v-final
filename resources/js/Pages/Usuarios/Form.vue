@@ -56,7 +56,7 @@ const enviar = () => {
                 <p v-if="form.errors.rol_id" class="mt-1 text-xs text-red-600">{{ form.errors.rol_id }}</p>
             </div>
 
-            <!-- Alcance por carrera (Coordinador / Director de Escuela) -->
+            <!-- Alcance por carrera (Coordinador / Director de Carrera) -->
             <div v-if="alcanceRol === 'carrera'">
                 <label class="mb-1 block text-sm font-medium text-slate-700">Carreras a cargo</label>
                 <p class="mb-2 text-xs text-slate-500">El usuario solo verá y evaluará estas carreras (una o más).</p>

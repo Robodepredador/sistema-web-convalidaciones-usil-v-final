@@ -7,11 +7,10 @@ const props = defineProps({
     noConvalidar: { type: String, default: '— No convalidar —' },
     procesando: { type: Boolean, default: false },
     ia: { type: Object, default: () => ({ disponible: false, proveedor: 'gemini' }) },
-    carreraExternaId: { type: [Number, String, null], default: null },
     soloLectura: { type: Boolean, default: false },  // true en el pipeline con IA: los datos de origen vienen extraídos, no se editan
 });
 
-const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'sugerir-catalogo', 'agregar', 'quitar']);
+const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar']);
 
 const TIPO_LABEL = { convalidable: 'Convalidable', no_convalidable: 'No convalidable', desaprobado: 'Desaprobado' };
 
@@ -222,12 +221,6 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
     <div>
         <!-- Barra de sugerencias -->
         <div class="mb-3 flex flex-wrap items-center gap-2">
-            <button type="button" @click="emit('sugerir-catalogo')" :disabled="procesando || !carreraExternaId"
-                    :title="carreraExternaId ? '' : 'El postulante no tiene carrera externa registrada'"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                Reutilizar equivalencias del catálogo
-            </button>
             <button type="button" @click="emit('sugerir-ia')" :disabled="procesando || !ia?.disponible" :title="ia?.disponible ? '' : 'Configura la API key en Configuración'"
                     class="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50">
                 ✨ Sugerir con IA

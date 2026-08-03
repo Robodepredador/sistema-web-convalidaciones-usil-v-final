@@ -37,12 +37,6 @@ class CursoUsil extends Model
         return $this->belongsTo(CursoUsil::class, 'prerequisito_id');
     }
 
-    /** Equivalencias en las que este curso USIL es el destino. */
-    public function equivalencias(): HasMany
-    {
-        return $this->hasMany(Equivalencia::class, 'curso_usil_id');
-    }
-
     /** Detalles de simulación/convalidación que reconocen este curso. */
     public function detallesSimulacion(): HasMany
     {

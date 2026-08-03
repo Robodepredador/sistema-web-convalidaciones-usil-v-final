@@ -20,7 +20,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $rol  = $user->rol?->nombre;
+        $rol = $user->rol?->nombre;
 
         // Base de destinos dentro del alcance del usuario.
         $visibles = AlcanceService::carrerasVisibles($user);
@@ -34,10 +34,10 @@ class DashboardController extends Controller
 
         return inertia('Dashboard', [
             'dashboard' => [
-                'rol'      => $rol,
-                'saludo'   => $this->saludo($user),
-                'kpis'     => $this->kpis($user, $rol, $c, $totalDestinos, $visibles),
-                'bandeja'  => $this->bandeja($destinos, $rol, $user),
+                'rol' => $rol,
+                'saludo' => $this->saludo($user),
+                'kpis' => $this->kpis($user, $rol, $c, $totalDestinos, $visibles),
+                'bandeja' => $this->bandeja($destinos, $rol, $user),
                 'acciones' => $this->acciones($user),
             ],
         ]);
@@ -62,6 +62,7 @@ class DashboardController extends Controller
         switch ($rol) {
             case Role::ASESOR:
                 $mios = Postulante::where('usuario_id', $user->id);
+
                 return [
                     ['label' => 'Mis solicitudes', 'valor' => (clone $mios)->count(), 'color' => 'blue'],
                     ['label' => 'En revisión', 'valor' => (clone $mios)->where('revision_estado', 'pendiente')->count(), 'color' => 'amber'],
@@ -79,6 +80,7 @@ class DashboardController extends Controller
 
             case Role::COORDINADOR:
                 $asignadasAmi = (clone $this->destinosDe($visibles))->where('asignado_a_id', $user->id)->count();
+
                 return [
                     ['label' => 'Solicitudes asignadas', 'valor' => $asignadasAmi, 'color' => 'blue'],
                     ['label' => 'Evaluaciones pendientes', 'valor' => $enEvaluacion, 'color' => 'amber'],
@@ -99,7 +101,7 @@ class DashboardController extends Controller
                     ['label' => 'Solicitudes (facultad)', 'valor' => $total, 'color' => 'blue'],
                     ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
                     ['label' => 'Convalidaciones confirmadas', 'valor' => $convs, 'color' => 'indigo'],
-                    ['label' => 'Tasa de aprobación', 'valor' => $tasa . '%', 'color' => 'violet'],
+                    ['label' => 'Tasa de aprobación', 'valor' => $tasa.'%', 'color' => 'violet'],
                 ];
 
             case Role::AUDITOR:
@@ -115,7 +117,7 @@ class DashboardController extends Controller
                     ['label' => 'Solicitudes totales', 'valor' => $total, 'color' => 'blue'],
                     ['label' => 'En proceso', 'valor' => $enEvaluacion, 'color' => 'amber'],
                     ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Tasa de aprobación', 'valor' => $tasa . '%', 'color' => 'violet'],
+                    ['label' => 'Tasa de aprobación', 'valor' => $tasa.'%', 'color' => 'violet'],
                 ];
 
             default: // Superusuario
@@ -150,11 +152,11 @@ class DashboardController extends Controller
             ->where('estado_equivalencias', '!=', 'aprobada')
             ->orderByDesc('id')->limit(6)->get()
             ->map(fn (PostulanteDestino $d) => [
-                'titulo'    => $d->postulante
+                'titulo' => $d->postulante
                     ? trim("{$d->postulante->apellido_paterno} {$d->postulante->apellido_materno}, {$d->postulante->nombres}")
                     : '—',
                 'subtitulo' => $d->carrera?->nombre,
-                'estado'    => $d->estado_equivalencias,
+                'estado' => $d->estado_equivalencias,
             ])->all();
     }
 
@@ -163,9 +165,9 @@ class DashboardController extends Controller
     {
         return $query->with('carreraDestino:id,nombre')->orderByDesc('id')->limit(6)->get()
             ->map(fn (Postulante $p) => [
-                'titulo'    => $p->nombre_completo,
+                'titulo' => $p->nombre_completo,
                 'subtitulo' => $p->carreraDestino?->nombre,
-                'estado'    => $p->revision_estado,
+                'estado' => $p->revision_estado,
             ])->all();
     }
 
@@ -174,7 +176,7 @@ class DashboardController extends Controller
     {
         $posibles = [
             ['label' => 'Solicitudes', 'href' => '/postulantes', 'permiso' => 'solicitudes.ver'],
-            ['label' => 'Equivalencias', 'href' => '/equivalencias', 'permiso' => 'evaluacion.ver'],
+            ['label' => 'Mallas Externas', 'href' => '/equivalencias', 'permiso' => 'mallas_externas.gestionar'],
             ['label' => 'Simulaciones', 'href' => '/simulaciones', 'permiso' => 'evaluacion.ver'],
             ['label' => 'Convalidaciones', 'href' => '/convalidaciones', 'permiso' => 'convalidacion.ver'],
             ['label' => 'Reportes', 'href' => '/reportes', 'permiso' => 'reportes.ver'],

@@ -23,7 +23,6 @@ use App\Http\Controllers\Portal\SeguimientoController as PortalSeguimientoContro
 use App\Http\Controllers\PostulanteController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\SimulacionController;
-use App\Http\Controllers\SugerenciaController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -136,23 +135,23 @@ Route::middleware('auth')->group(function () {
             Route::delete('instituciones/{institucion}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
         }); // fin catalogos.gestionar
 
-        // CU-03: Equivalencias — lectura (permiso evaluacion.ver)
-        Route::middleware('permission:evaluacion.ver')->group(function () {
+        // CU-03: Mallas Externas — lectura (permiso mallas_externas.gestionar)
+        //
+        // El catálogo de equivalencias curso↔curso está DESACTIVADO: se retiraron
+        // sus rutas de escritura (equivalencias.store/destroy, sugerencias.*,
+        // simulaciones.sugerir-catalogo) y la UI de mapeo. La tabla, el modelo y
+        // EquivalenciaController::store/destroy siguen en el repositorio: para
+        // reactivarlo basta revertir este commit.
+        Route::middleware('permission:mallas_externas.gestionar')->group(function () {
             Route::get('equivalencias', [EquivalenciaController::class, 'index'])->name('equivalencias.index');
             Route::get('equivalencias/crear', [EquivalenciaController::class, 'create'])->name('equivalencias.create');
-        }); // fin evaluacion.ver (equivalencias)
-
-        // CU-03: Equivalencias — escritura (permiso evaluacion.editar)
-        Route::middleware('permission:evaluacion.editar')->group(function () {
             Route::post('mallas-externas/extraer-ia', [MallaExternaController::class, 'extraerIA'])->name('mallas-externas.extraer-ia');
             Route::post('mallas-externas', [MallaExternaController::class, 'store'])->name('mallas-externas.store');
-            Route::post('equivalencias', [EquivalenciaController::class, 'store'])->name('equivalencias.store');
-            Route::delete('equivalencias/{equivalencia}', [EquivalenciaController::class, 'destroy'])->name('equivalencias.destroy');
             // Récord académico externo: cursos de la carrera de origen
             Route::post('carreras-externas/{carreraExterna}/cursos', [CatalogoController::class, 'agregarCursoExterno'])->name('cursos-externos.store');
             Route::put('cursos-externos/{cursoExterno}', [CatalogoController::class, 'actualizarCursoExterno'])->name('cursos-externos.update');
             Route::delete('cursos-externos/{cursoExterno}', [CatalogoController::class, 'eliminarCursoExterno'])->name('cursos-externos.destroy');
-        }); // fin evaluacion.editar (equivalencias)
+        }); // fin mallas_externas.gestionar
 
         // Postulantes / Solicitudes — lectura (permiso solicitudes.ver)
         Route::middleware('permission:solicitudes.ver')->group(function () {
@@ -213,7 +212,6 @@ Route::middleware('auth')->group(function () {
             Route::get('simulaciones/simular/{postulante}', [SimulacionController::class, 'crear'])->name('simulaciones.crear');
             // Endpoints AJAX del motor de convalidación
             Route::post('simulaciones/sugerir-similitud', [SimulacionController::class, 'sugerirSimilitud'])->name('simulaciones.sugerir-similitud');
-            Route::post('simulaciones/sugerir-catalogo', [SimulacionController::class, 'sugerirCatalogo'])->name('simulaciones.sugerir-catalogo');
             Route::post('simulaciones/sugerir-ia', [SimulacionController::class, 'sugerirIA'])->name('simulaciones.sugerir-ia');
             Route::post('simulaciones/extraer-ia', [SimulacionController::class, 'extraerIA'])->name('simulaciones.extraer-ia');
             Route::post('simulaciones', [SimulacionController::class, 'store'])->name('simulaciones.store');
@@ -247,11 +245,9 @@ Route::middleware('auth')->group(function () {
             Route::get('reportes/exportar', [ReporteController::class, 'exportar'])->name('reportes.exportar');
         }); // fin reportes
 
-        // CU-11 / CU-12 / RF-43..45: Asistente de IA (permiso evaluacion.editar)
-        Route::middleware('permission:evaluacion.editar')->group(function () {
-            Route::post('sugerencias', [SugerenciaController::class, 'sugerir'])->name('sugerencias.sugerir');
-            Route::post('sugerencias/aceptar', [SugerenciaController::class, 'aceptar'])->name('sugerencias.aceptar');
-        }); // fin evaluacion.editar
+        // CU-11 / CU-12 / RF-43..45: el asistente de sugerencias por curso está
+        // DESACTIVADO junto con el catálogo de equivalencias (era su única UI).
+        // La IA del flujo de simulación (sugerir-ia, extraer-ia) sigue activa.
     }); // fin operación del proceso
 });
 
