@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Exports\PreconvalidacionExport;
 use App\Models\Carrera;
+use App\Models\Convalidacion;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
-use App\Models\Equivalencia;
 use App\Models\MallaCurricular;
 use App\Models\Postulante;
 use App\Models\PostulanteDestino;
@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
@@ -206,49 +207,6 @@ class SimulacionController extends Controller
         return Storage::response($documento->ruta, $documento->nombre_original);
     }
 
-    /**
-     * Sugerencia de mapeo reutilizando equivalencias ya registradas en el catálogo
-     * (Equivalencia) para el mismo par carrera externa ↔ carrera USIL. A diferencia
-     * de similitud/IA, esto no "adivina": solo aplica cruces que un evaluador ya
-     * validó antes para esa institución, con 100% de confianza.
-     */
-    public function sugerirCatalogo(Request $request): JsonResponse
-    {
-        $datos = $request->validate([
-            'carrera_usil_id' => ['required', 'exists:carreras,id'],
-            'carrera_externa_id' => ['nullable', 'exists:carreras_externas,id'],
-            'cursos' => ['array'],
-            'cursos.*' => ['string'],
-        ]);
-
-        if (empty($datos['carrera_externa_id'])) {
-            return response()->json(['mapa' => [], 'message' => 'El postulante no tiene carrera externa registrada.']);
-        }
-
-        $pool = $this->engine->poolCursosUsil((int) $datos['carrera_usil_id']);
-        $porId = collect($pool)->keyBy('id');
-
-        // Nombre externo normalizado → curso USIL (solo si ese curso sigue vigente en la malla actual).
-        $porNombreExterno = Equivalencia::where('carrera_usil_id', $datos['carrera_usil_id'])
-            ->where('carrera_externa_id', $datos['carrera_externa_id'])
-            ->with('cursoExterno:id,nombre')
-            ->get()
-            ->filter(fn (Equivalencia $eq) => $eq->cursoExterno && $porId->has($eq->curso_usil_id))
-            ->mapWithKeys(fn (Equivalencia $eq) => [$this->engine->normaliza($eq->cursoExterno->nombre) => $eq->curso_usil_id]);
-
-        $mapa = [];
-        $usados = [];
-        foreach ($datos['cursos'] ?? [] as $curso) {
-            $usilId = $porNombreExterno[$this->engine->normaliza($curso)] ?? null;
-            if ($usilId && ! isset($usados[$usilId])) {
-                $mapa[$curso] = ['curso_usil_id' => $usilId, 'label' => $porId[$usilId]['label'], 'confianza' => 100.0];
-                $usados[$usilId] = true;
-            }
-        }
-
-        return response()->json(['mapa' => $mapa]);
-    }
-
     /** Sugerencia de mapeo semántico con IA. */
     public function sugerirIA(Request $request): JsonResponse
     {
@@ -341,7 +299,7 @@ class SimulacionController extends Controller
         // Catálogo canónico de la institución de origen (nombres completos y bien acentuados).
         $catalogo = $carreraExternaId
             ? CursoExterno::whereHas('mallaExterna', fn ($q) => $q
-                    ->where('carrera_externa_id', $carreraExternaId)->where('activa', true))
+                ->where('carrera_externa_id', $carreraExternaId)->where('activa', true))
                 ->pluck('nombre')->all()
             : [];
 
@@ -426,7 +384,7 @@ class SimulacionController extends Controller
             'filas.*.ciclo_origen' => ['nullable', 'string', 'max:30'],
             'filas.*.clasificacion' => ['required', 'in:convalidable,desaprobado,no_convalidable'],
             'filas.*.confianza' => ['nullable', 'numeric'],
-            'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud,catalogo'],
+            'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud'],
         ]);
 
         $postulante = Postulante::findOrFail($datos['postulante_id']);
@@ -445,6 +403,7 @@ class SimulacionController extends Controller
         foreach ($datos['filas'] ?? [] as $i => $f) {
             if (($f['clasificacion'] ?? '') !== 'convalidable') {
                 $datos['filas'][$i]['curso_usil_id'] = null;
+
                 continue;
             }
             $cid = $f['curso_usil_id'] ?? null;
@@ -544,6 +503,14 @@ class SimulacionController extends Controller
         $datos = $request->validate([
             'motivo' => ['required', 'string', 'min:5', 'max:300'],
         ]);
+
+        // Una simulación con convalidación vigente es el sustento de un memorándum
+        // oficial: eliminarla dejaba la resolución sin respaldo. Anular primero.
+        if ($simulacion->convalidacion()->where('estado', Convalidacion::CONFIRMADA)->exists()) {
+            throw ValidationException::withMessages([
+                'simulacion' => 'No se puede eliminar: tiene una convalidación confirmada. Anúlela primero.',
+            ]);
+        }
 
         $simulacion->update(['motivo_eliminacion' => $datos['motivo']]);
         $simulacion->delete();   // soft delete: el registro se conserva
