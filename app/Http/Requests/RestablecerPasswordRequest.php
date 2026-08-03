@@ -15,8 +15,8 @@ class RestablecerPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'token'    => ['required', 'string'],
-            'email'    => ['required', 'email', 'max:150'],
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'max:150'],
             'password' => [
                 'required', 'confirmed',
                 Password::min(8)->letters()->numbers()->mixedCase()->symbols(),

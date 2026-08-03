@@ -103,11 +103,11 @@ class UsilPregradoSeeder extends Seeder
                     $existente->update(['facultad_id' => $facultad->id, 'activo' => true]);
                 } else {
                     Carrera::create([
-                        'codigo'      => $facCodigo . '-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+                        'codigo' => $facCodigo.'-'.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
                         'facultad_id' => $facultad->id,
-                        'nombre'      => $nombre,
-                        'max_ciclos'  => $ciclos,
-                        'activo'      => true,
+                        'nombre' => $nombre,
+                        'max_ciclos' => $ciclos,
+                        'activo' => true,
                     ]);
                 }
                 $totalCarreras++;

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -14,11 +15,11 @@ class DashboardAdmisionTest extends TestCase
 
     private function usuario(string $rolNombre): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $rol = Role::where('nombre', $rolNombre)->firstOrFail();
 
         return User::create([
-            'nombre' => $rolNombre, 'email' => uniqid() . '@usil.edu.pe',
+            'nombre' => $rolNombre, 'email' => uniqid().'@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);

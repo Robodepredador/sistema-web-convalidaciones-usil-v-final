@@ -28,7 +28,7 @@ class EstructuraSeeder extends Seeder
         }
         // Cualquier otra sede sin código recibe uno generado.
         UnidadNegocio::whereNull('codigo')->get()->each(function (UnidadNegocio $s) {
-            $s->update(['codigo' => 'SEDE-' . str_pad((string) $s->id, 3, '0', STR_PAD_LEFT)]);
+            $s->update(['codigo' => 'SEDE-'.str_pad((string) $s->id, 3, '0', STR_PAD_LEFT)]);
         });
 
         // --- Modalidades ---

@@ -20,12 +20,12 @@ class EstructuraController extends Controller
     {
         return inertia('Estructura/Index', [
             'conteos' => [
-                'sedes'        => UnidadNegocio::count(),
-                'facultades'   => Facultad::count(),
-                'programas'    => Carrera::count(),
-                'modalidades'  => Modalidad::count(),
-                'planes'       => PlanEstudio::count(),
-                'mallas'       => MallaCurricular::count(),
+                'sedes' => UnidadNegocio::count(),
+                'facultades' => Facultad::count(),
+                'programas' => Carrera::count(),
+                'modalidades' => Modalidad::count(),
+                'planes' => PlanEstudio::count(),
+                'mallas' => MallaCurricular::count(),
             ],
         ]);
     }

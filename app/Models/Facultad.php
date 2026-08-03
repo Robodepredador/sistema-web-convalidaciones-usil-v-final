@@ -12,7 +12,9 @@ class Facultad extends Model
     use SoftDeletes;
 
     protected $table = 'facultades';
+
     protected $fillable = ['unidad_negocio_id', 'nombre', 'codigo', 'activo'];
+
     protected $casts = ['activo' => 'boolean'];
 
     public function unidadNegocio(): BelongsTo

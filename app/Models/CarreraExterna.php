@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CarreraExterna extends Model
 {
     protected $table = 'carreras_externas';
+
     protected $fillable = ['institucion_id', 'nombre'];
 
     public function institucion(): BelongsTo

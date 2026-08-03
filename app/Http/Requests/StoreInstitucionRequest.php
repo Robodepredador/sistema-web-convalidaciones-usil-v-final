@@ -14,13 +14,13 @@ class StoreInstitucionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo_id'   => ['required', 'exists:tipos_institucion,id'], // RF-18
-            'nombre'    => ['required', 'string', 'max:200'],
-            'pais'      => ['nullable', 'string', 'max:100'],
-            'gestion'   => ['nullable', 'in:publica,privada'],
-            'activa'    => ['boolean'],
-            'carreras'         => ['array'],
-            'carreras.*.nombre'=> ['required', 'string', 'max:200'],
+            'tipo_id' => ['required', 'exists:tipos_institucion,id'], // RF-18
+            'nombre' => ['required', 'string', 'max:200'],
+            'pais' => ['nullable', 'string', 'max:100'],
+            'gestion' => ['nullable', 'in:publica,privada'],
+            'activa' => ['boolean'],
+            'carreras' => ['array'],
+            'carreras.*.nombre' => ['required', 'string', 'max:200'],
         ];
     }
 }

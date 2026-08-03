@@ -15,7 +15,9 @@ class UnidadNegocio extends Model
     use SoftDeletes;
 
     protected $table = 'unidades_negocio';
+
     protected $fillable = ['codigo', 'nombre', 'direccion', 'activo'];
+
     protected $casts = ['activo' => 'boolean'];
 
     public function facultades(): HasMany

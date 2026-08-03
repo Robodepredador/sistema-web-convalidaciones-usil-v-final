@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-
 use Illuminate\Validation\Rule;
 
 /**
@@ -20,14 +19,14 @@ class UpdateInstitucionRequest extends FormRequest
     {
         return [
             'tipo_id' => ['required', 'exists:tipos_institucion,id'],
-            'nombre'  => ['required', 'string', 'max:200'],
-            'pais'    => ['nullable', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:200'],
+            'pais' => ['nullable', 'string', 'max:100'],
             'gestion' => ['nullable', 'in:publica,privada'],
-            'activa'  => ['boolean'],
+            'activa' => ['boolean'],
 
             // Carreras de procedencia: cada una puede traer un id (existente) o no (nueva).
-            'carreras'          => ['array'],
-            'carreras.*.id'     => [
+            'carreras' => ['array'],
+            'carreras.*.id' => [
                 'nullable',
                 'integer',
                 Rule::exists('carreras_externas', 'id')
@@ -41,7 +40,7 @@ class UpdateInstitucionRequest extends FormRequest
     {
         return [
             'carreras.*.nombre.required' => 'El nombre de la carrera es obligatorio.',
-            'carreras.*.nombre.max'      => 'El nombre de la carrera no puede superar los 200 caracteres.',
+            'carreras.*.nombre.max' => 'El nombre de la carrera no puede superar los 200 caracteres.',
             'carreras.*.nombre.distinct' => 'Hay carreras con nombres duplicados.',
         ];
     }

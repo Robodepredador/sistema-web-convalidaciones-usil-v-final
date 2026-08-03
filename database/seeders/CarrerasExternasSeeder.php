@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\CarreraExterna;
 use App\Models\InstitucionExterna;
 use App\Models\TipoInstitucion;
 use Illuminate\Database\Seeder;
@@ -57,9 +56,9 @@ class CarrerasExternasSeeder extends Seeder
                     if (! in_array(mb_strtolower($nombre), $existentes, true)) {
                         $nuevas[] = [
                             'institucion_id' => $inst->id,
-                            'nombre'         => $nombre,
-                            'created_at'     => $ahora,
-                            'updated_at'     => $ahora,
+                            'nombre' => $nombre,
+                            'created_at' => $ahora,
+                            'updated_at' => $ahora,
                         ];
                     }
                 }
@@ -71,6 +70,6 @@ class CarrerasExternasSeeder extends Seeder
             }
         });
 
-        $this->command->info("Carreras de procedencia asignadas: {$totalNuevas} nuevas en " . InstitucionExterna::count() . ' instituciones.');
+        $this->command->info("Carreras de procedencia asignadas: {$totalNuevas} nuevas en ".InstitucionExterna::count().' instituciones.');
     }
 }

@@ -30,21 +30,21 @@ class InstitucionController extends Controller
             ->orderBy('nombre')
             ->paginate(10)->withQueryString()
             ->through(fn (InstitucionExterna $i) => [
-                'id'              => $i->id,
-                'nombre'          => $i->nombre,
-                'tipo'            => $i->tipo?->nombre,
-                'pais'            => $i->pais,
-                'gestion'         => $i->gestion,
-                'activa'          => $i->activa,
-                'carreras_count'  => $i->carreras_count,
+                'id' => $i->id,
+                'nombre' => $i->nombre,
+                'tipo' => $i->tipo?->nombre,
+                'pais' => $i->pais,
+                'gestion' => $i->gestion,
+                'activa' => $i->activa,
+                'carreras_count' => $i->carreras_count,
             ]);
 
         return inertia('Instituciones/Index', [
-            'instituciones'        => $instituciones,
+            'instituciones' => $instituciones,
             'institucionesActivas' => InstitucionExterna::where('activa', true)->count(),
-            'tipos'                => TipoInstitucion::orderBy('nombre')->get(['id', 'nombre']),
-            'paises'               => InstitucionExterna::whereNotNull('pais')->distinct()->orderBy('pais')->pluck('pais'),
-            'filtros'              => $request->only(['buscar', 'tipo_id', 'gestion', 'pais', 'estado']),
+            'tipos' => TipoInstitucion::orderBy('nombre')->get(['id', 'nombre']),
+            'paises' => InstitucionExterna::whereNotNull('pais')->distinct()->orderBy('pais')->pluck('pais'),
+            'filtros' => $request->only(['buscar', 'tipo_id', 'gestion', 'pais', 'estado']),
         ]);
     }
 
@@ -62,10 +62,10 @@ class InstitucionController extends Controller
         $institucion = DB::transaction(function () use ($datos) {
             $inst = InstitucionExterna::create([
                 'tipo_id' => $datos['tipo_id'],
-                'nombre'  => $datos['nombre'],
-                'pais'    => $datos['pais'] ?? null,
+                'nombre' => $datos['nombre'],
+                'pais' => $datos['pais'] ?? null,
                 'gestion' => $datos['gestion'] ?? null,
-                'activa'  => $datos['activa'] ?? true,
+                'activa' => $datos['activa'] ?? true,
             ]);
 
             foreach ($datos['carreras'] ?? [] as $carrera) {
@@ -88,15 +88,15 @@ class InstitucionController extends Controller
 
         return inertia('Instituciones/Editar', [
             'institucion' => [
-                'id'      => $institucion->id,
+                'id' => $institucion->id,
                 'tipo_id' => $institucion->tipo_id,
-                'nombre'  => $institucion->nombre,
-                'pais'    => $institucion->pais,
+                'nombre' => $institucion->nombre,
+                'pais' => $institucion->pais,
                 'gestion' => $institucion->gestion,
-                'activa'  => $institucion->activa,
+                'activa' => $institucion->activa,
                 'carreras' => $institucion->carreras->map(fn ($c) => [
-                    'id'           => $c->id,
-                    'nombre'       => $c->nombre,
+                    'id' => $c->id,
+                    'nombre' => $c->nombre,
                     'cursos_count' => $c->cursos_count,
                 ]),
             ],
@@ -109,7 +109,7 @@ class InstitucionController extends Controller
         $datos = $request->validated();
         $antes = $institucion->only(['tipo_id', 'nombre', 'pais', 'gestion', 'activa']);
 
-        $enviadas    = collect($datos['carreras'] ?? []);
+        $enviadas = collect($datos['carreras'] ?? []);
         $idsConserva = $enviadas->pluck('id')->filter()->all();
 
         // RF-23: no se pueden eliminar carreras que ya tienen cursos registrados (integridad referencial).
@@ -127,10 +127,10 @@ class InstitucionController extends Controller
         DB::transaction(function () use ($datos, $institucion, $enviadas, $idsConserva) {
             $institucion->update([
                 'tipo_id' => $datos['tipo_id'],
-                'nombre'  => $datos['nombre'],
-                'pais'    => $datos['pais'] ?? null,
+                'nombre' => $datos['nombre'],
+                'pais' => $datos['pais'] ?? null,
                 'gestion' => $datos['gestion'] ?? null,
-                'activa'  => $datos['activa'] ?? false,
+                'activa' => $datos['activa'] ?? false,
             ]);
 
             // Eliminar las carreras que el usuario quitó (ya validado que no tienen cursos).

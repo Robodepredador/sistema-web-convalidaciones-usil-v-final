@@ -64,7 +64,7 @@ class PasswordController extends Controller
             $token = Str::random(64);
             $user->forceFill([
                 'token_recuperacion' => hash('sha256', $token),
-                'token_expira'       => now()->addMinutes(self::MINUTOS_VALIDEZ),
+                'token_expira' => now()->addMinutes(self::MINUTOS_VALIDEZ),
             ])->save();
 
             $url = route('password.restablecer.form', [
@@ -76,7 +76,7 @@ class PasswordController extends Controller
                 Mail::to($user->email)->send(new RecuperarPasswordMail($user, $url));
             } catch (\Throwable $e) {
                 // Sin SMTP configurado el envío puede fallar; no rompemos el flujo.
-                Log::warning('No se pudo enviar el correo de recuperación: ' . $e->getMessage());
+                Log::warning('No se pudo enviar el correo de recuperación: '.$e->getMessage());
             }
 
             AuditoriaService::registrar('editar', 'usuarios', $user->id);
@@ -121,12 +121,12 @@ class PasswordController extends Controller
         }
 
         $user->forceFill([
-            'password_hash'      => Hash::make($datos['password']),
+            'password_hash' => Hash::make($datos['password']),
             'token_recuperacion' => null,
-            'token_expira'       => null,
-            'primer_acceso'      => false,
-            'intentos_fallidos'  => 0,
-            'bloqueado_hasta'    => null,
+            'token_expira' => null,
+            'primer_acceso' => false,
+            'intentos_fallidos' => 0,
+            'bloqueado_hasta' => null,
         ])->save();
 
         AuditoriaService::registrar('editar', 'usuarios', $user->id);

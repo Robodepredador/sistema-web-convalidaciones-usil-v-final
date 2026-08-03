@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreUsuarioRequest extends FormRequest
 {
@@ -15,14 +14,14 @@ class StoreUsuarioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre'        => ['required', 'string', 'max:100'],
-            'email'         => ['required', 'email', 'max:150', 'unique:usuarios,email'],
-            'rol_id'        => ['required', 'exists:roles,id'],
-            'carreras'      => ['array'],            // alcance carrera (Coordinador/Director)
-            'carreras.*'    => ['integer', 'exists:carreras,id'],
-            'facultades'    => ['array'],            // alcance facultad (Decano)
-            'facultades.*'  => ['integer', 'exists:facultades,id'],
-            'activo'        => ['boolean'],
+            'nombre' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:150', 'unique:usuarios,email'],
+            'rol_id' => ['required', 'exists:roles,id'],
+            'carreras' => ['array'],            // alcance carrera (Coordinador/Director)
+            'carreras.*' => ['integer', 'exists:carreras,id'],
+            'facultades' => ['array'],            // alcance facultad (Decano)
+            'facultades.*' => ['integer', 'exists:facultades,id'],
+            'activo' => ['boolean'],
         ];
     }
 }

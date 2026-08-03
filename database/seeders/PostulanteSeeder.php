@@ -38,22 +38,22 @@ class PostulanteSeeder extends Seeder
             $postulante = Postulante::updateOrCreate(
                 ['tipo_documento' => $tipo, 'numero_documento' => $doc],
                 [
-                    'codigo'                => 'POST-2026-9000' . ($n + 1),
-                    'password_hash'         => Hash::make('Postulante#2026'),
-                    'acceso_habilitado'     => true,
-                    'nombres'               => $nombres,
-                    'apellido_paterno'      => $apPat,
-                    'apellido_materno'      => $apMat,
-                    'genero'                => $sexo,
-                    'nacionalidad'          => 'Peruana',
-                    'email'                 => $email,
+                    'codigo' => 'POST-2026-9000'.($n + 1),
+                    'password_hash' => Hash::make('Postulante#2026'),
+                    'acceso_habilitado' => true,
+                    'nombres' => $nombres,
+                    'apellido_paterno' => $apPat,
+                    'apellido_materno' => $apMat,
+                    'genero' => $sexo,
+                    'nacionalidad' => 'Peruana',
+                    'email' => $email,
                     'institucion_origen_id' => $unmsm?->id,
-                    'carrera_externa_id'    => $carreraExt?->id,
-                    'carrera_destino_id'    => $isi?->id,
-                    'ciclo_postulacion'     => '2026-1',
-                    'estado'                => $estado,
-                    'estado_equivalencias'  => $estadoEq,
-                    'usuario_id'            => $admin?->id,
+                    'carrera_externa_id' => $carreraExt?->id,
+                    'carrera_destino_id' => $isi?->id,
+                    'ciclo_postulacion' => '2026-1',
+                    'estado' => $estado,
+                    'estado_equivalencias' => $estadoEq,
+                    'usuario_id' => $admin?->id,
                 ]
             );
 
@@ -64,8 +64,8 @@ class PostulanteSeeder extends Seeder
                         ['tipo' => $tipoDoc],
                         [
                             'nombre_original' => "{$tipoDoc}-{$doc}.pdf",
-                            'ruta'            => "postulantes/{$postulante->id}/{$tipoDoc}-demo.pdf",
-                            'tamano'          => 102400,
+                            'ruta' => "postulantes/{$postulante->id}/{$tipoDoc}-demo.pdf",
+                            'tamano' => 102400,
                         ]
                     );
                 }

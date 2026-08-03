@@ -17,24 +17,23 @@ class SedeController extends Controller
     public function index(Request $request)
     {
         $sedes = UnidadNegocio::query()
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
             ->when($request->estado === 'inactivo', fn ($x) => $x->where('activo', false))
             ->withCount('facultades')
             ->orderBy('nombre')
             ->paginate(10)->withQueryString()
             ->through(fn (UnidadNegocio $s) => [
-                'id'               => $s->id,
-                'codigo'           => $s->codigo,
-                'nombre'           => $s->nombre,
-                'direccion'        => $s->direccion,
-                'activo'           => $s->activo,
+                'id' => $s->id,
+                'codigo' => $s->codigo,
+                'nombre' => $s->nombre,
+                'direccion' => $s->direccion,
+                'activo' => $s->activo,
                 'facultades_count' => $s->facultades_count,
             ]);
 
         return inertia('Estructura/Sedes/Index', [
-            'sedes'   => $sedes,
+            'sedes' => $sedes,
             'activas' => UnidadNegocio::where('activo', true)->count(),
             'filtros' => $request->only(['q', 'estado']),
         ]);
@@ -94,10 +93,10 @@ class SedeController extends Controller
     private function validar(Request $request, ?int $id = null): array
     {
         return $request->validate([
-            'codigo'    => ['required', 'string', 'max:20', Rule::unique('unidades_negocio', 'codigo')->ignore($id)->whereNull('deleted_at')],
-            'nombre'    => ['required', 'string', 'max:100', Rule::unique('unidades_negocio', 'nombre')->ignore($id)->whereNull('deleted_at')],
+            'codigo' => ['required', 'string', 'max:20', Rule::unique('unidades_negocio', 'codigo')->ignore($id)->whereNull('deleted_at')],
+            'nombre' => ['required', 'string', 'max:100', Rule::unique('unidades_negocio', 'nombre')->ignore($id)->whereNull('deleted_at')],
             'direccion' => ['nullable', 'string', 'max:200'],
-            'activo'    => ['boolean'],
+            'activo' => ['boolean'],
         ]);
     }
 }

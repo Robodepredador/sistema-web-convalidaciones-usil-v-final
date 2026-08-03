@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable implements AuthenticatableContract
@@ -24,10 +24,10 @@ class User extends Authenticatable implements AuthenticatableContract
     ];
 
     protected $casts = [
-        'activo'            => 'boolean',
-        'primer_acceso'     => 'boolean',
-        'bloqueado_hasta'   => 'datetime',
-        'token_expira'      => 'datetime',
+        'activo' => 'boolean',
+        'primer_acceso' => 'boolean',
+        'bloqueado_hasta' => 'datetime',
+        'token_expira' => 'datetime',
         'intentos_fallidos' => 'integer',
     ];
 

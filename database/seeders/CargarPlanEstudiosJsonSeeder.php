@@ -23,12 +23,14 @@ class CargarPlanEstudiosJsonSeeder extends Seeder
         $ruta = database_path('data/plan_estudios.json');
         if (! is_file($ruta)) {
             $this->command?->warn("No se encontró {$ruta}.");
+
             return;
         }
 
         $plan = json_decode(file_get_contents($ruta), true);
         if (! is_array($plan)) {
             $this->command?->warn('plan_estudios.json inválido.');
+
             return;
         }
 
@@ -36,17 +38,20 @@ class CargarPlanEstudiosJsonSeeder extends Seeder
             $carrera = $this->buscarCarrera($nombreCarrera);
             if (! $carrera) {
                 $this->command?->warn("Carrera no encontrada: {$nombreCarrera}");
+
                 continue;
             }
 
             $malla = $this->mallaDe($carrera);
             if (! $malla) {
                 $this->command?->warn("Sin malla para: {$nombreCarrera}");
+
                 continue;
             }
 
             if ($malla->ciclos()->whereHas('cursos')->exists()) {
                 $this->command?->line("· {$nombreCarrera}: ya tiene cursos, se omite.");
+
                 continue;
             }
 
@@ -101,14 +106,14 @@ class CargarPlanEstudiosJsonSeeder extends Seeder
         );
 
         CursoUsil::create([
-            'ciclo_id'      => $ciclo->id,
-            'codigo'        => sprintf('M%d-%02d-%03d', $malla->id, $numeroCiclo, $seq),
-            'nombre'        => $c['curso'] ?? 'Curso',
-            'creditos'      => (float) ($c['cr'] ?? 0),
-            'horas_teoria'  => (int) ($c['th'] ?? 0),
-            'horas_practica'=> 0,
-            'es_electivo'   => $electivo,
-            'tipo_curso'    => 'teorico_practico',
+            'ciclo_id' => $ciclo->id,
+            'codigo' => sprintf('M%d-%02d-%03d', $malla->id, $numeroCiclo, $seq),
+            'nombre' => $c['curso'] ?? 'Curso',
+            'creditos' => (float) ($c['cr'] ?? 0),
+            'horas_teoria' => (int) ($c['th'] ?? 0),
+            'horas_practica' => 0,
+            'es_electivo' => $electivo,
+            'tipo_curso' => 'teorico_practico',
         ]);
     }
 }

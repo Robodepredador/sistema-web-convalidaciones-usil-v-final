@@ -15,7 +15,9 @@ class PlanEstudio extends Model
     use SoftDeletes;
 
     protected $table = 'planes_estudio';
+
     protected $fillable = ['codigo', 'carrera_id', 'modalidad_id', 'nombre', 'anio', 'version', 'activo'];
+
     protected $casts = ['activo' => 'boolean', 'anio' => 'integer'];
 
     public function carrera(): BelongsTo

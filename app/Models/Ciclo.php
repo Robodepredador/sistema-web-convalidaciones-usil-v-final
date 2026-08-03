@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Ciclo extends Model
 {
     protected $table = 'ciclos';
+
     protected $fillable = ['malla_id', 'numero', 'nombre'];
 
     public function malla(): BelongsTo

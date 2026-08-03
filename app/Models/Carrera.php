@@ -15,9 +15,11 @@ class Carrera extends Model
     use SoftDeletes;
 
     protected $table = 'carreras';
+
     protected $fillable = [
         'facultad_id', 'nombre', 'codigo', 'max_ciclos', 'activo',
     ];
+
     protected $casts = ['activo' => 'boolean', 'max_ciclos' => 'integer'];
 
     public function facultad(): BelongsTo

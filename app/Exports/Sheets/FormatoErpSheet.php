@@ -15,9 +15,10 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
  * Hoja "Formato ERP": tabla plana lista para importar la convalidación al ERP
  * (una fila por curso convalidado, con códigos y datos del alumno).
  */
-class FormatoErpSheet implements FromArray, WithTitle, WithColumnWidths, WithEvents
+class FormatoErpSheet implements FromArray, WithColumnWidths, WithEvents, WithTitle
 {
     private const NAVY = '1F2A44';
+
     private int $nFilas = 0;
 
     public function __construct(private Simulacion $s) {}
@@ -65,7 +66,7 @@ class FormatoErpSheet implements FromArray, WithTitle, WithColumnWidths, WithEve
                 $sheet = $event->sheet->getDelegate();
                 $sheet->getStyle('A1:H1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::NAVY);
                 $sheet->getStyle('A1:H1')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-                $sheet->getStyle('A1:H' . (1 + $this->nFilas))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                $sheet->getStyle('A1:H'.(1 + $this->nFilas))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
             },
         ];
     }

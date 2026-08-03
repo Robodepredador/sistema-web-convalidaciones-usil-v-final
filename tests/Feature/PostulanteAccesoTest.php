@@ -9,6 +9,7 @@ use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\UnidadNegocio;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -30,11 +31,11 @@ class PostulanteAccesoTest extends TestCase
 
     private function asesor(): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $rol = Role::where('nombre', Role::ASESOR)->firstOrFail();
 
         return User::create([
-            'nombre' => 'Asesor', 'email' => uniqid() . '@usil.edu.pe',
+            'nombre' => 'Asesor', 'email' => uniqid().'@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);

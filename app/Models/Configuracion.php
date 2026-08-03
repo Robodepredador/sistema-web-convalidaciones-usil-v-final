@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Crypt;
 class Configuracion extends Model
 {
     protected $table = 'configuraciones';
+
     protected $fillable = ['clave', 'valor'];
+
     public $timestamps = true;
 
     /** Claves cuyo valor se cifra en la base de datos. */

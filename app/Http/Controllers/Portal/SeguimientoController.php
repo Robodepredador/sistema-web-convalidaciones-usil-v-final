@@ -19,23 +19,23 @@ class SeguimientoController extends Controller
         $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera', 'simulaciones.detalles', 'simulaciones.convalidacion']);
 
         // Señales reales del avance del expediente.
-        $docsCount  = $p->documentos()->count();
-        $destinos   = $p->destinos;
-        $tieneSim   = $p->simulaciones->isNotEmpty();
+        $docsCount = $p->documentos()->count();
+        $destinos = $p->destinos;
+        $tieneSim = $p->simulaciones->isNotEmpty();
         $confirmada = $p->simulaciones->contains(fn (Simulacion $s) => $s->convalidacion?->estado === Convalidacion::CONFIRMADA);
 
         return inertia('Portal/Seguimiento', [
             'postulante' => [
-                'codigo'            => $p->codigo,
-                'nombre'            => $p->nombre_completo,
-                'email'             => $p->email,
-                'estado'            => $p->estado,
-                'carrera_destino'   => $p->carreraDestino?->nombre,
-                'institucion'       => $p->institucionOrigen?->nombre,
-                'carrera_externa'   => $p->carreraExterna?->nombre,
+                'codigo' => $p->codigo,
+                'nombre' => $p->nombre_completo,
+                'email' => $p->email,
+                'estado' => $p->estado,
+                'carrera_destino' => $p->carreraDestino?->nombre,
+                'institucion' => $p->institucionOrigen?->nombre,
+                'carrera_externa' => $p->carreraExterna?->nombre,
                 'ciclo_postulacion' => $p->ciclo_postulacion,
-                'observaciones'     => $p->observaciones,
-                'revision_estado'        => $p->revision_estado,
+                'observaciones' => $p->observaciones,
+                'revision_estado' => $p->revision_estado,
                 'revision_observaciones' => $p->revision_observaciones,
             ],
             // Carreras solicitadas (una o más).
@@ -49,11 +49,11 @@ class SeguimientoController extends Controller
                 $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim, $confirmada
             ),
             'simulaciones' => $p->simulaciones->map(fn (Simulacion $s) => [
-                'id'        => $s->id,
-                'fecha'     => $s->created_at?->format('Y-m-d'),
-                'estado'    => $s->estado,
-                'cursos'    => $s->detalles->where('excluido', false)->count(),
-                'creditos'  => (float) $s->detalles->where('excluido', false)->sum('creditos_reconocidos'),
+                'id' => $s->id,
+                'fecha' => $s->created_at?->format('Y-m-d'),
+                'estado' => $s->estado,
+                'cursos' => $s->detalles->where('excluido', false)->count(),
+                'creditos' => (float) $s->detalles->where('excluido', false)->sum('creditos_reconocidos'),
             ])->values(),
         ]);
     }

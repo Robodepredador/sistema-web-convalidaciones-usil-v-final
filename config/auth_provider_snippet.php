@@ -1,4 +1,7 @@
 <?php
+
+use App\Models\User;
+
 /*
  |--------------------------------------------------------------------------
  | Fragmento para config/auth.php
@@ -9,7 +12,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model'  => App\Models\User::class, // mapeado a la tabla 'usuarios'
+            'model' => User::class, // mapeado a la tabla 'usuarios'
         ],
     ],
 ];

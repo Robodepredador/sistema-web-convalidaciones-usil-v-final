@@ -27,17 +27,17 @@ class SeguimientoTimeline
 
         // La aprobación del Ejecutivo Comercial (revision_estado) es la señal real que
         // habilita la evaluación del coordinador; el conteo de documentos es solo el avance previo.
-        $aprobada  = $revisionEstado === 'aprobada';
+        $aprobada = $revisionEstado === 'aprobada';
         $observada = $revisionEstado === 'observada';
         $detalleDocs = match (true) {
-            $aprobada  => 'Documentos revisados y aprobados por Admisión',
+            $aprobada => 'Documentos revisados y aprobados por Admisión',
             $observada => 'Documentación observada: revisa las indicaciones',
-            default    => "{$docsCount} de 3 documentos entregados",
+            default => "{$docsCount} de 3 documentos entregados",
         };
 
         $etapas = [
             ['label' => 'Solicitud registrada', 'done' => true,
-                'detalle' => 'Recibida el ' . ($registradaEl ?? '—')],
+                'detalle' => 'Recibida el '.($registradaEl ?? '—')],
             ['label' => 'Revisión de documentos', 'done' => $aprobada,
                 'detalle' => $detalleDocs],
             ['label' => 'Simulación de convalidación', 'done' => $tieneSim,

@@ -10,12 +10,14 @@ class Convalidacion extends Model
     protected $table = 'convalidaciones';
 
     public const CONFIRMADA = 'confirmada';
+
     public const ANULADA = 'anulada';
 
     protected $fillable = [
         'simulacion_id', 'fecha_confirmacion', 'memorandum_numero',
         'memorandum_pdf_path', 'estado', 'motivo_anulacion', 'usuario_id',
     ];
+
     protected $casts = ['fecha_confirmacion' => 'date'];
 
     public function simulacion(): BelongsTo

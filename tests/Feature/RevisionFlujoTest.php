@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -15,11 +16,11 @@ class RevisionFlujoTest extends TestCase
 
     private function usuario(string $rolNombre): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $rol = Role::where('nombre', $rolNombre)->firstOrFail();
 
         return User::create([
-            'nombre' => $rolNombre, 'email' => uniqid() . '@usil.edu.pe',
+            'nombre' => $rolNombre, 'email' => uniqid().'@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
@@ -28,9 +29,9 @@ class RevisionFlujoTest extends TestCase
     private function postulanteDe(User $asesor): Postulante
     {
         return Postulante::create([
-            'codigo' => 'POST-2026-' . random_int(10000, 99999),
+            'codigo' => 'POST-2026-'.random_int(10000, 99999),
             'tipo_documento' => 'DNI', 'numero_documento' => (string) random_int(10000000, 99999999),
-            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid() . '@ex.com',
+            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid().'@ex.com',
             'usuario_id' => $asesor->id,
         ]);
     }

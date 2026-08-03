@@ -13,6 +13,7 @@ class Simulacion extends Model
     use SoftDeletes;
 
     protected $table = 'simulaciones';
+
     protected $fillable = [
         'postulante_id', 'nombres', 'apellidos', 'tipo_documento', 'numero_documento', 'email',
         'telefono', 'ciclo_postulacion', 'carrera_externa_id', 'carrera_usil_id',

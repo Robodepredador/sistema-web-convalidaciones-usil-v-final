@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class InstitucionExterna extends Model
 {
     protected $table = 'instituciones_externas';
+
     protected $fillable = ['tipo_id', 'nombre', 'pais', 'gestion', 'activa'];
+
     protected $casts = ['activa' => 'boolean'];
 
     public function tipo(): BelongsTo

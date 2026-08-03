@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Genera un script SQL completo (estructura + datos) para replicar la base de
  * datos conectada por Laravel. Evita el problema de mysqldump con nombres de BD
@@ -8,28 +9,29 @@
  * Salida: backups/<db>_<timestamp>.sql
  */
 
-require __DIR__ . '/../vendor/autoload.php';
-$app = require_once __DIR__ . '/../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+$app->make(Kernel::class)->bootstrap();
 
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 
 $pdo = DB::connection()->getPdo();
-$db  = DB::connection()->getDatabaseName();
+$db = DB::connection()->getDatabaseName();
 
-$dir = __DIR__ . '/../backups';
+$dir = __DIR__.'/../backups';
 if (! is_dir($dir)) {
     mkdir($dir, 0777, true);
 }
-$file = $dir . '/' . preg_replace('/[^A-Za-z0-9_]/', '_', $db) . '_' . date('Y-m-d_His') . '.sql';
-$out  = fopen($file, 'w');
+$file = $dir.'/'.preg_replace('/[^A-Za-z0-9_]/', '_', $db).'_'.date('Y-m-d_His').'.sql';
+$out = fopen($file, 'w');
 
 $w = fn (string $s) => fwrite($out, $s);
 
 // --- Cabecera ---
 $w("-- ------------------------------------------------------------\n");
 $w("-- Backup de la base de datos `{$db}`\n");
-$w('-- Generado: ' . date('Y-m-d H:i:s') . "\n");
+$w('-- Generado: '.date('Y-m-d H:i:s')."\n");
 $w("-- Motor: MySQL · Charset: utf8mb4\n");
 $w("-- ------------------------------------------------------------\n\n");
 $w("SET NAMES utf8mb4;\n");
@@ -51,7 +53,7 @@ foreach ($tablas as $tabla) {
     $w("-- Estructura de `{$tabla}`\n");
     $w("-- ----------------------------\n");
     $w("DROP TABLE IF EXISTS `{$tabla}`;\n");
-    $w($ddl . ";\n\n");
+    $w($ddl.";\n\n");
 
     // Datos
     $filas = $pdo->query("SELECT * FROM `{$tabla}`");
@@ -61,41 +63,42 @@ foreach ($tablas as $tabla) {
 
     while ($fila = $filas->fetch(PDO::FETCH_ASSOC)) {
         if ($columnas === null) {
-            $columnas = '`' . implode('`, `', array_keys($fila)) . '`';
+            $columnas = '`'.implode('`, `', array_keys($fila)).'`';
         }
         $vals = array_map(function ($v) use ($pdo) {
             if ($v === null) {
                 return 'NULL';
             }
+
             return $pdo->quote((string) $v);
         }, array_values($fila));
-        $buffer[] = '(' . implode(', ', $vals) . ')';
+        $buffer[] = '('.implode(', ', $vals).')';
         $count++;
 
         // Inserta por lotes de 200 filas.
         if (count($buffer) >= 200) {
-            $w("INSERT INTO `{$tabla}` ({$columnas}) VALUES\n" . implode(",\n", $buffer) . ";\n");
+            $w("INSERT INTO `{$tabla}` ({$columnas}) VALUES\n".implode(",\n", $buffer).";\n");
             $buffer = [];
         }
     }
     if ($buffer) {
-        $w("INSERT INTO `{$tabla}` ({$columnas}) VALUES\n" . implode(",\n", $buffer) . ";\n");
+        $w("INSERT INTO `{$tabla}` ({$columnas}) VALUES\n".implode(",\n", $buffer).";\n");
     }
     $w("\n");
     $totalFilas += $count;
-    echo str_pad($tabla, 34) . " {$count} filas\n";
+    echo str_pad($tabla, 34)." {$count} filas\n";
 }
 
 // --- Vistas (si existieran) ---
 foreach ($vistas as $vista) {
     $create = $pdo->query("SHOW CREATE VIEW `{$vista}`")->fetch(PDO::FETCH_ASSOC);
-    $w("DROP VIEW IF EXISTS `{$vista}`;\n" . $create['Create View'] . ";\n\n");
+    $w("DROP VIEW IF EXISTS `{$vista}`;\n".$create['Create View'].";\n\n");
 }
 
 $w("SET FOREIGN_KEY_CHECKS = 1;\n");
 fclose($out);
 
 echo "\n==============================\n";
-echo 'Backup generado: ' . realpath($file) . "\n";
-echo 'Tablas: ' . count($tablas) . ' · Vistas: ' . count($vistas) . ' · Filas: ' . $totalFilas . "\n";
-echo 'Tamaño: ' . round(filesize($file) / 1024, 1) . " KB\n";
+echo 'Backup generado: '.realpath($file)."\n";
+echo 'Tablas: '.count($tablas).' · Vistas: '.count($vistas).' · Filas: '.$totalFilas."\n";
+echo 'Tamaño: '.round(filesize($file) / 1024, 1)." KB\n";

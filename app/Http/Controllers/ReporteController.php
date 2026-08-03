@@ -22,12 +22,12 @@ class ReporteController extends Controller
         $resumen = $this->consultarResumen($request);
 
         return inertia('Reportes/Index', [
-            'resumen'    => $resumen,
-            'convalidados'    => $this->consultarCursos($request, true),
-            'noConvalidados'  => $this->consultarCursos($request, false),
+            'resumen' => $resumen,
+            'convalidados' => $this->consultarCursos($request, true),
+            'noConvalidados' => $this->consultarCursos($request, false),
             'facultades' => Facultad::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'carreras'   => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'facultad_id']),
-            'filtros'    => $request->only(['facultad_id', 'carrera_id', 'desde', 'hasta']),
+            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'facultad_id']),
+            'filtros' => $request->only(['facultad_id', 'carrera_id', 'desde', 'hasta']),
         ]);
     }
 
@@ -42,22 +42,22 @@ class ReporteController extends Controller
                 fn ($q) => $q->whereIn('clasificacion', ['no_convalidable', 'desaprobado']))
             ->whereHas('simulacion', function ($s) use ($request) {
                 $s->when($request->carrera_id, fn ($q, $v) => $q->where('carrera_usil_id', $v))
-                  ->when($request->facultad_id, fn ($q, $v) => $q->whereHas('carreraUsil', fn ($c) => $c->where('facultad_id', $v)))
-                  ->when($request->desde, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
-                  ->when($request->hasta, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
+                    ->when($request->facultad_id, fn ($q, $v) => $q->whereHas('carreraUsil', fn ($c) => $c->where('facultad_id', $v)))
+                    ->when($request->desde, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
+                    ->when($request->hasta, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
             })
             ->orderByDesc('id')
             ->get()
             ->map(fn (SimulacionDetalle $d) => [
-                'estudiante'    => $d->simulacion ? "{$d->simulacion->nombres} {$d->simulacion->apellidos}" : '—',
-                'documento'     => $d->simulacion?->numero_documento ?? '—',
-                'carrera'       => $d->simulacion?->carreraUsil?->nombre ?? '—',
-                'origen'        => $d->simulacion?->universidad_origen ?? $d->simulacion?->carreraExterna?->nombre,
-                'curso_origen'  => $d->nombre_origen,
-                'curso_usil'    => $d->cursoUsil?->nombre,
-                'creditos'      => $d->creditos_reconocidos,
-                'nota'          => $d->nota_origen,
-                'motivo'        => $motivo[$d->clasificacion] ?? null,
+                'estudiante' => $d->simulacion ? "{$d->simulacion->nombres} {$d->simulacion->apellidos}" : '—',
+                'documento' => $d->simulacion?->numero_documento ?? '—',
+                'carrera' => $d->simulacion?->carreraUsil?->nombre ?? '—',
+                'origen' => $d->simulacion?->universidad_origen ?? $d->simulacion?->carreraExterna?->nombre,
+                'curso_origen' => $d->nombre_origen,
+                'curso_usil' => $d->cursoUsil?->nombre,
+                'creditos' => $d->creditos_reconocidos,
+                'nota' => $d->nota_origen,
+                'motivo' => $motivo[$d->clasificacion] ?? null,
             ])->values();
     }
 
@@ -78,10 +78,10 @@ class ReporteController extends Controller
             ->groupBy(fn ($c) => $c->simulacion?->carreraUsil?->facultad?->nombre ?? '—')
             ->map(function ($grupo, $facultad) {
                 return [
-                    'facultad'    => $facultad,
-                    'total'       => $grupo->count(),
+                    'facultad' => $facultad,
+                    'total' => $grupo->count(),
                     'confirmadas' => $grupo->where('estado', 'confirmada')->count(),
-                    'anuladas'    => $grupo->where('estado', 'anulada')->count(),
+                    'anuladas' => $grupo->where('estado', 'anulada')->count(),
                 ];
             })->values();
     }
@@ -89,13 +89,13 @@ class ReporteController extends Controller
     private function consultarDetalle(Request $request): Collection
     {
         return $this->baseQuery($request)->get()->map(fn ($c) => [
-            'facultad'   => $c->simulacion?->carreraUsil?->facultad?->nombre ?? '—',
-            'carrera'    => $c->simulacion?->carreraUsil?->nombre ?? '—',
+            'facultad' => $c->simulacion?->carreraUsil?->facultad?->nombre ?? '—',
+            'carrera' => $c->simulacion?->carreraUsil?->nombre ?? '—',
             'estudiante' => $c->simulacion ? "{$c->simulacion->nombres} {$c->simulacion->apellidos}" : '—',
-            'documento'  => $c->simulacion?->numero_documento ?? '—',
+            'documento' => $c->simulacion?->numero_documento ?? '—',
             'memorandum' => $c->memorandum_numero,
-            'fecha'      => optional($c->fecha_confirmacion)->format('d/m/Y'),
-            'estado'     => $c->estado,
+            'fecha' => optional($c->fecha_confirmacion)->format('d/m/Y'),
+            'estado' => $c->estado,
         ]);
     }
 
@@ -104,9 +104,7 @@ class ReporteController extends Controller
         return Convalidacion::with(['simulacion.carreraUsil.facultad'])
             ->when($request->desde, fn ($q, $v) => $q->whereDate('fecha_confirmacion', '>=', $v))
             ->when($request->hasta, fn ($q, $v) => $q->whereDate('fecha_confirmacion', '<=', $v))
-            ->when($request->carrera_id, fn ($q, $v) =>
-                $q->whereHas('simulacion', fn ($s) => $s->where('carrera_usil_id', $v)))
-            ->when($request->facultad_id, fn ($q, $v) =>
-                $q->whereHas('simulacion.carreraUsil', fn ($c) => $c->where('facultad_id', $v)));
+            ->when($request->carrera_id, fn ($q, $v) => $q->whereHas('simulacion', fn ($s) => $s->where('carrera_usil_id', $v)))
+            ->when($request->facultad_id, fn ($q, $v) => $q->whereHas('simulacion.carreraUsil', fn ($c) => $c->where('facultad_id', $v)));
     }
 }

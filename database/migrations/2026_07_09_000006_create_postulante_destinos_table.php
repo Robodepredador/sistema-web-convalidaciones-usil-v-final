@@ -37,13 +37,13 @@ return new class extends Migration
 
         foreach ($postulantes as $p) {
             DB::table('postulante_destinos')->insertOrIgnore([
-                'postulante_id'              => $p->id,
-                'carrera_id'                 => $p->carrera_destino_id,
-                'estado_equivalencias'       => $p->estado_equivalencias ?? 'pendiente',
+                'postulante_id' => $p->id,
+                'carrera_id' => $p->carrera_destino_id,
+                'estado_equivalencias' => $p->estado_equivalencias ?? 'pendiente',
                 'equivalencias_revisado_por' => $p->equivalencias_revisado_por,
-                'equivalencias_revisado_en'  => $p->equivalencias_revisado_en,
-                'created_at'                 => now(),
-                'updated_at'                 => now(),
+                'equivalencias_revisado_en' => $p->equivalencias_revisado_en,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

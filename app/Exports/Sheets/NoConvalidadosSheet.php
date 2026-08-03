@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 /** Hoja de cursos NO convalidados (no convalidables + desaprobados). */
-class NoConvalidadosSheet implements FromArray, WithTitle, WithColumnWidths, WithEvents
+class NoConvalidadosSheet implements FromArray, WithColumnWidths, WithEvents, WithTitle
 {
     private const NAVY = '1F2A44';
 

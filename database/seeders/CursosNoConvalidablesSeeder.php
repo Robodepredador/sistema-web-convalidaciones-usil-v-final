@@ -66,6 +66,6 @@ class CursosNoConvalidablesSeeder extends Seeder
             );
         }
         CursoNoConvalidable::limpiarCache();
-        $this->command?->info('✓ ' . count($lista) . ' materias de origen sembradas en la lista de no convalidables.');
+        $this->command?->info('✓ '.count($lista).' materias de origen sembradas en la lista de no convalidables.');
     }
 }

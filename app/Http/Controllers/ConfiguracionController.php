@@ -10,6 +10,7 @@ use App\Services\IAConvalidacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Response;
 
 /**
  * Configuración del sistema (solo Administrador).
@@ -19,17 +20,17 @@ class ConfiguracionController extends Controller
 {
     public function __construct(private IAConvalidacionService $ia) {}
 
-    public function index(): \Inertia\Response
+    public function index(): Response
     {
         return inertia('Configuracion/Index', [
             'ia' => [
-                'proveedor'      => Configuracion::get('ia_proveedor', config('services.ia.proveedor', 'gemini')),
-                'gemini_model'   => Configuracion::get('gemini_model', config('services.gemini.model', 'gemini-2.5-flash')),
-                'openai_model'   => Configuracion::get('openai_model', config('services.openai.model', 'gpt-4o')),
+                'proveedor' => Configuracion::get('ia_proveedor', config('services.ia.proveedor', 'gemini')),
+                'gemini_model' => Configuracion::get('gemini_model', config('services.gemini.model', 'gemini-2.5-flash')),
+                'openai_model' => Configuracion::get('openai_model', config('services.openai.model', 'gpt-4o')),
                 // Nunca se envía la clave al frontend; solo si existe y su fin (enmascarada).
                 'gemini_key_set' => Configuracion::tiene('gemini_api_key') || (bool) config('services.gemini.key'),
                 'openai_key_set' => Configuracion::tiene('openai_api_key') || (bool) config('services.openai.key'),
-                'disponible'     => $this->ia->disponible(),
+                'disponible' => $this->ia->disponible(),
             ],
             'modelos' => [
                 'gemini' => ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'],
@@ -66,7 +67,7 @@ class ConfiguracionController extends Controller
     {
         $datos = $request->validate([
             'palabra_clave' => ['required', 'string', 'max:120'],
-            'motivo'        => ['nullable', 'string', 'max:150'],
+            'motivo' => ['nullable', 'string', 'max:150'],
         ]);
 
         CursoNoConvalidable::updateOrCreate(
@@ -82,6 +83,7 @@ class ConfiguracionController extends Controller
     {
         if ($request->boolean('eliminar')) {
             $noConvalidable->delete();
+
             return back()->with('status', 'Materia eliminada de la lista.');
         }
 
@@ -93,7 +95,7 @@ class ConfiguracionController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'proveedor'    => ['required', 'in:gemini,openai'],
+            'proveedor' => ['required', 'in:gemini,openai'],
             'gemini_model' => ['nullable', 'string', 'max:60'],
             'openai_model' => ['nullable', 'string', 'max:60'],
             // Las claves son opcionales: si vienen vacías, se conserva la existente.
@@ -129,8 +131,8 @@ class ConfiguracionController extends Controller
     {
         $datos = $request->validate([
             'proveedor' => ['required', 'in:gemini,openai'],
-            'modelo'    => ['nullable', 'string', 'max:60'],
-            'api_key'   => ['nullable', 'string', 'max:200'],
+            'modelo' => ['nullable', 'string', 'max:60'],
+            'api_key' => ['nullable', 'string', 'max:200'],
         ]);
 
         @set_time_limit(60);

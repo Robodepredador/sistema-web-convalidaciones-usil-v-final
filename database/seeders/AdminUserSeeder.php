@@ -16,10 +16,10 @@ class AdminUserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@usil.edu.pe'],
             [
-                'nombre'        => 'Administrador del Sistema',
+                'nombre' => 'Administrador del Sistema',
                 'password_hash' => Hash::make('Admin#2026'), // forzará cambio en primer acceso
-                'rol_id'        => $rolAdmin->id,
-                'activo'        => true,
+                'rol_id' => $rolAdmin->id,
+                'activo' => true,
                 'primer_acceso' => true,
             ]
         );

@@ -14,7 +14,9 @@ class Modalidad extends Model
     use SoftDeletes;
 
     protected $table = 'modalidades';
+
     protected $fillable = ['codigo', 'nombre', 'activo'];
+
     protected $casts = ['activo' => 'boolean'];
 
     public function planes(): HasMany

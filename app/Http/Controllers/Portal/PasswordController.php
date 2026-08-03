@@ -27,7 +27,7 @@ class PasswordController extends Controller
 
         $postulante = Auth::guard('postulante')->user();
         $postulante->forceFill([
-            'password_hash'         => Hash::make($datos['password']),
+            'password_hash' => Hash::make($datos['password']),
             'debe_cambiar_password' => false,
         ])->save();
 

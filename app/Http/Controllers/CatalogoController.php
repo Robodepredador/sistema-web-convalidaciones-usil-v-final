@@ -31,12 +31,12 @@ class CatalogoController extends Controller
     {
         $datos = $request->validate([
             'institucion_id' => ['required', 'exists:instituciones_externas,id'],
-            'nombre'         => ['required', 'string', 'max:200'],
+            'nombre' => ['required', 'string', 'max:200'],
         ]);
 
         $carrera = CarreraExterna::firstOrCreate([
             'institucion_id' => $datos['institucion_id'],
-            'nombre'         => trim($datos['nombre']),
+            'nombre' => trim($datos['nombre']),
         ]);
 
         return response()->json(['id' => $carrera->id, 'nombre' => $carrera->nombre]);
@@ -48,8 +48,8 @@ class CatalogoController extends Controller
     public function agregarCursoExterno(Request $request, CarreraExterna $carreraExterna): RedirectResponse
     {
         $datos = $request->validate([
-            'codigo'   => ['nullable', 'string', 'max:30'],
-            'nombre'   => ['required', 'string', 'max:200'],
+            'codigo' => ['nullable', 'string', 'max:30'],
+            'nombre' => ['required', 'string', 'max:200'],
             'creditos' => ['nullable', 'numeric', 'min:0', 'max:99'],
         ]);
 
@@ -70,8 +70,8 @@ class CatalogoController extends Controller
     public function actualizarCursoExterno(Request $request, CursoExterno $cursoExterno): RedirectResponse
     {
         $datos = $request->validate([
-            'codigo'   => ['nullable', 'string', 'max:30'],
-            'nombre'   => ['required', 'string', 'max:200'],
+            'codigo' => ['nullable', 'string', 'max:30'],
+            'nombre' => ['required', 'string', 'max:200'],
             'creditos' => ['nullable', 'numeric', 'min:0', 'max:99'],
         ]);
 

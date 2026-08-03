@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Cache;
 class CursoNoConvalidable extends Model
 {
     protected $table = 'cursos_no_convalidables';
+
     protected $fillable = ['palabra_clave', 'clave_normalizada', 'motivo', 'activo'];
+
     protected $casts = ['activo' => 'boolean'];
 
     private const CACHE_KEY = 'cursos_no_convalidables.activos';

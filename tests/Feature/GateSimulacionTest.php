@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Carrera;
 use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -15,14 +17,14 @@ class GateSimulacionTest extends TestCase
 
     private function coordinador(): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $rol = Role::where('nombre', Role::COORDINADOR)->firstOrFail();
         $u = User::create([
             'nombre' => 'Coord', 'email' => 'coord@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
-        $u->carrerasPermitidas()->sync(\App\Models\Carrera::pluck('id'));
+        $u->carrerasPermitidas()->sync(Carrera::pluck('id'));
 
         return $u;
     }
@@ -30,9 +32,9 @@ class GateSimulacionTest extends TestCase
     private function postulante(string $estado): Postulante
     {
         return Postulante::create([
-            'codigo' => 'POST-2026-' . random_int(10000, 99999),
+            'codigo' => 'POST-2026-'.random_int(10000, 99999),
             'tipo_documento' => 'DNI', 'numero_documento' => (string) random_int(10000000, 99999999),
-            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid() . '@ex.com',
+            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid().'@ex.com',
             'revision_estado' => $estado,
         ]);
     }

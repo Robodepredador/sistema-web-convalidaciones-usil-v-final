@@ -9,6 +9,7 @@ use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\Simulacion;
 use App\Models\User;
+use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,12 +26,13 @@ use Illuminate\Validation\Rule;
 class PostulanteController extends Controller
 {
     private const ESTADOS = ['nuevo', 'en_evaluacion', 'admitido', 'rechazado', 'matriculado'];
+
     private const DOCUMENTOS = ['certificado', 'silabos', 'constancia'];
 
     public function index(Request $request)
     {
         // Alcance por rol: solo postulantes con un destino dentro de las carreras visibles.
-        $visibles = \App\Services\AlcanceService::carrerasVisibles($request->user());
+        $visibles = AlcanceService::carrerasVisibles($request->user());
 
         $postulantes = Postulante::with(['carreraDestino', 'institucionOrigen', 'usuario:id,nombre'])
             // Estado de preconvalidación derivado de las simulaciones/convalidaciones reales
@@ -42,13 +44,12 @@ class PostulanteController extends Controller
             ])
             ->when($visibles !== null, fn ($x) => $x->whereHas('destinos',
                 fn ($d) => $d->whereIn('carrera_id', $visibles ?: [0])))
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombres', 'like', "%{$v}%")
-                    ->orWhere('apellido_paterno', 'like', "%{$v}%")
-                    ->orWhere('apellido_materno', 'like', "%{$v}%")
-                    ->orWhere('numero_documento', 'like', "%{$v}%")
-                    ->orWhere('codigo', 'like', "%{$v}%")
-                    ->orWhere('email', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombres', 'like', "%{$v}%")
+                ->orWhere('apellido_paterno', 'like', "%{$v}%")
+                ->orWhere('apellido_materno', 'like', "%{$v}%")
+                ->orWhere('numero_documento', 'like', "%{$v}%")
+                ->orWhere('codigo', 'like', "%{$v}%")
+                ->orWhere('email', 'like', "%{$v}%")))
             ->when($request->estado, fn ($x, $v) => $x->where('estado', $v))
             ->when($request->revision, fn ($x, $v) => $x->where('revision_estado', $v))
             ->when($request->carrera_destino_id, fn ($x, $v) => $x->where('carrera_destino_id', $v))
@@ -58,31 +59,31 @@ class PostulanteController extends Controller
             ->orderByDesc('id')
             ->paginate(10)->withQueryString()
             ->through(fn (Postulante $p) => [
-                'id'              => $p->id,
-                'codigo'          => $p->codigo,
-                'documento'       => "{$p->tipo_documento} {$p->numero_documento}",
-                'nombre'          => $p->nombre_completo,
-                'email'           => $p->email,
+                'id' => $p->id,
+                'codigo' => $p->codigo,
+                'documento' => "{$p->tipo_documento} {$p->numero_documento}",
+                'nombre' => $p->nombre_completo,
+                'email' => $p->email,
                 'carrera_destino' => $p->carreraDestino?->nombre,
-                'procedencia'     => $p->institucionOrigen?->nombre,
-                'estado'          => $p->estado,
+                'procedencia' => $p->institucionOrigen?->nombre,
+                'estado' => $p->estado,
                 'preconvalidacion' => $p->convalidaciones_count > 0 ? 'convalidada'
                     : ($p->simulaciones_count > 0 ? 'atendida' : 'pendiente'),
-                'revision'        => $p->revision_estado,
-                'asesor'          => $p->usuario?->nombre,
-                'documentos'      => $p->documentos_count,
+                'revision' => $p->revision_estado,
+                'asesor' => $p->usuario?->nombre,
+                'documentos' => $p->documentos_count,
                 'documentos_total' => count(self::DOCUMENTOS),
             ]);
 
         return inertia('Postulantes/Index', [
             'postulantes' => $postulantes,
             // El Asesor solo cuenta los suyos (coherente con su listado).
-            'total'       => Postulante::when($request->user()->rol?->nombre === Role::ASESOR,
+            'total' => Postulante::when($request->user()->rol?->nombre === Role::ASESOR,
                 fn ($q) => $q->where('usuario_id', $request->user()->id))->count(),
-            'carreras'    => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'estados'     => self::ESTADOS,
-            'revisiones'  => ['pendiente', 'aprobada', 'observada'],
-            'filtros'     => $request->only(['q', 'estado', 'revision', 'carrera_destino_id']),
+            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'estados' => self::ESTADOS,
+            'revisiones' => ['pendiente', 'aprobada', 'observada'],
+            'filtros' => $request->only(['q', 'estado', 'revision', 'carrera_destino_id']),
         ]);
     }
 
@@ -101,20 +102,20 @@ class PostulanteController extends Controller
 
         // Postulante sin documento → identificador temporal único.
         if ($request->boolean('sin_documento')) {
-            $datos['tipo_documento']   = 'TEMP';
-            $datos['numero_documento'] = 'TMP-' . now()->year . '-' . str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
+            $datos['tipo_documento'] = 'TEMP';
+            $datos['numero_documento'] = 'TMP-'.now()->year.'-'.str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
         }
 
-        $datos['codigo']     = 'POST-' . now()->year . '-' . str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
+        $datos['codigo'] = 'POST-'.now()->year.'-'.str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
         $datos['usuario_id'] = $request->user()->id;
-        $datos['estado']     = 'nuevo';
+        $datos['estado'] = 'nuevo';
 
         // Acceso al portal solo si hay correo.
         $temporal = null;
         if (! empty($datos['email'])) {
             $temporal = Str::password(10);
-            $datos['password_hash']         = Hash::make($temporal);
-            $datos['acceso_habilitado']     = true;
+            $datos['password_hash'] = Hash::make($temporal);
+            $datos['acceso_habilitado'] = true;
             $datos['debe_cambiar_password'] = true;
         }
 
@@ -153,23 +154,23 @@ class PostulanteController extends Controller
 
         // Resultado de la evaluación del coordinador (solo lectura) para que Admisión lo consulte.
         $preconvalidaciones = $postulante->simulaciones->sortByDesc('id')->map(fn (Simulacion $s) => [
-            'id'           => $s->id,
-            'carrera'      => $s->carreraUsil?->nombre,
-            'metodo'       => $s->metodo,
-            'estado'       => $s->estado,
-            'fecha'        => optional($s->created_at)->format('d/m/Y H:i'),
+            'id' => $s->id,
+            'carrera' => $s->carreraUsil?->nombre,
+            'metodo' => $s->metodo,
+            'estado' => $s->estado,
+            'fecha' => optional($s->created_at)->format('d/m/Y H:i'),
             'convalidados' => $s->detalles->count(),
-            'creditos'     => (float) $s->detalles->sum('creditos_reconocidos'),
-            'cursos'       => $s->detalles->map(fn ($d) => [
-                'origen'   => $d->curso_origen_nombre,
-                'nota'     => $d->nota_origen,
-                'usil'     => $d->cursoUsil?->nombre,
+            'creditos' => (float) $s->detalles->sum('creditos_reconocidos'),
+            'cursos' => $s->detalles->map(fn ($d) => [
+                'origen' => $d->curso_origen_nombre,
+                'nota' => $d->nota_origen,
+                'usil' => $d->cursoUsil?->nombre,
                 'creditos' => (float) $d->creditos_reconocidos,
             ])->values(),
-            'convalidada'  => (bool) $s->convalidacion,
-            'memorandum'   => $s->convalidacion?->memorandum_numero,
-            'pdf'          => route('postulantes.preconvalidacion.pdf', [$postulante->id, $s->id]),
-            'excel'        => route('postulantes.preconvalidacion.excel', [$postulante->id, $s->id]),
+            'convalidada' => (bool) $s->convalidacion,
+            'memorandum' => $s->convalidacion?->memorandum_numero,
+            'pdf' => route('postulantes.preconvalidacion.pdf', [$postulante->id, $s->id]),
+            'excel' => route('postulantes.preconvalidacion.excel', [$postulante->id, $s->id]),
         ])->values();
 
         $tieneConv = $postulante->simulaciones->contains(fn ($s) => $s->convalidacion);
@@ -183,22 +184,22 @@ class PostulanteController extends Controller
                 'pais_residencia', 'direccion', 'institucion_origen_id', 'carrera_externa_id',
                 'carrera_destino_id', 'ciclo_postulacion', 'estado', 'observaciones',
             ]) + [
-                'sin_documento'       => $postulante->tipo_documento === 'TEMP',
+                'sin_documento' => $postulante->tipo_documento === 'TEMP',
                 'carrera_destino_ids' => $postulante->destinos()->pluck('carrera_id')->all(),
-                'documentos'          => $postulante->documentos->map(fn ($d) => ['tipo' => $d->tipo, 'nombre' => $d->nombre_original])->values(),
+                'documentos' => $postulante->documentos->map(fn ($d) => ['tipo' => $d->tipo, 'nombre' => $d->nombre_original])->values(),
             ],
-            'preconvalidaciones'       => $preconvalidaciones,
-            'preconvalidacion_estado'  => $estadoPre,
+            'preconvalidaciones' => $preconvalidaciones,
+            'preconvalidacion_estado' => $estadoPre,
             'revision' => [
-                'estado'         => $postulante->revision_estado,
-                'observaciones'  => $postulante->revision_observaciones,
-                'revisado_en'    => optional($postulante->revisado_en)->format('d/m/Y H:i'),
-                'revisado_por'   => $postulante->revisadoPor?->nombre,
-                'convalidada'    => $tieneConv,
-                'documentos'     => $postulante->documentos->count(),
+                'estado' => $postulante->revision_estado,
+                'observaciones' => $postulante->revision_observaciones,
+                'revisado_en' => optional($postulante->revisado_en)->format('d/m/Y H:i'),
+                'revisado_por' => $postulante->revisadoPor?->nombre,
+                'convalidada' => $tieneConv,
+                'documentos' => $postulante->documentos->count(),
                 'documentos_total' => count(self::DOCUMENTOS),
                 // Ya no admite cambios de revisión una vez convalidado.
-                'puede_revisar'  => $request->user()->puede('solicitudes.validar') && ! $tieneConv,
+                'puede_revisar' => $request->user()->puede('solicitudes.validar') && ! $tieneConv,
                 'puede_reenviar' => $request->user()->puede('solicitudes.editar') && ! $tieneConv
                     && ($request->user()->rol?->nombre !== Role::ASESOR
                         || $postulante->usuario_id === $request->user()->id),
@@ -219,38 +220,39 @@ class PostulanteController extends Controller
         ]);
 
         $preconvalidaciones = $postulante->simulaciones->sortByDesc('id')->map(fn (Simulacion $s) => [
-            'id'           => $s->id,
-            'carrera'      => $s->carreraUsil?->nombre,
-            'metodo'       => $s->metodo,
-            'estado'       => $s->estado,
-            'fecha'        => optional($s->created_at)->format('d/m/Y H:i'),
+            'id' => $s->id,
+            'carrera' => $s->carreraUsil?->nombre,
+            'metodo' => $s->metodo,
+            'estado' => $s->estado,
+            'fecha' => optional($s->created_at)->format('d/m/Y H:i'),
             'convalidados' => $s->detalles->count(),
-            'creditos'     => (float) $s->detalles->sum('creditos_reconocidos'),
-            'cursos'       => $s->detalles->map(fn ($d) => [
-                'origen'   => $d->curso_origen_nombre,
-                'nota'     => $d->nota_origen,
-                'usil'     => $d->cursoUsil?->nombre,
+            'creditos' => (float) $s->detalles->sum('creditos_reconocidos'),
+            'cursos' => $s->detalles->map(fn ($d) => [
+                'origen' => $d->curso_origen_nombre,
+                'nota' => $d->nota_origen,
+                'usil' => $d->cursoUsil?->nombre,
                 'creditos' => (float) $d->creditos_reconocidos,
             ])->values(),
-            'convalidada'  => (bool) $s->convalidacion,
-            'memorandum'   => $s->convalidacion?->memorandum_numero,
-            'pdf'          => route('postulantes.preconvalidacion.pdf', [$postulante->id, $s->id]),
-            'excel'        => route('postulantes.preconvalidacion.excel', [$postulante->id, $s->id]),
+            'convalidada' => (bool) $s->convalidacion,
+            'memorandum' => $s->convalidacion?->memorandum_numero,
+            'pdf' => route('postulantes.preconvalidacion.pdf', [$postulante->id, $s->id]),
+            'excel' => route('postulantes.preconvalidacion.excel', [$postulante->id, $s->id]),
         ])->values();
 
         $estadoPre = $postulante->simulaciones->contains(fn ($s) => $s->convalidacion) ? 'convalidada'
             : ($postulante->simulaciones->isNotEmpty() ? 'atendida' : 'pendiente');
 
         return response()->json([
-            'postulante'            => [
-                'id'     => $postulante->id,
+            'postulante' => [
+                'id' => $postulante->id,
                 'nombre' => $postulante->nombre_completo,
                 'codigo' => $postulante->codigo,
             ],
-            'preconvalidaciones'    => $preconvalidaciones,
+            'preconvalidaciones' => $preconvalidaciones,
             'preconvalidacion_estado' => $estadoPre,
         ]);
     }
+
     /**
      * Descarga el PDF de preconvalidación de un expediente del postulante.
      * Valida que la simulación pertenezca al postulante (scope manual).
@@ -283,7 +285,7 @@ class PostulanteController extends Controller
 
         if ($request->boolean('sin_documento') && $postulante->tipo_documento !== 'TEMP') {
             $datos['tipo_documento'] = 'TEMP';
-            $datos['numero_documento'] = 'TMP-' . now()->year . '-' . str_pad((string) $postulante->id, 5, '0', STR_PAD_LEFT);
+            $datos['numero_documento'] = 'TMP-'.now()->year.'-'.str_pad((string) $postulante->id, 5, '0', STR_PAD_LEFT);
         }
 
         $postulante->update($datos);
@@ -311,8 +313,8 @@ class PostulanteController extends Controller
 
         $temporal = Str::password(10);
         $postulante->update([
-            'password_hash'         => Hash::make($temporal),
-            'acceso_habilitado'     => true,
+            'password_hash' => Hash::make($temporal),
+            'acceso_habilitado' => true,
             'debe_cambiar_password' => true,
         ]);
         $this->enviarAcceso($postulante, $temporal);
@@ -339,7 +341,7 @@ class PostulanteController extends Controller
             'El expediente ya tiene una convalidación confirmada; no admite cambios de revisión.');
 
         $datos = $request->validate([
-            'accion'        => ['required', 'in:aprobar,observar'],
+            'accion' => ['required', 'in:aprobar,observar'],
             'observaciones' => ['required_if:accion,observar', 'nullable', 'string', 'max:1000'],
         ], [
             'observaciones.required_if' => 'Indica qué debe corregir el postulante.',
@@ -347,10 +349,10 @@ class PostulanteController extends Controller
 
         $aprobar = $datos['accion'] === 'aprobar';
         $cambios = [
-            'revision_estado'        => $aprobar ? 'aprobada' : 'observada',
+            'revision_estado' => $aprobar ? 'aprobada' : 'observada',
             'revision_observaciones' => $aprobar ? null : $datos['observaciones'],
-            'revisado_por'           => $request->user()->id,
-            'revisado_en'            => now(),
+            'revisado_por' => $request->user()->id,
+            'revisado_en' => now(),
         ];
         // Al aprobar, el expediente pasa a evaluación del coordinador (el "estado" avanza).
         if ($aprobar && $postulante->estado === 'nuevo') {
@@ -375,10 +377,10 @@ class PostulanteController extends Controller
         abort_unless($postulante->revision_estado === 'observada', 422, 'Solo se puede reenviar un expediente observado.');
 
         $postulante->update([
-            'revision_estado'        => 'pendiente',
+            'revision_estado' => 'pendiente',
             'revision_observaciones' => null,
-            'revisado_por'           => null,
-            'revisado_en'            => null,
+            'revisado_por' => null,
+            'revisado_en' => null,
         ]);
 
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['revision_estado' => 'reenviada']);
@@ -394,7 +396,7 @@ class PostulanteController extends Controller
                 new AccesoPortalMail($postulante, route('portal.login'), $temporal)
             );
         } catch (\Throwable $e) {
-            Log::warning('No se pudo enviar el correo de acceso al portal: ' . $e->getMessage());
+            Log::warning('No se pudo enviar el correo de acceso al portal: '.$e->getMessage());
         }
     }
 
@@ -442,10 +444,10 @@ class PostulanteController extends Controller
                 $archivo = $request->file($tipo);
                 $ruta = $archivo->store("postulantes/{$postulante->id}");
                 $postulante->documentos()->create([
-                    'tipo'            => $tipo,
+                    'tipo' => $tipo,
                     'nombre_original' => $archivo->getClientOriginalName(),
-                    'ruta'            => $ruta,
-                    'tamano'          => $archivo->getSize(),
+                    'ruta' => $ruta,
+                    'tamano' => $archivo->getSize(),
                 ]);
             }
         }
@@ -455,8 +457,8 @@ class PostulanteController extends Controller
     {
         return [
             'instituciones' => InstitucionExterna::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'carreras'      => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'estados'       => self::ESTADOS,
+            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'estados' => self::ESTADOS,
         ];
     }
 
@@ -465,31 +467,31 @@ class PostulanteController extends Controller
         $sinDoc = $request->boolean('sin_documento');
 
         $rules = [
-            'nombres'               => ['required', 'string', 'max:100'],
-            'apellido_paterno'      => ['required', 'string', 'max:100'],
-            'apellido_materno'      => ['nullable', 'string', 'max:100'],
-            'fecha_nacimiento'      => ['nullable', 'date', 'before:today'],
-            'genero'                => ['nullable', 'in:masculino,femenino,otro,no_especifica'],
-            'nacionalidad'          => ['nullable', 'string', 'max:60'],
-            'email'                 => [$borrador ? 'nullable' : 'required', 'email', 'max:150',
+            'nombres' => ['required', 'string', 'max:100'],
+            'apellido_paterno' => ['required', 'string', 'max:100'],
+            'apellido_materno' => ['nullable', 'string', 'max:100'],
+            'fecha_nacimiento' => ['nullable', 'date', 'before:today'],
+            'genero' => ['nullable', 'in:masculino,femenino,otro,no_especifica'],
+            'nacionalidad' => ['nullable', 'string', 'max:60'],
+            'email' => [$borrador ? 'nullable' : 'required', 'email', 'max:150',
                 // El correo es la identidad de acceso al portal: único entre postulantes activos.
                 Rule::unique('postulantes', 'email')->ignore($id)->whereNull('deleted_at')],
-            'telefono'              => ['nullable', 'string', 'max:20'],
-            'pais_residencia'       => ['nullable', 'string', 'max:60'],
-            'direccion'             => ['nullable', 'string', 'max:200'],
+            'telefono' => ['nullable', 'string', 'max:20'],
+            'pais_residencia' => ['nullable', 'string', 'max:60'],
+            'direccion' => ['nullable', 'string', 'max:200'],
             'institucion_origen_id' => ['nullable', 'exists:instituciones_externas,id'],
-            'carrera_externa_id'    => ['nullable', 'exists:carreras_externas,id'],
-            'carrera_destino_ids'   => [$borrador ? 'nullable' : 'required', 'array'],
+            'carrera_externa_id' => ['nullable', 'exists:carreras_externas,id'],
+            'carrera_destino_ids' => [$borrador ? 'nullable' : 'required', 'array'],
             'carrera_destino_ids.*' => ['integer', 'exists:carreras,id'],
-            'ciclo_postulacion'     => [$borrador ? 'nullable' : 'required', 'regex:/^\d{4}-\d$/'],
-            'observaciones'         => ['nullable', 'string', 'max:1000'],
-            'certificado'           => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'silabos'               => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,zip', 'max:10240'],
-            'constancia'            => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'ciclo_postulacion' => [$borrador ? 'nullable' : 'required', 'regex:/^\d{4}-\d$/'],
+            'observaciones' => ['nullable', 'string', 'max:1000'],
+            'certificado' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'silabos' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,zip', 'max:10240'],
+            'constancia' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
 
         if (! $sinDoc) {
-            $rules['tipo_documento']   = ['required', 'in:DNI,CE,PASAPORTE,PTP'];
+            $rules['tipo_documento'] = ['required', 'in:DNI,CE,PASAPORTE,PTP'];
             $rules['numero_documento'] = ['required', 'string', 'max:20',
                 Rule::unique('postulantes', 'numero_documento')
                     ->where(fn ($q) => $q->where('tipo_documento', $request->tipo_documento))
@@ -500,8 +502,8 @@ class PostulanteController extends Controller
             'numero_documento.unique' => 'Ya existe un postulante con ese tipo y número de documento.',
             'ciclo_postulacion.regex' => 'El ciclo debe tener el formato AAAA-N (por ejemplo, 2026-1).',
             'carrera_destino_id.required' => 'Selecciona la carrera destino en USIL.',
-            'email.required'          => 'El correo es obligatorio para registrar al postulante.',
-            'email.unique'            => 'Ya existe un postulante registrado con ese correo.',
+            'email.required' => 'El correo es obligatorio para registrar al postulante.',
+            'email.unique' => 'Ya existe un postulante registrado con ese correo.',
         ]);
 
         // Solo columnas persistibles (los archivos se procesan aparte).

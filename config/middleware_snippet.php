@@ -1,4 +1,5 @@
 <?php
+
 /*
  |--------------------------------------------------------------------------
  | Registro del middleware de roles (bootstrap/app.php en Laravel 11)

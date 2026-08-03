@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TipoInstitucion extends Model
 {
     protected $table = 'tipos_institucion';
+
     protected $fillable = ['nombre'];
 
     public function instituciones(): HasMany

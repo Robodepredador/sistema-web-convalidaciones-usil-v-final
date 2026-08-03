@@ -32,12 +32,12 @@ class Postulante extends Model implements Authenticatable
     protected $hidden = ['password_hash'];
 
     protected $casts = [
-        'fecha_nacimiento'           => 'date',
-        'acceso_habilitado'          => 'boolean',
-        'debe_cambiar_password'      => 'boolean',
-        'ultimo_acceso'              => 'datetime',
-        'equivalencias_revisado_en'  => 'datetime',
-        'revisado_en'                => 'datetime',
+        'fecha_nacimiento' => 'date',
+        'acceso_habilitado' => 'boolean',
+        'debe_cambiar_password' => 'boolean',
+        'ultimo_acceso' => 'datetime',
+        'equivalencias_revisado_en' => 'datetime',
+        'revisado_en' => 'datetime',
     ];
 
     // --- Auth (el esquema usa 'password_hash' y no remember_token) ---
@@ -78,9 +78,10 @@ class Postulante extends Model implements Authenticatable
             }
             if ($i > 0 && in_array($w, $menores, true)) {
                 $salida[] = $w;
+
                 continue;
             }
-            $salida[] = mb_strtoupper(mb_substr($w, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($w, 1, null, 'UTF-8');
+            $salida[] = mb_strtoupper(mb_substr($w, 0, 1, 'UTF-8'), 'UTF-8').mb_substr($w, 1, null, 'UTF-8');
         }
 
         return implode(' ', $salida);

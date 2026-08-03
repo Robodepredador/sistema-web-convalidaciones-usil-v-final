@@ -16,8 +16,7 @@ class PlanEstudioController extends Controller
     public function index(Request $request)
     {
         $planes = PlanEstudio::with(['carrera', 'modalidad'])
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
             ->when($request->carrera_id, fn ($x, $v) => $x->where('carrera_id', $v))
             ->when($request->modalidad_id, fn ($x, $v) => $x->where('modalidad_id', $v))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
@@ -25,22 +24,22 @@ class PlanEstudioController extends Controller
             ->orderByDesc('anio')->orderBy('codigo')
             ->paginate(10)->withQueryString()
             ->through(fn (PlanEstudio $p) => [
-                'id'        => $p->id,
-                'codigo'    => $p->codigo,
-                'programa'  => $p->carrera?->nombre,
+                'id' => $p->id,
+                'codigo' => $p->codigo,
+                'programa' => $p->carrera?->nombre,
                 'modalidad' => $p->modalidad?->nombre,
-                'nombre'    => $p->nombre,
-                'anio'      => $p->anio,
-                'version'   => $p->version,
-                'activo'    => $p->activo,
+                'nombre' => $p->nombre,
+                'anio' => $p->anio,
+                'version' => $p->version,
+                'activo' => $p->activo,
             ]);
 
         return inertia('Estructura/Planes/Index', [
-            'planes'      => $planes,
-            'activos'     => PlanEstudio::where('activo', true)->count(),
-            'programas'   => Carrera::orderBy('nombre')->get(['id', 'nombre']),
+            'planes' => $planes,
+            'activos' => PlanEstudio::where('activo', true)->count(),
+            'programas' => Carrera::orderBy('nombre')->get(['id', 'nombre']),
             'modalidades' => Modalidad::orderBy('nombre')->get(['id', 'nombre']),
-            'filtros'     => $request->only(['q', 'carrera_id', 'modalidad_id', 'estado']),
+            'filtros' => $request->only(['q', 'carrera_id', 'modalidad_id', 'estado']),
         ]);
     }
 
@@ -94,7 +93,7 @@ class PlanEstudioController extends Controller
     private function opciones(): array
     {
         return [
-            'programas'   => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'programas' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'modalidades' => Modalidad::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ];
     }
@@ -102,16 +101,16 @@ class PlanEstudioController extends Controller
     private function validar(Request $request, ?int $id = null): array
     {
         return $request->validate([
-            'codigo'       => ['required', 'string', 'max:30', Rule::unique('planes_estudio', 'codigo')->ignore($id)->whereNull('deleted_at')],
-            'carrera_id'   => ['required', 'exists:carreras,id'],
+            'codigo' => ['required', 'string', 'max:30', Rule::unique('planes_estudio', 'codigo')->ignore($id)->whereNull('deleted_at')],
+            'carrera_id' => ['required', 'exists:carreras,id'],
             'modalidad_id' => ['required', 'exists:modalidades,id'],
-            'nombre'       => ['required', 'string', 'max:150'],
-            'anio'         => ['required', 'integer', 'min:2000', 'max:2100'],
+            'nombre' => ['required', 'string', 'max:150'],
+            'anio' => ['required', 'integer', 'min:2000', 'max:2100'],
             // RN: no repetir versión por programa y año.
-            'version'      => ['required', 'string', 'max:20', Rule::unique('planes_estudio', 'version')
+            'version' => ['required', 'string', 'max:20', Rule::unique('planes_estudio', 'version')
                 ->where(fn ($w) => $w->where('carrera_id', $request->carrera_id)->where('anio', $request->anio))
                 ->ignore($id)->whereNull('deleted_at')],
-            'activo'       => ['boolean'],
+            'activo' => ['boolean'],
         ]);
     }
 }

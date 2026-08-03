@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CarreraExterna;
 use App\Models\CursoExterno;
 use App\Models\MallaExterna;
 use App\Services\IAConvalidacionService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MallaExternaController extends Controller
@@ -38,7 +36,7 @@ class MallaExternaController extends Controller
         try {
             $extraccion = $this->ia->extraerMallaOficial($contenido, $nombre);
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'No se pudo procesar el documento: ' . $e->getMessage()], 502);
+            return response()->json(['message' => 'No se pudo procesar el documento: '.$e->getMessage()], 502);
         }
 
         return response()->json($extraccion);
@@ -51,14 +49,14 @@ class MallaExternaController extends Controller
     {
         $request->validate([
             'carrera_externa_id' => ['required', 'exists:carreras_externas,id'],
-            'anio'               => ['required', 'string', 'max:4'],
-            'version'            => ['nullable', 'string', 'max:10'],
-            'pdf'                => ['required', 'file', 'mimes:pdf', 'max:20480'], // Max 20MB
-            'cursos'             => ['required', 'string'], // JSON de cursos extraídos
+            'anio' => ['required', 'string', 'max:4'],
+            'version' => ['nullable', 'string', 'max:10'],
+            'pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'], // Max 20MB
+            'cursos' => ['required', 'string'], // JSON de cursos extraídos
         ]);
 
         $cursosExtraidos = json_decode($request->cursos, true);
-        if (!is_array($cursosExtraidos)) {
+        if (! is_array($cursosExtraidos)) {
             return back()->withErrors(['cursos' => 'Formato de cursos inválido.']);
         }
 
@@ -72,27 +70,27 @@ class MallaExternaController extends Controller
 
             $malla = MallaExterna::create([
                 'carrera_externa_id' => $request->carrera_externa_id,
-                'anio'               => $request->anio,
-                'version'            => $request->version,
-                'activa'             => true,
-                'pdf_path'           => $path,
+                'anio' => $request->anio,
+                'version' => $request->version,
+                'activa' => true,
+                'pdf_path' => $path,
             ]);
 
             $cursosNuevos = [];
             foreach ($cursosExtraidos as $c) {
-                if (!empty($c['nombre'])) {
+                if (! empty($c['nombre'])) {
                     $cursosNuevos[] = [
-                        'malla_externa_id'   => $malla->id,
-                        'codigo'             => substr($c['codigo'] ?? '', 0, 30),
-                        'nombre'             => substr($c['nombre'], 0, 200),
-                        'creditos'           => is_numeric($c['creditos'] ?? null) ? $c['creditos'] : null,
-                        'created_at'         => now(),
-                        'updated_at'         => now(),
+                        'malla_externa_id' => $malla->id,
+                        'codigo' => substr($c['codigo'] ?? '', 0, 30),
+                        'nombre' => substr($c['nombre'], 0, 200),
+                        'creditos' => is_numeric($c['creditos'] ?? null) ? $c['creditos'] : null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
                 }
             }
 
-            if (!empty($cursosNuevos)) {
+            if (! empty($cursosNuevos)) {
                 CursoExterno::insert($cursosNuevos);
             }
 
@@ -106,8 +104,9 @@ class MallaExternaController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Error al guardar la malla: ' . $e->getMessage()], 500);
+                return response()->json(['message' => 'Error al guardar la malla: '.$e->getMessage()], 500);
             }
+
             return back()->withErrors(['error' => 'Error al guardar la malla.']);
         }
     }

@@ -15,7 +15,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 /** Hoja principal: cabecera institucional + cursos convalidados. */
-class PreconvalidacionSheet implements FromArray, WithTitle, WithColumnWidths, WithEvents
+class PreconvalidacionSheet implements FromArray, WithColumnWidths, WithEvents, WithTitle
 {
     private const NAVY = '1F2A44';
 
@@ -37,14 +37,14 @@ class PreconvalidacionSheet implements FromArray, WithTitle, WithColumnWidths, W
         $malla = MallaCurricular::find($s->malla_usil_id);
 
         $fac = $s->carreraUsil?->facultad?->nombre ?? 'Ingeniería';
-        $fac = Str::startsWith(mb_strtolower($fac), 'facultad') ? $fac : 'Facultad de ' . $fac;
+        $fac = Str::startsWith(mb_strtolower($fac), 'facultad') ? $fac : 'Facultad de '.$fac;
 
         $convalidados = $s->detalles->filter(fn ($d) => $d->curso_usil_id && ! $d->excluido);
 
         $filas = [
             [$fac],
-            ['Carrera Profesional: ' . ($s->carreraUsil?->nombre ?? '')],
-            ['Plan de Estudios: ' . ($malla?->anio ?? '')],
+            ['Carrera Profesional: '.($s->carreraUsil?->nombre ?? '')],
+            ['Plan de Estudios: '.($malla?->anio ?? '')],
             [],
             ['', 'Alumno:', trim("{$s->nombres} {$s->apellidos}")],
             ['', 'Código:', $s->postulante?->codigo ?? '-'],

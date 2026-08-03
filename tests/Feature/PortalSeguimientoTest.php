@@ -14,9 +14,9 @@ class PortalSeguimientoTest extends TestCase
     private function postulanteConAcceso(bool $debeCambiar): Postulante
     {
         return Postulante::create([
-            'codigo' => 'POST-2026-' . random_int(90100, 90999),
+            'codigo' => 'POST-2026-'.random_int(90100, 90999),
             'tipo_documento' => 'DNI', 'numero_documento' => (string) random_int(90000100, 90000999),
-            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid() . '@example.com',
+            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid().'@example.com',
             'estado' => 'en_evaluacion',
             'password_hash' => Hash::make('Temp#1234'),
             'acceso_habilitado' => true,

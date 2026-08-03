@@ -24,7 +24,7 @@ class AccesoController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 

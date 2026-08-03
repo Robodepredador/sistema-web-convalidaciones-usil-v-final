@@ -20,11 +20,11 @@ return new class extends Migration
         foreach ($carrerasWithCursos as $carreraId) {
             $mallaId = DB::table('mallas_externas')->insertGetId([
                 'carrera_externa_id' => $carreraId,
-                'anio'               => date('Y'),
-                'version'            => '1',
-                'activa'             => true,
-                'created_at'         => now(),
-                'updated_at'         => now(),
+                'anio' => date('Y'),
+                'version' => '1',
+                'activa' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::table('cursos_externos')->where('carrera_externa_id', $carreraId)->update(['malla_externa_id' => $mallaId]);
@@ -53,7 +53,7 @@ return new class extends Migration
             ->join('mallas_externas', 'cursos_externos.malla_externa_id', '=', 'mallas_externas.id')
             ->select('cursos_externos.id', 'mallas_externas.carrera_externa_id')
             ->get();
-        
+
         foreach ($cursos as $c) {
             DB::table('cursos_externos')->where('id', $c->id)->update(['carrera_externa_id' => $c->carrera_externa_id]);
         }

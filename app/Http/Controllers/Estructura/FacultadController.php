@@ -16,27 +16,26 @@ class FacultadController extends Controller
     {
         $facultades = Facultad::with('sede')
             ->withCount('carreras')
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
             ->when($request->sede_id, fn ($x, $v) => $x->where('unidad_negocio_id', $v))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
             ->when($request->estado === 'inactivo', fn ($x) => $x->where('activo', false))
             ->orderBy('nombre')
             ->paginate(10)->withQueryString()
             ->through(fn (Facultad $f) => [
-                'id'             => $f->id,
-                'codigo'         => $f->codigo,
-                'sede'           => $f->sede?->nombre,
-                'nombre'         => $f->nombre,
-                'activo'         => $f->activo,
+                'id' => $f->id,
+                'codigo' => $f->codigo,
+                'sede' => $f->sede?->nombre,
+                'nombre' => $f->nombre,
+                'activo' => $f->activo,
                 'carreras_count' => $f->carreras_count,
             ]);
 
         return inertia('Estructura/Facultades/Index', [
             'facultades' => $facultades,
-            'activas'    => Facultad::where('activo', true)->count(),
-            'sedes'      => UnidadNegocio::orderBy('nombre')->get(['id', 'nombre']),
-            'filtros'    => $request->only(['q', 'sede_id', 'estado']),
+            'activas' => Facultad::where('activo', true)->count(),
+            'sedes' => UnidadNegocio::orderBy('nombre')->get(['id', 'nombre']),
+            'filtros' => $request->only(['q', 'sede_id', 'estado']),
         ]);
     }
 
@@ -44,7 +43,7 @@ class FacultadController extends Controller
     {
         return inertia('Estructura/Facultades/Form', [
             'facultad' => null,
-            'sedes'    => UnidadNegocio::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'sedes' => UnidadNegocio::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 
@@ -61,7 +60,7 @@ class FacultadController extends Controller
     {
         return inertia('Estructura/Facultades/Form', [
             'facultad' => $facultad->only(['id', 'codigo', 'unidad_negocio_id', 'nombre', 'activo']),
-            'sedes'    => UnidadNegocio::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'sedes' => UnidadNegocio::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 
@@ -96,10 +95,10 @@ class FacultadController extends Controller
     private function validar(Request $request, ?int $id = null): array
     {
         return $request->validate([
-            'codigo'            => ['required', 'string', 'max:20', Rule::unique('facultades', 'codigo')->ignore($id)->whereNull('deleted_at')],
+            'codigo' => ['required', 'string', 'max:20', Rule::unique('facultades', 'codigo')->ignore($id)->whereNull('deleted_at')],
             'unidad_negocio_id' => ['required', 'exists:unidades_negocio,id'],
-            'nombre'            => ['required', 'string', 'max:150'],
-            'activo'            => ['boolean'],
+            'nombre' => ['required', 'string', 'max:150'],
+            'activo' => ['boolean'],
         ]);
     }
 }

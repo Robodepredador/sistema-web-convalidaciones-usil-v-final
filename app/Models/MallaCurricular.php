@@ -12,7 +12,9 @@ class MallaCurricular extends Model
     use SoftDeletes;
 
     protected $table = 'mallas_curriculares';
+
     protected $fillable = ['carrera_id', 'anio', 'version', 'modalidad', 'periodo', 'activa', 'origen_carga', 'usuario_id'];
+
     protected $casts = ['activa' => 'boolean', 'anio' => 'integer'];
 
     public function carrera(): BelongsTo

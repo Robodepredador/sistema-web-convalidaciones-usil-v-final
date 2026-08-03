@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -17,11 +18,11 @@ class HandleInertiaRequests extends Middleware
             // ponytail: solo el guard 'web' (staff) tiene rol/alcance/permisos; el
             // guard 'postulante' comparte un modelo distinto sin esos campos.
             'auth' => [
-                'user' => $user instanceof \App\Models\User ? [
-                    'id'      => $user->id,
-                    'nombre'  => $user->nombre,
-                    'email'   => $user->email,
-                    'rol'     => $user->rol?->nombre,
+                'user' => $user instanceof User ? [
+                    'id' => $user->id,
+                    'nombre' => $user->nombre,
+                    'email' => $user->email,
+                    'rol' => $user->rol?->nombre,
                     'alcance' => $user->alcance(),
                     // Lista de permisos para gating de menú/botones en el frontend.
                     'permisos' => $user->esAdministrador()
@@ -30,8 +31,8 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'flash' => [
-                'status'    => fn () => $request->session()->get('status'),
-                'error'     => fn () => $request->session()->get('error'),
+                'status' => fn () => $request->session()->get('status'),
+                'error' => fn () => $request->session()->get('error'),
                 'reset_url' => fn () => $request->session()->get('reset_url'),
             ],
         ]);

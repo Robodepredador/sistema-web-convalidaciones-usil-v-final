@@ -182,6 +182,7 @@ class SuneduSeeder extends Seeder
                 );
                 $n++;
             }
+
             return $n;
         };
 

@@ -14,14 +14,13 @@ class ModalidadController extends Controller
     public function index(Request $request)
     {
         $modalidades = Modalidad::query()
-            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
+            ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
             ->when($request->estado === 'inactivo', fn ($x) => $x->where('activo', false))
             ->orderBy('nombre')
             ->paginate(10)->withQueryString()
             ->through(fn (Modalidad $m) => [
-                'id'     => $m->id,
+                'id' => $m->id,
                 'codigo' => $m->codigo,
                 'nombre' => $m->nombre,
                 'activo' => $m->activo,
@@ -29,8 +28,8 @@ class ModalidadController extends Controller
 
         return inertia('Estructura/Modalidades/Index', [
             'modalidades' => $modalidades,
-            'activas'     => Modalidad::where('activo', true)->count(),
-            'filtros'     => $request->only(['q', 'estado']),
+            'activas' => Modalidad::where('activo', true)->count(),
+            'filtros' => $request->only(['q', 'estado']),
         ]);
     }
 

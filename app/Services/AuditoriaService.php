@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditoriaLog;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -23,14 +24,14 @@ class AuditoriaService
         $usuario = Auth::user();
 
         AuditoriaLog::create([
-            'usuario_id'         => $usuario instanceof \App\Models\User ? $usuario->id : null,
-            'accion'             => $accion,
-            'tabla_afectada'     => $tablaAfectada,
-            'registro_id'        => $registroId,
+            'usuario_id' => $usuario instanceof User ? $usuario->id : null,
+            'accion' => $accion,
+            'tabla_afectada' => $tablaAfectada,
+            'registro_id' => $registroId,
             'valores_anteriores' => $anteriores,
-            'valores_nuevos'     => $nuevos,
-            'ip_origen'          => Request::ip(),
-            'created_at'         => now(),
+            'valores_nuevos' => $nuevos,
+            'ip_origen' => Request::ip(),
+            'created_at' => now(),
         ]);
     }
 }
