@@ -31,6 +31,9 @@ class User extends Authenticatable implements AuthenticatableContract
         'intentos_fallidos' => 'integer',
     ];
 
+    /** Caché de permisos por instancia (no es una columna: ver permisosClaves()). */
+    private ?array $permisosCache = null;
+
     // El esquema documentado usa 'password_hash' en lugar de 'password'.
     public function getAuthPassword(): string
     {
@@ -61,16 +64,20 @@ class User extends Authenticatable implements AuthenticatableContract
 
     // -------------------- RBAC --------------------
 
-    /** Claves de permiso del usuario (cacheadas en la instancia). */
+    /**
+     * Claves de permiso del usuario (cacheadas en la instancia).
+     *
+     * El caché vive en una propiedad del objeto y NO en $attributes: Eloquent
+     * trata cualquier clave de $attributes como columna, y al guardar el modelo
+     * emitía `UPDATE usuarios SET _permisos_cache = ...` → columna inexistente.
+     * Como HandleInertiaRequests llama a este método en cada petición, eso
+     * rompía todo save() del usuario autenticado (p. ej. RF-42).
+     */
     public function permisosClaves(): array
     {
-        if (! isset($this->attributes['_permisos_cache'])) {
-            $this->attributes['_permisos_cache'] = $this->rol
-                ? $this->rol->permisos()->pluck('clave')->all()
-                : [];
-        }
-
-        return $this->attributes['_permisos_cache'];
+        return $this->permisosCache ??= $this->rol
+            ? $this->rol->permisos()->pluck('clave')->all()
+            : [];
     }
 
     /** ¿El usuario tiene el permiso indicado? El Superusuario siempre puede. */

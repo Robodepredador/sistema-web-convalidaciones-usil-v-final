@@ -11,7 +11,7 @@ class AuditoriaLog extends Model
     public $timestamps = false; // solo created_at gestionado manualmente
 
     protected $fillable = [
-        'usuario_id', 'accion', 'tabla_afectada', 'registro_id',
+        'usuario_id', 'actor_tipo', 'actor_id', 'accion', 'tabla_afectada', 'registro_id',
         'valores_anteriores', 'valores_nuevos', 'ip_origen', 'created_at',
     ];
 

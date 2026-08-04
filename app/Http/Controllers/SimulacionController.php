@@ -54,7 +54,7 @@ class SimulacionController extends Controller
 
         // Una fila por destino solicitado (postulante × carrera USIL): un
         // postulante que pidió varias carreras aparece varias veces.
-        $postulantes = PostulanteDestino::query()
+        $destinos = PostulanteDestino::query()
             ->whereHas('postulante', fn ($p) => $p->where('revision_estado', 'aprobada'))
             ->with(['carrera:id,nombre', 'postulante.institucionOrigen:id,nombre', 'postulante.carreraExterna:id,nombre'])
             ->when($request->q, fn ($qq, $v) => $qq->whereHas('postulante', fn ($w) => $w
@@ -65,8 +65,19 @@ class SimulacionController extends Controller
             ->when($request->carrera_destino_id, fn ($qq, $v) => $qq->where('carrera_id', $v))
             ->when($carrerasPermitidas !== null, fn ($qq) => $qq->whereIn('carrera_id', $carrerasPermitidas))
             ->orderByDesc('id')
-            ->paginate(12)->withQueryString()
-            ->through(function (PostulanteDestino $d) {
+            ->paginate(12)->withQueryString();
+
+        // Un solo COUNT agrupado para toda la página. Antes se lanzaba una
+        // consulta por fila (N+1: 12 consultas por carga del listado).
+        $filas = $destinos->getCollection();
+        $conteos = Simulacion::selectRaw("CONCAT(postulante_id, '-', carrera_usil_id) as clave, COUNT(*) as total")
+            ->whereIn('postulante_id', $filas->pluck('postulante_id')->unique()->all() ?: [0])
+            ->whereIn('carrera_usil_id', $filas->pluck('carrera_id')->unique()->all() ?: [0])
+            ->groupBy('postulante_id', 'carrera_usil_id')
+            ->pluck('total', 'clave');
+
+        $postulantes = $destinos
+            ->through(function (PostulanteDestino $d) use ($conteos) {
                 $p = $d->postulante;
 
                 return [
@@ -79,8 +90,7 @@ class SimulacionController extends Controller
                     'institucion' => $p->institucionOrigen?->nombre,
                     'carrera_externa' => $p->carreraExterna?->nombre,
                     'carrera_destino' => $d->carrera?->nombre,
-                    'simulaciones_count' => Simulacion::where('postulante_id', $p->id)
-                        ->where('carrera_usil_id', $d->carrera_id)->count(),
+                    'simulaciones_count' => (int) ($conteos["{$d->postulante_id}-{$d->carrera_id}"] ?? 0),
                 ];
             });
 
@@ -101,12 +111,16 @@ class SimulacionController extends Controller
         // Carrera destino elegida en la lista (una de las que solicitó el postulante).
         $carreraId = $request->integer('carrera') ?: $postulante->carrera_destino_id;
 
+        AlcanceService::autorizarCarrera($request->user(), $carreraId);
+
         return inertia('Simulaciones/Simular', $this->propsWorkspace($postulante, null, $carreraId));
     }
 
     /** Espacio de trabajo para EDITAR una simulación existente. */
-    public function editar(Simulacion $simulacion)
+    public function editar(Request $request, Simulacion $simulacion)
     {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+
         $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno', 'postulante']);
 
         return inertia('Simulaciones/Simular', $this->propsWorkspace($simulacion->postulante, $simulacion, $simulacion->carrera_usil_id));
@@ -199,9 +213,16 @@ class SimulacionController extends Controller
     /**
      * Sirve el archivo del récord académico del postulante en línea (el navegador
      * muestra PDF/imagen y permite descargarlo). Solo lectura del expediente.
+     *
+     * Contiene datos personales (documento de identidad, notas): se comprueba
+     * que el postulante dueño esté dentro del alcance de quien lo pide.
      */
-    public function verDocumento(PostulanteDocumento $documento)
+    public function verDocumento(Request $request, PostulanteDocumento $documento)
     {
+        $documento->loadMissing('postulante');
+        abort_unless($documento->postulante, 404, 'El documento no tiene un postulante asociado.');
+        AlcanceService::autorizarPostulante($request->user(), $documento->postulante);
+
         abort_unless(Storage::exists($documento->ruta), 404, 'El documento no se encuentra en el almacenamiento.');
 
         return Storage::response($documento->ruta, $documento->nombre_original);
@@ -352,6 +373,8 @@ class SimulacionController extends Controller
     /** Actualiza una simulación existente y su detalle. */
     public function update(Request $request, Simulacion $simulacion): RedirectResponse|JsonResponse
     {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+
         $this->persistirSimulacion($request, $simulacion);
 
         AuditoriaService::registrar('editar', 'simulaciones', $simulacion->id, null, ['metodo' => $simulacion->metodo]);
@@ -386,6 +409,10 @@ class SimulacionController extends Controller
             'filas.*.confianza' => ['nullable', 'numeric'],
             'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud'],
         ]);
+
+        // La carrera destino debe estar dentro del alcance del evaluador (RF-40):
+        // sin esto, el id llega por el cuerpo de la petición y salta el filtro.
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
 
         $postulante = Postulante::findOrFail($datos['postulante_id']);
         abort_unless($postulante->revision_estado === 'aprobada', 403,
@@ -467,8 +494,10 @@ class SimulacionController extends Controller
         });
     }
 
-    public function show(Simulacion $simulacion)
+    public function show(Request $request, Simulacion $simulacion)
     {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+
         $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno', 'carreraUsil', 'carreraExterna', 'postulante']);
 
         return inertia('Simulaciones/Detalle', [
@@ -500,6 +529,8 @@ class SimulacionController extends Controller
     /** Elimina (lógicamente) una simulación registrando el motivo en la BD. */
     public function destroy(Request $request, Simulacion $simulacion): RedirectResponse
     {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+
         $datos = $request->validate([
             'motivo' => ['required', 'string', 'min:5', 'max:300'],
         ]);
@@ -521,8 +552,9 @@ class SimulacionController extends Controller
     }
 
     /** RF-27: excluir/incluir una fila por excepción. */
-    public function toggleDetalle(Simulacion $simulacion, SimulacionDetalle $detalle): RedirectResponse
+    public function toggleDetalle(Request $request, Simulacion $simulacion, SimulacionDetalle $detalle): RedirectResponse
     {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
         abort_unless($detalle->simulacion_id === $simulacion->id, 404);
 
         $detalle->update(['excluido' => ! $detalle->excluido]);
@@ -580,9 +612,32 @@ class SimulacionController extends Controller
         ];
     }
 
-    /** RF-28/29: generar y descargar el PDF de preconvalidación. */
+    /**
+     * Alcance de LECTURA de una simulación concreta.
+     *
+     * Usa el usuario autenticado en vez de recibir la Request porque
+     * PostulanteController reutiliza generarPdf()/exportarExcel() internamente:
+     * así la comprobación se aplica por las dos rutas de entrada.
+     */
+    private function autorizarLectura(Simulacion $simulacion): void
+    {
+        $user = auth()->user();
+        abort_unless($user, 403, 'No autenticado.');
+        AlcanceService::autorizarCarrera($user, $simulacion->carrera_usil_id);
+    }
+
+    /**
+     * RF-28/29: descargar el PDF de preconvalidación.
+     *
+     * Es una lectura: no cambia el estado de la simulación ni escribe en disco.
+     * Antes ponía `estado = 'enviada'` en cada descarga, con lo que un perfil de
+     * solo lectura (Auditor) alteraba el expediente al consultarlo y el estado
+     * dejaba de significar "enviada al postulante".
+     */
     public function generarPdf(Simulacion $simulacion)
     {
+        $this->autorizarLectura($simulacion);
+
         // Evita que avisos de PHP 8.5 (p. ej. "null como offset" al cargar
         // relaciones con FK nula) se filtren y corrompan el binario del PDF.
         $nivelPrevio = error_reporting();
@@ -595,12 +650,6 @@ class SimulacionController extends Controller
             error_reporting($nivelPrevio);
         }
 
-        $ruta = "simulaciones/preconvalidacion_{$simulacion->id}.pdf";
-        Storage::put($ruta, $contenido);
-        $simulacion->update(['pdf_path' => $ruta, 'estado' => 'enviada']);
-
-        AuditoriaService::registrar('crear', 'simulaciones', $simulacion->id, null, ['pdf' => $ruta]);
-
         return response($contenido, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$this->nombreArchivo($simulacion, 'pdf').'"',
@@ -610,6 +659,8 @@ class SimulacionController extends Controller
     /** Descargar la preconvalidación en Excel. */
     public function exportarExcel(Simulacion $simulacion)
     {
+        $this->autorizarLectura($simulacion);
+
         return Excel::download(
             new PreconvalidacionExport($simulacion),
             $this->nombreArchivo($simulacion, 'xlsx')

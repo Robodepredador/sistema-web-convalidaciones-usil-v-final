@@ -7,6 +7,7 @@ use App\Models\Carrera;
 use App\Models\Convalidacion;
 use App\Models\Facultad;
 use App\Models\SimulacionDetalle;
+use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,12 +22,21 @@ class ReporteController extends Controller
     {
         $resumen = $this->consultarResumen($request);
 
+        // Los desplegables de filtro también se limitan al alcance: ofrecer una
+        // carrera que el usuario no puede consultar solo produce filtros vacíos.
+        $visibles = AlcanceService::carrerasVisibles($request->user());
+        $carreras = Carrera::where('activo', true)
+            ->when($visibles !== null, fn ($q) => $q->whereIn('id', $visibles ?: [0]))
+            ->orderBy('nombre')->get(['id', 'nombre', 'facultad_id']);
+
         return inertia('Reportes/Index', [
             'resumen' => $resumen,
             'convalidados' => $this->consultarCursos($request, true),
             'noConvalidados' => $this->consultarCursos($request, false),
-            'facultades' => Facultad::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'facultad_id']),
+            'facultades' => Facultad::where('activo', true)
+                ->when($visibles !== null, fn ($q) => $q->whereIn('id', $carreras->pluck('facultad_id')->unique()->all() ?: [0]))
+                ->orderBy('nombre')->get(['id', 'nombre']),
+            'carreras' => $carreras,
             'filtros' => $request->only(['facultad_id', 'carrera_id', 'desde', 'hasta']),
         ]);
     }
@@ -35,13 +45,16 @@ class ReporteController extends Controller
     private function consultarCursos(Request $request, bool $convalidados): Collection
     {
         $motivo = ['no_convalidable' => 'No convalidable', 'desaprobado' => 'Desaprobado'];
+        $visibles = AlcanceService::carrerasVisibles($request->user());
 
         return SimulacionDetalle::with(['simulacion.carreraUsil.facultad', 'simulacion.carreraExterna', 'cursoUsil'])
             ->when($convalidados,
                 fn ($q) => $q->whereNotNull('curso_usil_id')->where('clasificacion', 'convalidable')->where('excluido', false),
                 fn ($q) => $q->whereIn('clasificacion', ['no_convalidable', 'desaprobado']))
-            ->whereHas('simulacion', function ($s) use ($request) {
-                $s->when($request->carrera_id, fn ($q, $v) => $q->where('carrera_usil_id', $v))
+            ->whereHas('simulacion', function ($s) use ($request, $visibles) {
+                // RF-40: alcance por rol (ver baseQuery).
+                $s->when($visibles !== null, fn ($q) => $q->whereIn('carrera_usil_id', $visibles ?: [0]))
+                    ->when($request->carrera_id, fn ($q, $v) => $q->where('carrera_usil_id', $v))
                     ->when($request->facultad_id, fn ($q, $v) => $q->whereHas('carreraUsil', fn ($c) => $c->where('facultad_id', $v)))
                     ->when($request->desde, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
                     ->when($request->hasta, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
@@ -101,7 +114,14 @@ class ReporteController extends Controller
 
     private function baseQuery(Request $request)
     {
+        // RF-40: el reporte solo agrega convalidaciones de carreras visibles
+        // para el usuario. Sin esto exponía nombre, documento y notas de toda
+        // la universidad a cualquier perfil con 'reportes.ver'.
+        $visibles = AlcanceService::carrerasVisibles($request->user());
+
         return Convalidacion::with(['simulacion.carreraUsil.facultad'])
+            ->when($visibles !== null, fn ($q) => $q->whereHas('simulacion',
+                fn ($s) => $s->whereIn('carrera_usil_id', $visibles ?: [0])))
             ->when($request->desde, fn ($q, $v) => $q->whereDate('fecha_confirmacion', '>=', $v))
             ->when($request->hasta, fn ($q, $v) => $q->whereDate('fecha_confirmacion', '<=', $v))
             ->when($request->carrera_id, fn ($q, $v) => $q->whereHas('simulacion', fn ($s) => $s->where('carrera_usil_id', $v)))

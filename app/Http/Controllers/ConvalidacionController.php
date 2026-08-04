@@ -63,13 +63,16 @@ class ConvalidacionController extends Controller
         ])
             ->when($visibles !== null, fn ($q) => $q->whereHas('simulacion', fn ($s) => $s->whereIn('carrera_usil_id', $visibles ?: [0])))
             ->when($estado, fn ($query) => $query->where('estado', $estado))
-            ->when($q, function ($query) use ($q) {
-                $query->whereHas('simulacion', function ($sq) use ($q) {
+            // El grupo es obligatorio: sin él, AND precede a OR y el filtro de
+            // alcance de arriba queda anulado en cuanto la coincidencia cae en
+            // la rama del memorándum.
+            ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
+                $w->whereHas('simulacion', function ($sq) use ($q) {
                     $sq->where('nombres', 'like', "%{$q}%")
                         ->orWhere('apellidos', 'like', "%{$q}%")
                         ->orWhere('numero_documento', 'like', "%{$q}%");
                 })->orWhere('memorandum_numero', 'like', "%{$q}%");
-            });
+            }));
 
         $convalidaciones = $convalidacionesQuery->orderByDesc('id')
             ->paginate(15, ['*'], 'page')
@@ -109,13 +112,15 @@ class ConvalidacionController extends Controller
         ])
             ->whereDoesntHave('convalidacion')
             ->when($visibles !== null, fn ($q) => $q->whereIn('carrera_usil_id', $visibles ?: [0]))
-            ->when($estado && $estado === 'pendiente', fn ($query) => $query) // If filtering by pending, we show them. If filtering by confirmada/anulada, we might hide this section in UI, but we'll fetch them anyway if no state filter or pending filter is applied.
-            ->when($estado && $estado !== 'pendiente', fn ($query) => $query->where('id', '<', 0)) // Hack to return empty if filtering by other states
-            ->when($q, function ($query) use ($q) {
-                $query->where('nombres', 'like', "%{$q}%")
+            // Las preconvalidaciones son, por definición, las pendientes: al
+            // filtrar por 'confirmada' o 'anulada' esta sección va vacía.
+            ->when($estado && $estado !== 'pendiente', fn ($query) => $query->whereRaw('1 = 0'))
+            // Agrupado: si no, el OR anula el filtro de alcance de arriba.
+            ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
+                $w->where('nombres', 'like', "%{$q}%")
                     ->orWhere('apellidos', 'like', "%{$q}%")
                     ->orWhere('numero_documento', 'like', "%{$q}%");
-            });
+            }));
 
         $preconvalidaciones = $preconvalidacionesQuery->orderByDesc('id')
             ->paginate(15, ['*'], 'pre')
@@ -175,6 +180,10 @@ class ConvalidacionController extends Controller
     /** RF-30/31: confirmar la convalidación definitiva (1:1 con la simulación). */
     public function confirmar(Request $request, Simulacion $simulacion): RedirectResponse
     {
+        // El memorándum es un acto oficial: solo lo emite quien tiene competencia
+        // sobre la carrera (RF-40). Antes, un decano podía firmar el de otra facultad.
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+
         if ($simulacion->convalidacion()->exists()) {
             throw ValidationException::withMessages(['simulacion' => 'La simulación ya fue convalidada.']);
         }
@@ -214,6 +223,8 @@ class ConvalidacionController extends Controller
     /** RF-46/47: anular una convalidación confirmada (sin eliminar el registro). */
     public function anular(Request $request, Convalidacion $convalidacion): RedirectResponse
     {
+        AlcanceService::autorizarCarrera($request->user(), $convalidacion->simulacion?->carrera_usil_id);
+
         $request->validate(['motivo' => ['required', 'string', 'max:300']]);
 
         if ($convalidacion->estado === Convalidacion::ANULADA) {
@@ -234,8 +245,10 @@ class ConvalidacionController extends Controller
         return back()->with('status', 'Convalidación anulada.');
     }
 
-    public function memorandumPdf(Convalidacion $convalidacion)
+    public function memorandumPdf(Request $request, Convalidacion $convalidacion)
     {
+        AlcanceService::autorizarCarrera($request->user(), $convalidacion->simulacion?->carrera_usil_id);
+
         $contenido = $this->renderMemorandum($convalidacion);
 
         $nombre = 'Memorandum_'.$convalidacion->memorandum_numero.'.pdf';

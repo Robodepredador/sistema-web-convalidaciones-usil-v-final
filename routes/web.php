@@ -29,7 +29,9 @@ use Illuminate\Support\Facades\Route;
 // --- Invitado ---
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'mostrar'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    // RF-41 protege la cuenta (5 intentos → bloqueo). El throttle protege el
+    // servicio: sin él, un mismo origen podía barrer muchas cuentas a la vez.
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:10,1');
 
     // RF-39: recuperación de contraseña ("¿Olvidaste tu contraseña?")
     Route::get('/password/olvide', [PasswordController::class, 'solicitarForm'])->name('password.olvide.form');
@@ -49,13 +51,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // --- Administración (Superusuario) — CU-10 ---
-    Route::middleware('permission:usuarios.gestionar,configuracion.gestionar,estructura.gestionar')->group(function () {
+    //
+    // Cada submódulo exige SU permiso. Antes los tres compartían un único grupo
+    // `permission:usuarios.gestionar,configuracion.gestionar,estructura.gestionar`,
+    // y como el middleware pasa con UNO cualquiera de los permisos indicados,
+    // conceder 'estructura.gestionar' a un rol le habría entregado además la
+    // gestión de usuarios y la configuración del sistema.
+    Route::middleware('permission:usuarios.gestionar')->group(function () {
         Route::resource('usuarios', UsuarioController::class)
             ->except(['show'])
             ->parameters(['usuarios' => 'usuario']);
         Route::patch('usuarios/{usuario}/estado', [UsuarioController::class, 'estado'])->name('usuarios.estado');
         Route::patch('usuarios/{usuario}/reset-password', [UsuarioController::class, 'resetPassword'])->name('usuarios.reset');
+    });
 
+    Route::middleware('permission:configuracion.gestionar')->group(function () {
         // Configuración del sistema (motor de IA, etc.)
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
@@ -63,7 +73,9 @@ Route::middleware('auth')->group(function () {
         Route::post('configuracion/probar', [ConfiguracionController::class, 'probar'])->name('configuracion.probar');
         Route::post('configuracion/no-convalidables', [ConfiguracionController::class, 'agregarNoConvalidable'])->name('configuracion.no-convalidables.store');
         Route::patch('configuracion/no-convalidables/{noConvalidable}', [ConfiguracionController::class, 'actualizarNoConvalidable'])->name('configuracion.no-convalidables.update');
+    });
 
+    Route::middleware('permission:estructura.gestionar')->group(function () {
         // --- Gestión de la Estructura Institucional ---
         Route::prefix('estructura')->name('estructura.')->group(function () {
             Route::get('/', [EstructuraController::class, 'index'])->name('index');
@@ -135,13 +147,16 @@ Route::middleware('auth')->group(function () {
             Route::delete('instituciones/{institucion}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
         }); // fin catalogos.gestionar
 
-        // CU-03: Mallas Externas — lectura (permiso mallas_externas.gestionar)
+        // CU-03: Mallas Externas (permiso mallas_externas.gestionar).
         //
         // El catálogo de equivalencias curso↔curso está DESACTIVADO: se retiraron
-        // sus rutas de escritura (equivalencias.store/destroy, sugerencias.*,
-        // simulaciones.sugerir-catalogo) y la UI de mapeo. La tabla, el modelo y
-        // EquivalenciaController::store/destroy siguen en el repositorio: para
-        // reactivarlo basta revertir este commit.
+        // sus rutas de escritura (sugerencias.*, simulaciones.sugerir-catalogo),
+        // la UI de mapeo, la tabla `equivalencias` (migración 2026_08_02_000003)
+        // y los métodos store/destroy de este controlador.
+        //
+        // Lo que sigue vivo bajo el prefijo `equivalencias` es el registro de las
+        // mallas oficiales de las instituciones de origen: el nombre de la ruta
+        // quedó del módulo anterior, la pantalla se titula "Mallas Externas".
         Route::middleware('permission:mallas_externas.gestionar')->group(function () {
             Route::get('equivalencias', [EquivalenciaController::class, 'index'])->name('equivalencias.index');
             Route::get('equivalencias/crear', [EquivalenciaController::class, 'create'])->name('equivalencias.create');
@@ -255,7 +270,9 @@ Route::middleware('auth')->group(function () {
 Route::prefix('portal')->group(function () {
     Route::middleware('guest:postulante')->group(function () {
         Route::get('/login', [PortalAccesoController::class, 'mostrar'])->name('portal.login');
-        Route::post('/login', [PortalAccesoController::class, 'login']);
+        // El portal no tiene bloqueo por cuenta (RF-41 es del personal), así que
+        // el límite por origen es aquí la única defensa contra la fuerza bruta.
+        Route::post('/login', [PortalAccesoController::class, 'login'])->middleware('throttle:10,1');
     });
 
     Route::middleware('auth:postulante')->group(function () {

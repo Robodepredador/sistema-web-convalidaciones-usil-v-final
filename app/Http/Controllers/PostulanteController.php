@@ -133,8 +133,7 @@ class PostulanteController extends Controller
             ? "Borrador guardado ({$postulante->codigo})."
             : "Postulante registrado ({$postulante->codigo}).";
         if ($temporal) {
-            $url = route('portal.login');
-            $msg .= " Se enviaron las credenciales al correo del postulante. Acceso ({$url}) → usuario: {$postulante->email} · contraseña temporal: {$temporal}";
+            $msg .= " Se enviaron las credenciales a {$postulante->email}.".$this->pistaLocal($temporal);
         }
 
         return redirect()->route('postulantes.index')->with('status', $msg);
@@ -210,8 +209,10 @@ class PostulanteController extends Controller
     /**
      * Devuelve los datos de preconvalidación del postulante como JSON (para el modal en el listado).
      */
-    public function preconvalidacion(Postulante $postulante)
+    public function preconvalidacion(Request $request, Postulante $postulante)
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
+
         $postulante->load([
             'simulaciones.carreraUsil',
             'simulaciones.convalidacion',
@@ -257,8 +258,9 @@ class PostulanteController extends Controller
      * Descarga el PDF de preconvalidación de un expediente del postulante.
      * Valida que la simulación pertenezca al postulante (scope manual).
      */
-    public function preconvalidacionPdf(Postulante $postulante, int $simulacion)
+    public function preconvalidacionPdf(Request $request, Postulante $postulante, int $simulacion)
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
         $sim = Simulacion::where('postulante_id', $postulante->id)->findOrFail($simulacion);
 
         return app(SimulacionController::class)->generarPdf($sim);
@@ -267,8 +269,9 @@ class PostulanteController extends Controller
     /**
      * Descarga el Excel de preconvalidación de un expediente del postulante.
      */
-    public function preconvalidacionExcel(Postulante $postulante, int $simulacion)
+    public function preconvalidacionExcel(Request $request, Postulante $postulante, int $simulacion)
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
         $sim = Simulacion::where('postulante_id', $postulante->id)->findOrFail($simulacion);
 
         return app(SimulacionController::class)->exportarExcel($sim);
@@ -299,6 +302,8 @@ class PostulanteController extends Controller
 
     public function estado(Request $request, Postulante $postulante): RedirectResponse
     {
+        $this->autorizarPropiedad($request->user(), $postulante);
+
         $datos = $request->validate(['estado' => ['required', Rule::in(self::ESTADOS)]]);
         $postulante->update($datos);
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['estado' => $postulante->estado]);
@@ -320,7 +325,18 @@ class PostulanteController extends Controller
         $this->enviarAcceso($postulante, $temporal);
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['reset_acceso' => true]);
 
-        return back()->with('status', "Acceso restablecido para {$postulante->email}. Se envió la contraseña temporal por correo. (Temporal: {$temporal})");
+        return back()->with('status',
+            "Acceso restablecido. Se envió la contraseña temporal a {$postulante->email}.".$this->pistaLocal($temporal));
+    }
+
+    /**
+     * Solo en desarrollo se muestra la contraseña en pantalla. En producción el
+     * canal de entrega es el correo: en el mensaje flash quedaba en la sesión y
+     * en el historial del navegador del asesor.
+     */
+    private function pistaLocal(string $temporal): string
+    {
+        return app()->environment('local') ? " (solo en desarrollo — temporal: {$temporal})" : '';
     }
 
     public function destroy(Request $request, Postulante $postulante): RedirectResponse
@@ -400,12 +416,19 @@ class PostulanteController extends Controller
         }
     }
 
-    /** El Asesor solo opera sobre sus propios postulantes; Ejecutivo/Superusuario, todos. */
+    /**
+     * Autorización sobre un expediente concreto. Dos reglas independientes:
+     *  - propiedad: el Asesor solo opera sobre los postulantes que él registró.
+     *  - alcance:   Coordinador/Director/Decano solo los de sus carreras (RF-40).
+     * Filtrar el listado no basta: sin esto se entra por la URL directa.
+     */
     private function autorizarPropiedad(User $user, Postulante $postulante): void
     {
         if ($user->rol?->nombre === Role::ASESOR) {
             abort_unless($postulante->usuario_id === $user->id, 403, 'Solo puedes gestionar los postulantes que registraste.');
         }
+
+        AlcanceService::autorizarPostulante($user, $postulante);
     }
 
     /** ¿El expediente ya tiene una convalidación confirmada (el coordinador ya lo procesó)? */
