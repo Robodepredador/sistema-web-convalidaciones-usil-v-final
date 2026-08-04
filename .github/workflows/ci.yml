@@ -57,6 +57,9 @@ jobs:
       - name: Code style (Pint)
         run: ./vendor/bin/pint --test
 
+      - name: Vulnerabilidades en dependencias PHP
+        run: composer audit
+
       - name: Run tests
         run: php artisan test
         env:
@@ -73,23 +76,13 @@ jobs:
       - name: Build frontend
         run: npm ci && npm run build
 
-  deploy-qa:
-    needs: test
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    environment: qa
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to QA
-        run: echo "Desplegando a QA (configurar credenciales/secretos del entorno)."
+      - name: Vulnerabilidades en dependencias JS
+        run: npm audit --omit=dev
 
-  deploy-prod:
-    needs: deploy-qa
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    environment:
-      name: production       # requiere aprobación manual en GitHub Environments
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Production
-        run: echo "Desplegando a producción tras aprobación manual."
+# El despliegue es MANUAL y está descrito en deploy/RUNBOOK.md.
+#
+# Antes existían aquí dos jobs (deploy-qa y deploy-prod) que solo ejecutaban
+# `echo "Desplegando..."`: daban por verde un despliegue que nunca ocurría. Se
+# retiraron en lugar de dejarlos simulados. Para automatizarlo hay que definir
+# los secretos del entorno (host, clave SSH o registro de imágenes) y sustituir
+# el procedimiento del runbook por los pasos equivalentes.

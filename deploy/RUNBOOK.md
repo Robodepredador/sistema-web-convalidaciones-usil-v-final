@@ -15,8 +15,10 @@ cp deploy/.env.production.example .env   # completar todos los __definir__
 ```
 
 > Complete **todos** los `__definir__` antes de continuar. En particular el bloque
-> `MAIL_*`: sin él, `MAIL_MAILER` cae a `log` y los correos de acceso del postulante
-> nunca se envían — el flujo aparenta funcionar y falla en silencio.
+> `MAIL_*`: sin él, `MAIL_MAILER` cae a `log` y los correos de acceso nunca se envían
+> — el flujo aparenta funcionar y falla en silencio. Desde la auditoría del 3 de agosto
+> el correo es el **único** canal de entrega de las contraseñas temporales (del personal
+> y del postulante), así que sin SMTP no se puede dar de alta a nadie.
 
 ## 3. Primera instalación (solo una vez)
 ```bash
@@ -50,6 +52,9 @@ docker compose -f docker-compose.prod.yml exec app php artisan view:cache
 - [ ] Generar una simulación y descargar su PDF.
 - [ ] Confirmar una convalidación y verificar la numeración del memorándum.
 - [ ] Registrar un postulante y confirmar que **recibe el correo** con sus credenciales.
+- [ ] Crear un usuario de prueba con perfil **distinto de Superusuario**, entrar con él y
+      completar el cambio de contraseña forzado (RF-42). La contraseña temporal llega por
+      correo: en producción ya **no** se muestra en pantalla.
 - [ ] `docker compose ... logs worker` muestra el worker activo.
 
 ## 6. Checklist de seguridad
