@@ -99,7 +99,17 @@ archivos, y su consola solo muestra la salida estándar.
 
 El arranque (`docker/railway/entrypoint.sh`) hace solo, en cada despliegue:
 enlaza `public/storage`, genera los cachés de configuración/rutas/vistas con las
-variables ya inyectadas y ejecuta `php artisan migrate --force` (idempotente).
+variables ya inyectadas y lanza `php artisan migrate --force` (idempotente).
+
+**Las migraciones corren en segundo plano, no antes de Apache.** Railway levanta
+la app y MySQL en paralelo, así que en el primer despliegue la base suele tardar
+en aceptar conexiones; el arranque reintenta hasta 10 veces cada 6s. Si aun así
+fallan, el contenedor **sigue en pie** y el error queda en los logs de Railway —
+si en cambio tumbara el proceso, `/up` no respondería, el healthcheck fallaría y
+no habría forma de leer la causa.
+
+Si tras un despliegue la app responde pero da errores de tabla inexistente, es
+esto: busque `[entrypoint]` en los logs.
 
 Falta sembrar los roles y el administrador inicial, una única vez:
 
@@ -132,3 +142,7 @@ acceso.**
 - **Las migraciones corren en cada despliegue.** Una migración destructiva se
   aplica sin confirmación previa. Respalde antes de desplegar cambios de esquema:
   `railway run --service MySQL mysqldump ... > respaldo.sql`.
+- **El healthcheck no verifica la base de datos.** `/up` responde 200 en cuanto
+  Apache escucha, aunque las migraciones sigan corriendo o hayan fallado. Es
+  deliberado (ver arriba), pero significa que un despliegue verde no garantiza
+  por sí solo que el esquema esté al día: confírmelo con la lista de §5.

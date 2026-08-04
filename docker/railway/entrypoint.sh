@@ -14,14 +14,43 @@ mkdir -p storage/app/private storage/app/public storage/logs \
 chown -R www-data:www-data storage bootstrap/cache
 
 # Disco 'public': las mallas externas en PDF se sirven por public/storage.
-php artisan storage:link --force
+# No es fatal: un symlink fallido no justifica dejar el sitio sin servidor web.
+php artisan storage:link --force || echo "[entrypoint] AVISO: storage:link falló." >&2
 
 # Cachés con las variables ya presentes. Sin esto la app arranca sin base de datos.
+# Estos SÍ son fatales a propósito: son locales y rápidos, no dependen de la red,
+# y si fallan es por configuración inválida — algo que ningún reintento arregla.
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Idempotente: en un redespliegue sin migraciones nuevas no hace nada.
-php artisan migrate --force
+# Las migraciones van en segundo plano y CON reintentos, nunca antes del exec.
+#
+# Railway arranca la app y MySQL en paralelo: en el primer despliegue la base
+# suele tardar en aceptar conexiones. Con esto delante del exec y `set -e`, ese
+# fallo transitorio mataba el contenedor antes de que Apache llegara a escuchar,
+# así que /up no respondía y el healthcheck tumbaba el despliegue. Además, 56
+# migraciones sobre la red pueden agotar por sí solas la ventana del healthcheck
+# si Apache espera a que terminen.
+#
+# Ahora Apache abre el puerto de inmediato y las migraciones convergen aparte. Si
+# agotan los reintentos, el contenedor sigue en pie: el error queda en los logs de
+# Railway, que es la única forma de leerlo (no hay acceso al sistema de archivos).
+migrar() {
+    intento=1
+    until php artisan migrate --force --no-interaction; do
+        if [ "$intento" -ge 10 ]; then
+            echo "[entrypoint] ERROR: migraciones fallidas tras $intento intentos." >&2
+            echo "[entrypoint] La app sigue arriba; revise DB_URL y el servicio MySQL." >&2
+            return 1
+        fi
+        echo "[entrypoint] Migración fallida (intento $intento/10); reintento en 6s..." >&2
+        intento=$((intento + 1))
+        sleep 6
+    done
+    echo "[entrypoint] Migraciones aplicadas."
+}
+
+migrar &
 
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
