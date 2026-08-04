@@ -4,7 +4,7 @@ Paquete autocontenido para iniciar el despliegue. Incluye código, infraestructu
 
 ## Contenido
 ```
-.github/workflows/ci.yml          Pipeline CI/CD (test + build + deploy QA/prod)
+.github/workflows/ci.yml          Pipeline CI (estilo + tests + build + auditoría de dependencias)
 docker/                           Dockerfiles (dev y prod), Nginx, Supervisor
 docker-compose.yml                Entorno de desarrollo (Sail)
 docker-compose.prod.yml           Producción (Nginx + PHP-FPM + worker + MySQL 8 + Redis)

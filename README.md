@@ -3,9 +3,9 @@
 Backend del Simulador Web de Convalidaciones de Cursos (Laravel 11 + Inertia + Vue 3, MySQL 8).
 
 **Estado:** Construcción completa — los 7 módulos del alcance implementados (Sprints 1 a 4).
-Este paquete corresponde al **Sprint 1 — Construcción #1**: andamiaje, esquema de base de datos
-(18 tablas, 3FN, InnoDB), **Módulo de Seguridad** (login, RBAC, permisos por carrera),
-**Gestión de Usuarios (CU-10)** y **Gestión de Mallas — alta manual (CU-01)** con su frontend Vue/Inertia.
+Pendiente: ejecución de UAT y puesta en producción (ver `deploy/RUNBOOK.md`).
+
+El detalle de lo entregado por sprint está más abajo, en las tablas de trazabilidad.
 
 ## Decisiones técnicas confirmadas
 - **Base de datos:** MySQL 8 (motor InnoDB).
@@ -27,31 +27,50 @@ Este paquete corresponde al **Sprint 1 — Construcción #1**: andamiaje, esquem
 - `resources/js/` — frontend Vue 3 + Inertia: Login, CambiarPassword, Dashboard, Usuarios (index/form), Mallas (index/form) y AppLayout.
 - `tests/Feature/` — LoginTest, MallaTest (TC-01 duplicada), RbacTest.
 
-## Puesta en marcha (entorno limpio)
-> Requiere instalar primero un esqueleto Laravel 11 y copiar estos archivos dentro,
-> o crear el proyecto con `composer create-project laravel/laravel` y sobrescribir.
+## Puesta en marcha
+
+El repositorio es un proyecto Laravel completo: se clona y se ejecuta, no hay que
+crear un esqueleto aparte ni copiar archivos dentro.
+
+**Requisitos:** PHP 8.2+, Composer 2, Node 20+, MySQL 8. Con Docker basta `docker compose up -d`
+(levanta app + MySQL 8 + Redis) y se omite instalar PHP/MySQL a mano.
 
 ```bash
-# 1. Levantar contenedores (MySQL 8 + Redis + app)
-docker compose up -d
+git clone https://github.com/Robodepredador/usil_convalidaciones.git
+cd usil_convalidaciones
 
-# 2. Dependencias y clave de app
+# 1. Dependencias
 composer install
-php artisan key:generate
-cp .env.example .env   # ajustar credenciales si aplica
+npm install
 
-# 3. Base de datos
+# 2. Entorno (el .env NO se versiona: cada quien tiene el suyo)
+cp .env.example .env
+php artisan key:generate
+
+# 3. Base de datos — ajustar DB_HOST/DB_USERNAME/DB_PASSWORD en .env antes de migrar
 php artisan migrate
 php artisan db:seed     # crea roles y admin@usil.edu.pe / Admin#2026
 
-# 4. Pruebas del módulo de seguridad
-php artisan test --filter=LoginTest
+# 4. Arrancar
+npm run dev             # Vite, en una terminal aparte
+php artisan serve       # o iniciar.bat en Windows (abre http://127.0.0.1:8080/login)
 ```
 
-## Configuración requerida (snippets incluidos en /config)
-1. `config/auth.php` → provider `users` apunta a `App\Models\User` (tabla `usuarios`).
-2. `bootstrap/app.php` → registrar alias de middleware `'role' => EnsureRole::class`.
-3. `AppServiceProvider::boot()` → `Gate::policy(Carrera::class, CarreraPolicy::class)`.
+> `.env.example` trae `DB_HOST=mysql` porque asume Docker. Fuera de Docker use `127.0.0.1`.
+
+## Trabajo en equipo
+
+`main` es la rama estable. Los cambios entran por Pull Request, nunca con push directo a `main`.
+
+```bash
+git checkout main && git pull origin main
+git checkout -b fix/descripcion-corta
+# ...trabajar y commitear...
+git push -u origin fix/descripcion-corta   # luego abrir el PR en GitHub
+```
+
+Antes de abrir el PR: `./vendor/bin/pint` (estilo) y `php artisan test` (81 pruebas) en verde.
+CI (`.github/workflows/ci.yml`) vuelve a correr ambos, más `composer audit` y `npm audit`.
 
 ## Trazabilidad con la documentación
 | Requisito | Implementación |
@@ -64,11 +83,10 @@ php artisan test --filter=LoginTest
 | RNF-08 | `AuditoriaService` registra en `auditoria_log` |
 
 ## Frontend (Vue 3 + Inertia)
-Requiere instalar dependencias JS y compilar con Vite:
+Las dependencias ya están declaradas en `package.json`; basta compilar con Vite:
 ```bash
-npm install
-npm install @inertiajs/vue3 @vitejs/plugin-vue
-npm run dev   # o npm run build
+npm run dev     # desarrollo, con recarga en caliente
+npm run build   # producción
 ```
 
 ## Trazabilidad adicional
@@ -81,7 +99,7 @@ npm run dev   # o npm run build
 | Caso de uso / RF | Implementación |
 |------------------|----------------|
 | CU-02 | InstitucionController + Instituciones/Index.vue, Form.vue (RF-18, RF-23) |
-| CU-03 | EquivalenciaController + Equivalencias/Index.vue, Form.vue (RF-20, RF-21, RF-22, RF-23) |
+| CU-03 | EquivalenciaController — registro de **mallas externas** de la institución de origen (RF-20..23). El catálogo de equivalencias curso↔curso se retiró por decisión de TI; el prefijo de ruta `equivalencias` quedó del módulo anterior (ver `routes/web.php`). |
 | RF-08..12 | MallaImportController + Job ImportarMallaExcel + cargas_masivas + Mallas/Importar.vue, CargaEstado.vue |
 
 **Carga masiva (RF-08..12):** valida estructura antes de procesar (RF-08), corre en
@@ -116,7 +134,7 @@ PDFs con DomPDF y formato institucional USIL.
 | Módulo | Estado |
 |--------|--------|
 | 1. Mallas curriculares (manual + Excel) | ✅ |
-| 2. Instituciones y equivalencias | ✅ |
+| 2. Instituciones y mallas externas | ✅ |
 | 3. Simulación de convalidaciones + PDF | ✅ |
 | 4. Convalidación confirmada + memorándum + anulación | ✅ |
 | 5. Reportes + exportación Excel | ✅ |
@@ -124,13 +142,21 @@ PDFs con DomPDF y formato institucional USIL.
 | 7. Asistente de IA (seudonimizado) | ✅ |
 
 ## Cómo correr las pruebas
+Las pruebas corren contra **MySQL real**, no SQLite: las migraciones usan sintaxis propia de
+MySQL (`ALTER TABLE ... MODIFY`). `phpunit.xml` fuerza la base `convalidaciones_test`, que hay
+que crear una sola vez para no tocar la base de desarrollo:
+
 ```bash
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS convalidaciones_test"
 php artisan test
 ```
-Cubre: seguridad (login/lockout/primer acceso), mallas (duplicada), RBAC, equivalencias,
+
+Cubre: seguridad (login/lockout/primer acceso), mallas (duplicada), RBAC, alcance por carrera,
 carga masiva (job en cola), simulación (tabla automática), convalidación (1:1 y anulación),
-seudonimización y fallback de IA.
+auditoría de extremo a extremo, seudonimización y fallback de IA.
 
 ## Configuración adicional (IA)
-- Añadir el bloque `openai` de `config/services_openai_snippet.php` a `config/services.php`.
-- Definir `OPENAI_API_KEY` y `OPENAI_MODEL` en `.env` (nunca en el código).
+- El bloque `openai` ya está en `config/services.php` (`config/services_openai_snippet.php`
+  se conserva solo como referencia del snippet original).
+- Definir `OPENAI_API_KEY` / `GEMINI_API_KEY` y el modelo en `.env` (nunca en el código).
+  Por defecto `IA_PROVEEDOR=gemini`.
