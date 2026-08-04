@@ -72,6 +72,17 @@ git push -u origin fix/descripcion-corta   # luego abrir el PR en GitHub
 Antes de abrir el PR: `./vendor/bin/pint` (estilo) y `php artisan test` (81 pruebas) en verde.
 CI (`.github/workflows/ci.yml`) vuelve a correr ambos, más `composer audit` y `npm audit`.
 
+## Despliegue
+
+| Destino | Guía | Imagen |
+|---------|------|--------|
+| Servidor propio | `deploy/RUNBOOK.md` | `docker/php/Dockerfile` + `docker-compose.prod.yml` (Nginx + PHP-FPM + worker + MySQL + Redis) |
+| Railway (gestionado) | `deploy/RAILWAY.md` | `Dockerfile` de la raíz (Apache + worker en un contenedor) |
+
+La app necesita disco persistente para `storage/app` y un worker de colas vivo:
+sin ellos se pierden los archivos subidos y la carga masiva (RF-11) nunca procesa.
+Eso descarta las plataformas *serverless* (Vercel, Netlify), que no ofrecen ninguno de los dos.
+
 ## Trazabilidad con la documentación
 | Requisito | Implementación |
 |-----------|----------------|
