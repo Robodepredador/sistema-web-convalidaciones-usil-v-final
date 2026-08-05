@@ -15,13 +15,19 @@ class Convalidacion extends Model
 
     protected $fillable = [
         'simulacion_id', 'fecha_confirmacion', 'memorandum_numero',
-        'memorandum_pdf_path', 'estado', 'motivo_anulacion', 'usuario_id',
+        'memorandum_pdf_path', 'responsables', 'estado', 'motivo_anulacion', 'usuario_id',
     ];
 
-    protected $casts = ['fecha_confirmacion' => 'date'];
+    protected $casts = ['fecha_confirmacion' => 'date', 'responsables' => 'array'];
 
     public function simulacion(): BelongsTo
     {
         return $this->belongsTo(Simulacion::class, 'simulacion_id');
+    }
+
+    /** Quien confirmó la convalidación en el sistema (no es el firmante del memorándum). */
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 }

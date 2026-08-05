@@ -33,6 +33,12 @@ class NoConvalidadosSheet implements FromArray, WithColumnWidths, WithEvents, Wi
     {
         $noConv = $this->s->detalles->filter(fn ($d) => $d->clasificacion === 'no_convalidable');
         $desap = $this->s->detalles->filter(fn ($d) => $d->clasificacion === 'desaprobado');
+        // Aprobados que se evaluaron y quedaron sin curso USIL: no entran en la
+        // hoja de convalidados (no tienen destino) y antes tampoco aquí, así que
+        // desaparecían del documento sin que el postulante supiera de ellos.
+        $sinEquivalencia = $this->s->detalles->filter(
+            fn ($d) => $d->clasificacion === 'convalidable' && ! $d->curso_usil_id
+        );
 
         $filas = [
             ['Cursos no considerados para convalidación'],
@@ -40,13 +46,24 @@ class NoConvalidadosSheet implements FromArray, WithColumnWidths, WithEvents, Wi
             ['Curso de origen', 'Nota', 'Créditos', 'Motivo'],
         ];
 
+        $linea = fn ($d, string $motivo) => [
+            $d->nombre_origen,
+            $d->nota_origen,
+            $d->creditos_origen !== null ? (float) $d->creditos_origen : '',
+            $motivo,
+        ];
+
         foreach ($noConv as $d) {
-            $filas[] = [$d->nombre_origen, $d->nota_origen, $d->creditos_origen !== null ? (float) $d->creditos_origen : '', 'No convalidable'];
+            $filas[] = $linea($d, $d->motivo ?: 'No convalidable por política');
         }
         foreach ($desap as $d) {
-            $filas[] = [$d->nombre_origen, $d->nota_origen, $d->creditos_origen !== null ? (float) $d->creditos_origen : '', 'Desaprobado'];
+            $filas[] = $linea($d, $d->motivo ?: 'Desaprobado');
         }
-        if ($noConv->isEmpty() && $desap->isEmpty()) {
+        foreach ($sinEquivalencia as $d) {
+            $filas[] = $linea($d, 'Sin equivalencia en el plan de estudios');
+        }
+
+        if ($filas === [] || count($filas) === 3) {
             $filas[] = ['Sin cursos descartados.', '', '', ''];
         }
 

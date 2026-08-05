@@ -43,6 +43,20 @@ class PortalSeguimientoTest extends TestCase
         $this->actingAs($p->fresh(), 'postulante')->get('/portal/')->assertOk();
     }
 
+    public function test_password_rechazada_no_filtra_claves_de_traduccion(): void
+    {
+        $p = $this->postulanteConAcceso(true);
+
+        // 'abc' incumple min, mixedCase, numbers y symbols a la vez.
+        $this->actingAs($p, 'postulante')->post('/portal/password/cambiar', [
+            'password' => 'abc', 'password_confirmation' => 'abc',
+        ])->assertSessionHasErrors('password');
+
+        foreach (session('errors')->get('password') as $mensaje) {
+            $this->assertStringNotContainsString('validation.', $mensaje, "Mensaje sin traducir: $mensaje");
+        }
+    }
+
     public function test_seguimiento_avanza_con_aprobacion_de_admision(): void
     {
         $p = $this->postulanteConAcceso(false); // revision_estado='pendiente' por defecto

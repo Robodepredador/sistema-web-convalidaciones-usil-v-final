@@ -1,9 +1,36 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 const props = defineProps({ simulacion: Object, detalles: Array, creditos_total: Number });
 
-const toggle = (id) => router.patch(`/simulaciones/${props.simulacion.id}/detalle/${id}`, {}, { preserveScroll: true });
+// Excluir o incluir un curso cambia los créditos que reconoce el expediente:
+// es una decisión académica y el servidor exige su motivo para la auditoría.
+const excluyendo = ref(null);
+const motivo = ref('');
+const enviando = ref(false);
+const errorMotivo = ref('');
+
+const abrirToggle = (d) => {
+    excluyendo.value = d;
+    motivo.value = '';
+    errorMotivo.value = '';
+};
+
+const confirmarToggle = () => {
+    if (motivo.value.trim().length < 5) {
+        errorMotivo.value = 'Indica el motivo (mínimo 5 caracteres).';
+
+        return;
+    }
+    enviando.value = true;
+    router.patch(`/simulaciones/${props.simulacion.id}/detalle/${excluyendo.value.id}`,
+        { motivo: motivo.value.trim() },
+        {
+            preserveScroll: true,
+            onFinish: () => { enviando.value = false; excluyendo.value = null; },
+        });
+};
 
 // Descarga robusta: enlace temporal en la misma pestaña (evita bloqueo de pop-ups y pestañas en blanco).
 const descargarArchivo = (url) => {
@@ -77,13 +104,20 @@ const verRestantes = ref(false);
             <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
             <span>
                 Hay <strong>{{ sinAsignar }}</strong> curso(s) aprobado(s) en el récord de origen sin un curso USIL asignado; no suman créditos.
-                <Link :href="`/simulaciones/${simulacion.id}/editar`" class="font-medium underline">Editar el mapeo</Link> para revisarlos.
+                <Link v-if="!simulacion.convalidada" :href="`/simulaciones/${simulacion.id}/editar`" class="font-medium underline">Editar el mapeo</Link>
+                <span v-else>Para corregirlo hay que anular la convalidación y generar un expediente nuevo.</span>
             </span>
+        </p>
+
+        <!-- Expediente cerrado: sustenta un memorándum ya emitido y no admite cambios. -->
+        <p v-if="simulacion.convalidada" class="mb-4 flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+            <span>Expediente cerrado: sustenta un memorándum emitido. Una corrección exige anular la convalidación y evaluar de nuevo.</span>
         </p>
 
         <div class="mb-2 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Cursos a convalidar</h2>
-            <Link :href="`/simulaciones/${simulacion.id}/editar`"
+            <Link v-if="!simulacion.convalidada" :href="`/simulaciones/${simulacion.id}/editar`"
                   class="inline-flex items-center gap-1.5 rounded-md border border-[#2E75B6] px-3 py-1.5 text-xs font-medium text-[#2E75B6] hover:bg-blue-50">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
                 Editar mapeo
@@ -111,8 +145,11 @@ const verRestantes = ref(false);
                         </td>
                         <td class="px-4 py-2 text-right text-slate-600">{{ Number(d.creditos).toFixed(1) }}</td>
                         <td class="px-4 py-2 text-center">
-                            <input type="checkbox" :checked="!d.excluido" @change="toggle(d.id)"
-                                   class="rounded border-slate-300 text-[#2E75B6]" />
+                            <!-- click.prevent y no change: la casilla no debe moverse hasta que se confirme el motivo. -->
+                            <input type="checkbox" :checked="!d.excluido" :disabled="simulacion.convalidada"
+                                   @click.prevent="abrirToggle(d)"
+                                   :title="simulacion.convalidada ? 'Expediente cerrado por convalidación' : ''"
+                                   class="rounded border-slate-300 text-[#2E75B6] disabled:opacity-40" />
                         </td>
                     </tr>
                     <tr v-if="!filasConvalidadas.length">
@@ -180,5 +217,21 @@ const verRestantes = ref(false);
         <p class="mt-3 text-xs text-slate-400">
             La convalidación oficial y su memorándum se emiten desde el módulo Convalidaciones.
         </p>
+
+        <ConfirmDialog :open="!!excluyendo" :procesando="enviando"
+                       :titulo="excluyendo?.excluido ? '¿Incluir este curso?' : '¿Excluir este curso?'"
+                       :mensaje="excluyendo?.excluido
+                           ? 'Volverá a sumar sus créditos al expediente. El motivo queda en la auditoría.'
+                           : 'Dejará de sumar sus créditos al expediente. El motivo queda en la auditoría.'"
+                       :texto-confirmar="excluyendo?.excluido ? 'Incluir' : 'Excluir'"
+                       tono="aviso"
+                       @cancelar="excluyendo = null" @confirmar="confirmarToggle">
+            <p class="mb-3 font-medium text-slate-700">{{ excluyendo?.curso_externo }} → {{ excluyendo?.curso_usil }}</p>
+            <label class="mb-1 block text-xs font-medium text-slate-500" for="motivo-exclusion">Motivo</label>
+            <textarea id="motivo-exclusion" v-model="motivo" rows="3" maxlength="300"
+                      class="w-full rounded-md border-slate-300 text-sm"
+                      placeholder="Ej.: el sílabo no cubre las competencias del curso USIL."></textarea>
+            <p v-if="errorMotivo" class="mt-1 text-xs text-red-600">{{ errorMotivo }}</p>
+        </ConfirmDialog>
     </div>
 </template>

@@ -4,7 +4,8 @@ import { onMounted, ref, watch } from 'vue';
 defineProps({ tipos: Array });
 
 const inicial = () => ({
-    tipo_id: '', nombre: '', pais: '', gestion: '', activa: true,
+    tipo_id: '', nombre: '', pais: '', gestion: '',
+    licenciamiento: 'desconocido', licenciamiento_resolucion: '', activa: true,
     carreras: [{ nombre: '' }],
 });
 
@@ -19,6 +20,8 @@ const camposBorrador = () => ({
     nombre: form.nombre,
     pais: form.pais,
     gestion: form.gestion,
+    licenciamiento: form.licenciamiento,
+    licenciamiento_resolucion: form.licenciamiento_resolucion,
     activa: form.activa,
     carreras: form.carreras,
 });
@@ -87,6 +90,21 @@ const enviar = () => form.post('/instituciones', {
                         <option value="privada">Privada</option>
                     </select>
                     <p v-if="form.errors.gestion" class="mt-1 text-xs text-red-600">{{ form.errors.gestion }}</p>
+                </div>
+                <div>
+                    <!-- Condiciona los requisitos del traslado externo (créditos mínimos, certificado SUNEDU). -->
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Licenciamiento SUNEDU</label>
+                    <select v-model="form.licenciamiento" class="w-full rounded-md border-slate-300 text-sm">
+                        <option value="desconocido">Sin verificar</option>
+                        <option value="licenciada">Licenciada por SUNEDU</option>
+                        <option value="no_licenciada">No licenciada</option>
+                    </select>
+                    <p v-if="form.errors.licenciamiento" class="mt-1 text-xs text-red-600">{{ form.errors.licenciamiento }}</p>
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Resolución de licenciamiento</label>
+                    <input v-model="form.licenciamiento_resolucion" type="text" maxlength="120"
+                           class="w-full rounded-md border-slate-300 text-sm" />
                 </div>
             </div>
             <div>

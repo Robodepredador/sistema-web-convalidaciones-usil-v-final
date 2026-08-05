@@ -29,6 +29,13 @@ const limpiar = () => {
     router.get('/instituciones', {}, { preserveScroll: true, replace: true });
 };
 
+const licenciaBadge = (l) =>
+    l === 'licenciada'
+        ? { label: 'Licenciada', clase: 'bg-green-50 text-green-700 ring-green-200' }
+        : l === 'no_licenciada'
+            ? { label: 'No licenciada', clase: 'bg-red-50 text-red-700 ring-red-200' }
+            : { label: 'Sin verificar', clase: 'bg-slate-100 text-slate-500 ring-slate-200' };
+
 const gestionBadge = (g) =>
     g === 'publica'
         ? { label: 'Pública', clase: 'bg-indigo-50 text-indigo-700 ring-indigo-200' }
@@ -152,6 +159,10 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                                 <span :class="gestionBadge(i.gestion).clase"
                                       class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">
                                     {{ gestionBadge(i.gestion).label }}
+                                </span>
+                                <span :class="licenciaBadge(i.licenciamiento).clase"
+                                      class="ml-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">
+                                    {{ licenciaBadge(i.licenciamiento).label }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-slate-600">{{ i.pais ?? '—' }}</td>

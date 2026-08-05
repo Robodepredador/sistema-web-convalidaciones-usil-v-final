@@ -20,27 +20,6 @@ class ConvalidacionEngine
 {
     public const NO_CONVALIDAR = '— No convalidar —';
 
-    /** Cursos que por política nunca se convalidan (RN de convalidación). */
-    private const NO_CONVALIDABLES = [
-        'ingles', 'english', 'idioma extranjero', 'comunicacion en ingles',
-        'informatica', 'computacion basica', 'tecnologias de la informacion',
-        'investigacion cientifica', 'metodologia de la investigacion',
-        'seminario de investigacion', 'taller de investigacion',
-        'practica', 'practicas', 'practica profesional', 'practicas profesionales',
-        'practica preprofesional', 'practicas preprofesionales',
-        'fisica', 'fisica general', 'fisica i', 'fisica ii', 'fisica mecanica',
-        'cultura fisica', 'deportes', 'educacion fisica', 'actividades deportivas',
-        'mantenimiento de equipos', 'mantenimiento de equipos de computo',
-        'mantenimiento de computadoras', 'mantenimiento de hardware',
-        'cultura artistica', 'arte', 'actividades artisticas', 'apreciacion artistica',
-        'ofimatica', 'office', 'herramientas ofimaticas', 'microsoft office',
-        'reparacion de equipos', 'reparacion de equipos de computo',
-        'reparacion de computadoras', 'reparacion de hardware',
-        'diseno grafico', 'diseno asistido', 'ilustracion digital',
-        'insercion laboral', 'empleabilidad', 'desarrollo profesional',
-        'orientacion laboral', 'preparacion para el empleo',
-    ];
-
     /** Normaliza texto: minúsculas, sin acentos, solo alfanumérico con espacios simples. */
     public function normaliza(?string $texto): string
     {
@@ -195,18 +174,41 @@ class ConvalidacionEngine
         return ($best !== null && $mejor >= $cutoff) ? $best : $this->titulo($extraido);
     }
 
-    /** ¿El curso de origen es de una categoría que nunca se convalida? */
-    public function esNoConvalidable(?string $nombre): bool
+    /**
+     * ¿El curso de origen es de una categoría que no se convalida?
+     *
+     * La política vive ENTERA en `cursos_no_convalidables`: las institucionales
+     * las gestiona el Superusuario y las de cada carrera, su Coordinador. Antes
+     * había además una lista fija en el código que nadie podía desactivar sin
+     * desplegar.
+     *
+     * `$carreraId` es la carrera DESTINO: sin ella solo rigen las reglas
+     * institucionales.
+     */
+    public function esNoConvalidable(?string $nombre, ?int $carreraId = null): bool
+    {
+        return $this->motivoNoConvalidable($nombre, $carreraId) !== false;
+    }
+
+    /**
+     * Motivo por el que el curso no se convalida: el texto de la regla que lo
+     * descarta (puede ser null si la regla no lo lleva), o `false` si ninguna
+     * regla aplica.
+     *
+     * La coincidencia es por palabra completa, admitiendo el plural: con
+     * `str_contains`, la clave «arte» descartaba «Gestión de cartera» y
+     * «practica» cualquier curso con esa sílaba dentro.
+     */
+    public function motivoNoConvalidable(?string $nombre, ?int $carreraId = null): string|false|null
     {
         $n = $this->normaliza($nombre);
         if ($n === '') {
             return false;
         }
-        // Lista base (constante) + lista gestionable en base de datos.
-        $claves = array_merge(self::NO_CONVALIDABLES, CursoNoConvalidable::clavesActivas());
-        foreach ($claves as $clave) {
-            if ($clave !== '' && str_contains($n, $clave)) {
-                return true;
+
+        foreach (CursoNoConvalidable::reglasVigentes($carreraId) as $clave => $motivo) {
+            if ($clave !== '' && preg_match('/\b'.preg_quote($clave, '/').'s?\b/', $n) === 1) {
+                return $motivo;
             }
         }
 
@@ -299,10 +301,11 @@ class ConvalidacionEngine
      *
      * @param  array<int,string>  $cursosOrigen  nombres de cursos aprobados de origen
      * @param  array  $pool  salida de poolCursosUsil()
+     * @param  int|null  $carreraId  carrera destino, para aplicar sus reglas propias
      * @return array<string,array{curso_usil_id:int|null,label:string,confianza:float}>
      *                                                                                  mapa nombreOrigen → sugerencia
      */
-    public function asignacionOptima(array $cursosOrigen, array $pool, float $cutoff = 0.55): array
+    public function asignacionOptima(array $cursosOrigen, array $pool, float $cutoff = 0.55, ?int $carreraId = null): array
     {
         $porLabel = [];
         foreach ($pool as $p) {
@@ -312,7 +315,7 @@ class ConvalidacionEngine
         // Genera todos los pares con score >= cutoff.
         $pares = [];
         foreach ($cursosOrigen as $origen) {
-            if ($this->esNoConvalidable($origen)) {
+            if ($this->esNoConvalidable($origen, $carreraId)) {
                 continue;
             }
             foreach ($pool as $p) {
@@ -337,7 +340,7 @@ class ConvalidacionEngine
 
         $resultado = [];
         foreach ($cursosOrigen as $origen) {
-            if ($this->esNoConvalidable($origen) || ! isset($asignado[$origen])) {
+            if ($this->esNoConvalidable($origen, $carreraId) || ! isset($asignado[$origen])) {
                 $resultado[$origen] = ['curso_usil_id' => null, 'label' => self::NO_CONVALIDAR, 'confianza' => 0.0];
 
                 continue;

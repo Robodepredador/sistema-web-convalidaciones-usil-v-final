@@ -22,6 +22,8 @@ class UpdateInstitucionRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:200'],
             'pais' => ['nullable', 'string', 'max:100'],
             'gestion' => ['nullable', 'in:publica,privada'],
+            'licenciamiento' => ['nullable', 'in:licenciada,no_licenciada,desconocido'],
+            'licenciamiento_resolucion' => ['nullable', 'string', 'max:120'],
             'activa' => ['boolean'],
 
             // Carreras de procedencia: cada una puede traer un id (existente) o no (nueva).

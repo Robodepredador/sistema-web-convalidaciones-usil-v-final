@@ -13,12 +13,14 @@ use App\Http\Controllers\Estructura\ModalidadController;
 use App\Http\Controllers\Estructura\PlanEstudioController;
 use App\Http\Controllers\Estructura\ProgramaController;
 use App\Http\Controllers\Estructura\SedeController;
+use App\Http\Controllers\HistorialEquivalenciasController;
 use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\MallaController;
 use App\Http\Controllers\MallaExternaController;
 use App\Http\Controllers\MallaImportController;
 use App\Http\Controllers\Portal\AccesoController as PortalAccesoController;
 use App\Http\Controllers\Portal\PasswordController as PortalPasswordController;
+use App\Http\Controllers\Portal\PreconvalidacionController as PortalPreconvalidacionController;
 use App\Http\Controllers\Portal\SeguimientoController as PortalSeguimientoController;
 use App\Http\Controllers\PostulanteController;
 use App\Http\Controllers\ReporteController;
@@ -133,6 +135,13 @@ Route::middleware('auth')->group(function () {
             Route::post('mallas/{malla}/ciclos/{ciclo}/cursos', [MallaController::class, 'agregarCurso'])->name('mallas.cursos.store');
             Route::put('mallas/{malla}/cursos/{curso}', [MallaController::class, 'actualizarCurso'])->name('mallas.cursos.update');
             Route::delete('mallas/{malla}/cursos/{curso}', [MallaController::class, 'eliminarCurso'])->name('mallas.cursos.destroy');
+            // Materias de ORIGEN que esta carrera no convalida. Van aquí y no en
+            // Configuración porque son de la carrera: el alcance por rol de
+            // MallaController es el que decide quién puede tocarlas.
+            Route::post('mallas/{malla}/no-convalidables', [MallaController::class, 'agregarNoConvalidable'])->name('mallas.no-convalidables.store');
+            Route::patch('mallas/{malla}/no-convalidables/{noConvalidable}', [MallaController::class, 'actualizarNoConvalidable'])->name('mallas.no-convalidables.update');
+            Route::delete('mallas/{malla}/no-convalidables/{noConvalidable}', [MallaController::class, 'eliminarNoConvalidable'])->name('mallas.no-convalidables.destroy');
+
             // RF-08..12 / RF-37: importar y exportar cursos de la malla
             Route::get('mallas/{malla}/exportar', [MallaController::class, 'exportarCursos'])->name('mallas.exportar');
             Route::post('mallas/{malla}/importar-cursos', [MallaController::class, 'importarCursos'])->name('mallas.cursos.importar');
@@ -216,6 +225,12 @@ Route::middleware('auth')->group(function () {
         // CU-04 / CU-05: Simulación — lectura y trazabilidad (permiso evaluacion.ver)
         Route::middleware('permission:evaluacion.ver')->group(function () {
             Route::get('simulaciones', [SimulacionController::class, 'index'])->name('simulaciones.index');
+            // Base de conocimiento histórica. ANTES de las rutas con {simulacion}:
+            // 'simulaciones/{simulacion}/excel' no exige número, así que
+            // 'simulaciones/historico/excel' la capturaría si fuera al revés.
+            Route::get('simulaciones/historico', [HistorialEquivalenciasController::class, 'index'])->name('simulaciones.historico');
+            Route::get('simulaciones/historico/excel', [HistorialEquivalenciasController::class, 'exportar'])->name('simulaciones.historico.excel');
+            Route::get('simulaciones/antecedentes', [HistorialEquivalenciasController::class, 'antecedentes'])->name('simulaciones.antecedentes');
             Route::get('simulaciones/{simulacion}', [SimulacionController::class, 'show'])->name('simulaciones.show')->whereNumber('simulacion');
             Route::get('documentos/{documento}/ver', [SimulacionController::class, 'verDocumento'])->name('documentos.ver')->whereNumber('documento');
             Route::get('simulaciones/{simulacion}/pdf', [SimulacionController::class, 'generarPdf'])->name('simulaciones.pdf');
@@ -283,6 +298,8 @@ Route::prefix('portal')->group(function () {
         // El seguimiento exige tener la contraseña ya cambiada.
         Route::middleware('postulante.cambiar')->group(function () {
             Route::get('/', [PortalSeguimientoController::class, 'index'])->name('portal.seguimiento');
+            Route::get('/preconvalidacion/{simulacion}', [PortalPreconvalidacionController::class, 'ver'])
+                ->name('portal.preconvalidacion')->whereNumber('simulacion');
         });
 
         Route::post('/logout', [PortalAccesoController::class, 'logout'])->name('portal.logout');

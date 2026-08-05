@@ -26,6 +26,7 @@
         .firmas td { width: 50%; text-align: center; font-size: 10px; padding-top: 4px; }
         .firmas .linea { border-top: 1px solid #333; margin: 0 40px 4px; }
         .firmas .nombre { font-weight: bold; }
+        .pie { margin-top: 28px; font-size: 8.5px; color: #888; text-align: center; }
     </style>
 </head>
 <body>
@@ -63,9 +64,10 @@
         <thead>
             <tr>
                 <th style="width:5%;">Item</th>
-                <th style="width:34%;">Curso de Malla por Competencias convalidado en USIL(*)</th>
-                <th style="width:38%;">Curso llevado en la Institución de procedencia y/o donde realizó el intercambio</th>
-                <th style="width:10%; text-align:center;">Ciclo (Curso USIL)</th>
+                <th style="width:31%;">Curso de Malla por Competencias convalidado en USIL</th>
+                <th style="width:34%;">Curso llevado en la Institución de procedencia y/o donde realizó el intercambio</th>
+                <th style="width:8%; text-align:center;">Nota de origen</th>
+                <th style="width:9%; text-align:center;">Ciclo (Curso USIL)</th>
                 <th style="width:13%; text-align:center;">Créditos USIL Reconocidos</th>
             </tr>
         </thead>
@@ -75,15 +77,18 @@
                     <td class="c">{{ $i + 1 }}</td>
                     <td>{{ mb_strtoupper($d->cursoUsil?->nombre ?? '') }}</td>
                     <td>{{ $d->nombre_origen ?? $d->cursoExterno?->nombre }}</td>
+                    {{-- Evidencia de que el curso estaba aprobado: sin ella el acto no se sustenta. --}}
+                    <td class="c">{{ $d->nota_origen ?: '—' }}</td>
                     <td class="c">{{ $d->cursoUsil?->ciclo?->numero ?? '—' }}</td>
-                    <td class="c">{{ number_format($d->creditos_reconocidos, 0) }}</td>
+                    {{-- El '+' quita el decimal sobrante sin redondear: 3.5 → 3.5, 4.0 → 4. --}}
+                    <td class="c">{{ +$d->creditos_reconocidos }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="c" style="color:#999;">Sin cursos convalidados.</td></tr>
+                <tr><td colspan="6" class="c" style="color:#999;">Sin cursos convalidados.</td></tr>
             @endforelse
             <tr class="total">
-                <td colspan="4" style="text-align:right;">Total de Créditos convalidados</td>
-                <td class="c">{{ number_format($total, 0) }}</td>
+                <td colspan="5" style="text-align:right;">Total de Créditos convalidados</td>
+                <td class="c">{{ +$total }}</td>
             </tr>
         </tbody>
     </table>
@@ -108,5 +113,9 @@
             </td>
         </tr>
     </table>
+
+    @if ($emitidoPor)
+        <p class="pie">Emitido en el Sistema de Convalidaciones por {{ $emitidoPor }} · {{ $codigoMemo }}</p>
+    @endif
 </body>
 </html>

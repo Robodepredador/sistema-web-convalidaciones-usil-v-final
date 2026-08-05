@@ -17,6 +17,8 @@ class SeguimientoTimeline
         string $revisionEstado,
         bool $tieneSim,
         bool $confirmada,
+        int $docsTotal = 5,
+        bool $provisional = false,
     ): array {
         if ($estado === 'rechazado') {
             return [[
@@ -30,9 +32,12 @@ class SeguimientoTimeline
         $aprobada = $revisionEstado === 'aprobada';
         $observada = $revisionEstado === 'observada';
         $detalleDocs = match (true) {
+            // Una aprobación provisional avanza el expediente pero deja pendiente
+            // entregar lo que falta: el postulante tiene que saberlo.
+            $aprobada && $provisional => 'Aprobado de forma provisional: queda pendiente regularizar la documentación',
             $aprobada => 'Documentos revisados y aprobados por Admisión',
             $observada => 'Documentación observada: revisa las indicaciones',
-            default => "{$docsCount} de 3 documentos entregados",
+            default => "{$docsCount} de {$docsTotal} documentos entregados",
         };
 
         $etapas = [

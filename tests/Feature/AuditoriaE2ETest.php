@@ -20,6 +20,7 @@ use App\Models\UnidadNegocio;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -109,6 +110,14 @@ class AuditoriaE2ETest extends TestCase
         ]);
         $p->destinos()->create(['carrera_id' => $carrera->id]);
 
+        // Expediente documental completo: Admisión no puede aprobar sin él.
+        foreach (['dni', 'certificado', 'silabos', 'constancia', 'solicitud'] as $tipo) {
+            $p->documentos()->create([
+                'tipo' => $tipo, 'nombre_original' => "{$tipo}.pdf",
+                'ruta' => "postulantes/{$p->id}/{$tipo}.pdf", 'tamano' => 1024,
+            ]);
+        }
+
         return $p;
     }
 
@@ -138,12 +147,19 @@ class AuditoriaE2ETest extends TestCase
     /** E2E completo: Asesor → Ejecutivo → Coordinador → Decano → Postulante. */
     public function test_e2e_flujo_completo_de_convalidacion(): void
     {
-        // 1) Asesor registra al postulante (queda 'pendiente' de revisión).
+        // 1) Asesor registra al postulante con su expediente (queda 'pendiente').
+        Storage::fake();
         $this->actingAs($this->c['asesorA'])->post('/postulantes', [
             'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => 'ana@ext.com',
             'tipo_documento' => 'DNI', 'numero_documento' => '10000001',
             'carrera_destino_ids' => [$this->c['carrIng']->id], 'ciclo_postulacion' => '2026-1',
             'institucion_origen_id' => $this->c['inst']->id, 'carrera_externa_id' => $this->c['carExt']->id,
+            'consentimiento_datos' => true,
+            'dni' => UploadedFile::fake()->create('dni.pdf', 20, 'application/pdf'),
+            'certificado' => UploadedFile::fake()->create('certificado.pdf', 20, 'application/pdf'),
+            'silabos' => UploadedFile::fake()->create('silabos.pdf', 20, 'application/pdf'),
+            'constancia' => UploadedFile::fake()->create('constancia.pdf', 20, 'application/pdf'),
+            'solicitud' => UploadedFile::fake()->create('solicitud.pdf', 20, 'application/pdf'),
         ])->assertRedirect('/postulantes');
 
         $p = Postulante::where('numero_documento', '10000001')->firstOrFail();
@@ -323,10 +339,10 @@ class AuditoriaE2ETest extends TestCase
 
         $this->assertSame('nuevo', $ajeno->fresh()->estado);
 
-        // Control positivo: su dueño sí puede cambiarlo.
-        $this->actingAs($this->c['asesorB'])->patch("/postulantes/{$ajeno->id}/estado", ['estado' => 'admitido'])
+        // Control positivo: su dueño sí puede cambiarlo (misma transición, otro actor).
+        $this->actingAs($this->c['asesorB'])->patch("/postulantes/{$ajeno->id}/estado", ['estado' => 'rechazado'])
             ->assertRedirect();
-        $this->assertSame('admitido', $ajeno->fresh()->estado);
+        $this->assertSame('rechazado', $ajeno->fresh()->estado);
     }
 
     /** El asesor A descarga la preconvalidación de un postulante del asesor B. */

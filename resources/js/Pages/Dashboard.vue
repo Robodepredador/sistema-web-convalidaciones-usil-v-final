@@ -47,6 +47,9 @@ const acciones = () => props.dashboard.acciones ?? [];
                         <div class="min-w-0">
                             <p class="truncate text-sm font-medium text-slate-700">{{ b.titulo }}</p>
                             <p class="truncate text-xs text-slate-400">{{ b.subtitulo }}</p>
+                            <p v-if="b.fecha" class="mt-0.5 text-xs text-slate-400">
+                                <span class="text-slate-300">Ingresó:</span> {{ b.fecha }}
+                            </p>
                         </div>
                         <span :class="badge(b.estado)" class="ml-3 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
                             {{ (b.estado || '').replace('_', ' ') }}

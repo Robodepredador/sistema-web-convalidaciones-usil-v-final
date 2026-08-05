@@ -10,7 +10,10 @@ class InstitucionExterna extends Model
 {
     protected $table = 'instituciones_externas';
 
-    protected $fillable = ['tipo_id', 'nombre', 'pais', 'gestion', 'activa'];
+    protected $fillable = [
+        'tipo_id', 'nombre', 'pais', 'gestion',
+        'licenciamiento', 'licenciamiento_resolucion', 'activa',
+    ];
 
     protected $casts = ['activa' => 'boolean'];
 

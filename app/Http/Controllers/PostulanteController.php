@@ -25,9 +25,62 @@ use Illuminate\Validation\Rule;
  */
 class PostulanteController extends Controller
 {
-    private const ESTADOS = ['nuevo', 'en_evaluacion', 'admitido', 'rechazado', 'matriculado'];
+    /**
+     * Estados del expediente. 'borrador' lo fija el propio guardado (no es un
+     * destino manual) y sale de él al guardarse como registro definitivo.
+     */
+    private const ESTADOS = ['borrador', 'nuevo', 'en_evaluacion', 'admitido', 'rechazado', 'matriculado'];
 
-    private const DOCUMENTOS = ['certificado', 'silabos', 'constancia'];
+    /**
+     * Transiciones admitidas del expediente. Antes el endpoint aceptaba
+     * cualquier destino: se podía marcar 'matriculado' a alguien recién
+     * registrado, sin revisión ni evaluación.
+     *
+     * 'en_evaluacion' no está como destino manual a propósito: se llega ahí
+     * aprobando la revisión, no fijándolo a mano. 'matriculado' exige haber sido
+     * admitido, y 'rechazado' se puede declarar en cualquier punto salvo cuando
+     * el postulante ya está matriculado.
+     */
+    private const TRANSICIONES = [
+        'borrador' => ['rechazado'],
+        'nuevo' => ['rechazado'],
+        'en_evaluacion' => ['admitido', 'rechazado'],
+        'admitido' => ['matriculado', 'rechazado'],
+        'rechazado' => ['nuevo'],
+        'matriculado' => [],
+    ];
+
+    /**
+     * Expediente documental de la modalidad de traslado externo, con la etiqueta
+     * que ve el postulante. El nombre importa: «constancia de matrícula» no es
+     * lo que pide el proceso —es la de PRIMERA matrícula— y faltaban la copia
+     * del documento de identidad y la solicitud en formato USIL.
+     */
+    private const DOCUMENTOS = [
+        'dni' => 'Copia del documento de identidad',
+        'certificado' => 'Certificado oficial de notas (SUNEDU)',
+        'silabos' => 'Sílabos sellados y visados por la institución de procedencia',
+        'constancia' => 'Constancia de primera matrícula',
+        'solicitud' => 'Solicitud de convalidación (formato USIL)',
+    ];
+
+    /**
+     * Formato del número de documento según su tipo, con el mensaje que se muestra.
+     * Espejo de DOCUMENTOS_REGLAS en resources/js/Pages/Postulantes/Form.vue.
+     */
+    private const REGLAS_DOCUMENTO = [
+        'DNI' => ['/^\d{8}$/', 'El DNI debe tener exactamente 8 dígitos.'],
+        'CE' => ['/^[A-Za-z0-9]{9,12}$/', 'El carné de extranjería debe tener de 9 a 12 caracteres alfanuméricos.'],
+        'PASAPORTE' => ['/^[A-Za-z0-9]{6,12}$/', 'El pasaporte debe tener de 6 a 12 caracteres alfanuméricos.'],
+        'PTP' => ['/^[A-Za-z0-9]{9,12}$/', 'El PTP debe tener de 9 a 12 caracteres alfanuméricos.'],
+    ];
+
+    /** Nombres propios y topónimos: letras con acentos, espacios, apóstrofo, punto y guion. */
+    private const RE_NOMBRE = '/^[\p{L}\p{M}\s\'’.\-]+$/u';
+
+    // ponytail: el teléfono solo valida juego de caracteres y longitud; "------" pasaría.
+    // Si algún día hay que llamar a esos números, normalizar a E.164 antes de guardar.
+    private const RE_TELEFONO = '/^[0-9+()\s-]{6,20}$/';
 
     public function index(Request $request)
     {
@@ -53,6 +106,9 @@ class PostulanteController extends Controller
             ->when($request->estado, fn ($x, $v) => $x->where('estado', $v))
             ->when($request->revision, fn ($x, $v) => $x->where('revision_estado', $v))
             ->when($request->carrera_destino_id, fn ($x, $v) => $x->where('carrera_destino_id', $v))
+            // Rango por día completo sobre la fecha de registro (whereDate ignora la hora).
+            ->when($request->desde, fn ($x, $v) => $x->whereDate('created_at', '>=', $v))
+            ->when($request->hasta, fn ($x, $v) => $x->whereDate('created_at', '<=', $v))
             // El Asesor solo ve los postulantes que él registró.
             ->when($request->user()->rol?->nombre === Role::ASESOR,
                 fn ($x) => $x->where('usuario_id', $request->user()->id))
@@ -73,6 +129,7 @@ class PostulanteController extends Controller
                 'asesor' => $p->usuario?->nombre,
                 'documentos' => $p->documentos_count,
                 'documentos_total' => count(self::DOCUMENTOS),
+                'registrado' => optional($p->created_at)->format('d/m/Y H:i'),
             ]);
 
         return inertia('Postulantes/Index', [
@@ -83,7 +140,7 @@ class PostulanteController extends Controller
             'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'estados' => self::ESTADOS,
             'revisiones' => ['pendiente', 'aprobada', 'observada'],
-            'filtros' => $request->only(['q', 'estado', 'revision', 'carrera_destino_id']),
+            'filtros' => $request->only(['q', 'estado', 'revision', 'carrera_destino_id', 'desde', 'hasta']),
         ]);
     }
 
@@ -108,7 +165,7 @@ class PostulanteController extends Controller
 
         $datos['codigo'] = 'POST-'.now()->year.'-'.str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
         $datos['usuario_id'] = $request->user()->id;
-        $datos['estado'] = 'nuevo';
+        $datos['estado'] = $borrador ? 'borrador' : 'nuevo';
 
         // Acceso al portal solo si hay correo.
         $temporal = null;
@@ -180,9 +237,11 @@ class PostulanteController extends Controller
             'postulante' => $postulante->only([
                 'id', 'codigo', 'tipo_documento', 'numero_documento', 'nombres', 'apellido_paterno',
                 'apellido_materno', 'fecha_nacimiento', 'genero', 'nacionalidad', 'email', 'telefono',
-                'pais_residencia', 'direccion', 'institucion_origen_id', 'carrera_externa_id',
+                'institucion_origen_id', 'carrera_externa_id',
                 'carrera_destino_id', 'ciclo_postulacion', 'estado', 'observaciones',
             ]) + [
+                'consentimiento_datos' => $postulante->tieneConsentimientoDatos(),
+                'consentimiento_datos_en' => optional($postulante->consentimiento_datos_en)->format('d/m/Y H:i'),
                 'sin_documento' => $postulante->tipo_documento === 'TEMP',
                 'carrera_destino_ids' => $postulante->destinos()->pluck('carrera_id')->all(),
                 'documentos' => $postulante->documentos->map(fn ($d) => ['tipo' => $d->tipo, 'nombre' => $d->nombre_original])->values(),
@@ -191,14 +250,19 @@ class PostulanteController extends Controller
             'preconvalidacion_estado' => $estadoPre,
             'revision' => [
                 'estado' => $postulante->revision_estado,
+                'provisional' => (bool) $postulante->revision_provisional,
                 'observaciones' => $postulante->revision_observaciones,
                 'revisado_en' => optional($postulante->revisado_en)->format('d/m/Y H:i'),
                 'revisado_por' => $postulante->revisadoPor?->nombre,
                 'convalidada' => $tieneConv,
+                'es_borrador' => $postulante->estado === 'borrador',
                 'documentos' => $postulante->documentos->count(),
                 'documentos_total' => count(self::DOCUMENTOS),
-                // Ya no admite cambios de revisión una vez convalidado.
-                'puede_revisar' => $request->user()->puede('solicitudes.validar') && ! $tieneConv,
+                // Lo que impide aprobar sin marcar la vía provisional.
+                'documentos_faltantes' => $this->documentosFaltantes($postulante),
+                // No admite revisión si ya está convalidado o si sigue siendo borrador.
+                'puede_revisar' => $request->user()->puede('solicitudes.validar') && ! $tieneConv
+                    && $postulante->estado !== 'borrador',
                 'puede_reenviar' => $request->user()->puede('solicitudes.editar') && ! $tieneConv
                     && ($request->user()->rol?->nombre !== Role::ASESOR
                         || $postulante->usuario_id === $request->user()->id),
@@ -291,22 +355,40 @@ class PostulanteController extends Controller
             $datos['numero_documento'] = 'TMP-'.now()->year.'-'.str_pad((string) $postulante->id, 5, '0', STR_PAD_LEFT);
         }
 
+        // Un borrador que se guarda completo pasa a registro definitivo. Solo avanza:
+        // editar un expediente ya registrado nunca lo devuelve a borrador.
+        $promovido = ! $borrador && $postulante->estado === 'borrador';
+        if ($promovido) {
+            $datos['estado'] = 'nuevo';
+        }
+
         $postulante->update($datos);
         $this->guardarDocumentos($request, $postulante);
         $this->syncDestinos($postulante, $destinoIds);
 
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, $antes, $datos);
 
-        return redirect()->route('postulantes.index')->with('status', 'Postulante actualizado.');
+        return redirect()->route('postulantes.index')->with('status', $promovido
+            ? "Borrador completado: {$postulante->codigo} pasó a registro definitivo y ya puede revisarse."
+            : 'Postulante actualizado.');
     }
 
     public function estado(Request $request, Postulante $postulante): RedirectResponse
     {
         $this->autorizarPropiedad($request->user(), $postulante);
 
-        $datos = $request->validate(['estado' => ['required', Rule::in(self::ESTADOS)]]);
+        $actual = $postulante->estado;
+        $permitidos = self::TRANSICIONES[$actual] ?? [];
+
+        $datos = $request->validate(['estado' => ['required', Rule::in($permitidos)]], [
+            'estado.in' => $permitidos === []
+                ? "Un expediente en «{$actual}» ya no admite más cambios de estado."
+                : "Desde «{$actual}» solo se puede pasar a: ".implode(', ', $permitidos).'.',
+        ]);
+
         $postulante->update($datos);
-        AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['estado' => $postulante->estado]);
+        AuditoriaService::registrar('editar', 'postulantes', $postulante->id,
+            ['estado' => $actual], ['estado' => $postulante->estado]);
 
         return back()->with('status', 'Estado del postulante actualizado.');
     }
@@ -352,6 +434,11 @@ class PostulanteController extends Controller
     /** El Ejecutivo Comercial aprueba u observa el expediente. */
     public function revisar(Request $request, Postulante $postulante): RedirectResponse
     {
+        // Un borrador está incompleto por definición (puede no tener correo, carrera
+        // destino ni ciclo): no hay nada que aprobar hasta que el asesor lo cierre.
+        abort_if($postulante->estado === 'borrador', 422,
+            'El expediente aún es un borrador; el asesor debe completarlo antes de que pueda revisarse.');
+
         // Un expediente ya convalidado por el coordinador no admite más cambios de revisión.
         abort_if($this->tieneConvalidacion($postulante), 422,
             'El expediente ya tiene una convalidación confirmada; no admite cambios de revisión.');
@@ -359,14 +446,33 @@ class PostulanteController extends Controller
         $datos = $request->validate([
             'accion' => ['required', 'in:aprobar,observar'],
             'observaciones' => ['required_if:accion,observar', 'nullable', 'string', 'max:1000'],
+            'provisional' => ['boolean'],
         ], [
             'observaciones.required_if' => 'Indica qué debe corregir el postulante.',
         ]);
 
         $aprobar = $datos['accion'] === 'aprobar';
+        $provisional = $aprobar && $request->boolean('provisional');
+
+        // Art. 24 del Reglamento de Admisión: apto solo con TODOS los documentos
+        // exigidos. La modalidad admite una vía temporal (récord de notas con
+        // declaración jurada), que aquí es una aprobación provisional explícita.
+        if ($aprobar && ($faltan = $this->documentosFaltantes($postulante)) !== []) {
+            abort_unless($provisional, 422,
+                'Falta documentación del expediente: '.implode(', ', $faltan).'. '
+                .'Obsérvalo para que se complete, o apruébalo de forma provisional si se presentó declaración jurada.');
+
+            abort_if(trim((string) ($datos['observaciones'] ?? '')) === '', 422,
+                'La aprobación provisional exige dejar constancia de qué falta y bajo qué declaración jurada se admite.');
+        }
+
         $cambios = [
             'revision_estado' => $aprobar ? 'aprobada' : 'observada',
-            'revision_observaciones' => $aprobar ? null : $datos['observaciones'],
+            'revision_provisional' => $provisional,
+            // Se conserva la nota de la aprobación provisional: es su justificación.
+            'revision_observaciones' => $aprobar
+                ? ($provisional ? $datos['observaciones'] : null)
+                : $datos['observaciones'],
             'revisado_por' => $request->user()->id,
             'revisado_en' => now(),
         ];
@@ -379,11 +485,31 @@ class PostulanteController extends Controller
         // 'accion' es un enum fijo en auditoria_log; el matiz de revisión va en el payload.
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, [
             'revision_estado' => $postulante->revision_estado,
+            'provisional' => $provisional,
         ]);
 
-        return back()->with('status', $aprobar
-            ? "Expediente {$postulante->codigo} aprobado. Ya puede evaluarse."
-            : "Expediente {$postulante->codigo} observado. La observación es visible para el asesor y el postulante.");
+        if (! $aprobar) {
+            return back()->with('status',
+                "Expediente {$postulante->codigo} observado. La observación es visible para el asesor y el postulante.");
+        }
+
+        return back()->with('status', $provisional
+            ? "Expediente {$postulante->codigo} aprobado de forma PROVISIONAL. Queda pendiente regularizar la documentación."
+            : "Expediente {$postulante->codigo} aprobado. Ya puede evaluarse.");
+    }
+
+    /** Cuántos documentos componen el expediente (lo consulta el portal). */
+    public static function totalDocumentos(): int
+    {
+        return count(self::DOCUMENTOS);
+    }
+
+    /** Etiquetas de los documentos del expediente que aún no se han adjuntado. */
+    private function documentosFaltantes(Postulante $postulante): array
+    {
+        $entregados = $postulante->documentos()->pluck('tipo')->unique()->all();
+
+        return array_values(array_diff_key(self::DOCUMENTOS, array_flip($entregados)));
     }
 
     /** El Asesor dueño reenvía a revisión un expediente observado ya corregido. */
@@ -401,7 +527,8 @@ class PostulanteController extends Controller
 
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['revision_estado' => 'reenviada']);
 
-        return back()->with('status', 'Expediente reenviado a revisión.');
+        return back()->with('status',
+            "Expediente {$postulante->codigo} reenviado a revisión. El Ejecutivo Comercial lo verá como pendiente.");
     }
 
     /** Envía al postulante sus credenciales del portal; no rompe el registro si falla el correo. */
@@ -462,7 +589,7 @@ class PostulanteController extends Controller
 
     private function guardarDocumentos(Request $request, Postulante $postulante): void
     {
-        foreach (self::DOCUMENTOS as $tipo) {
+        foreach (array_keys(self::DOCUMENTOS) as $tipo) {
             if ($request->hasFile($tipo)) {
                 $archivo = $request->file($tipo);
                 $ruta = $archivo->store("postulantes/{$postulante->id}");
@@ -482,6 +609,9 @@ class PostulanteController extends Controller
             'instituciones' => InstitucionExterna::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
             'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'estados' => self::ESTADOS,
+            // Del servidor, para que la lista del formulario no se desalinee con
+            // la que se valida y se exige al aprobar.
+            'documentos_tipos' => self::DOCUMENTOS,
         ];
     }
 
@@ -490,46 +620,77 @@ class PostulanteController extends Controller
         $sinDoc = $request->boolean('sin_documento');
 
         $rules = [
-            'nombres' => ['required', 'string', 'max:100'],
-            'apellido_paterno' => ['required', 'string', 'max:100'],
-            'apellido_materno' => ['nullable', 'string', 'max:100'],
-            'fecha_nacimiento' => ['nullable', 'date', 'before:today'],
+            'nombres' => ['required', 'string', 'min:2', 'max:100', 'regex:'.self::RE_NOMBRE],
+            'apellido_paterno' => ['required', 'string', 'min:2', 'max:100', 'regex:'.self::RE_NOMBRE],
+            'apellido_materno' => ['nullable', 'string', 'min:2', 'max:100', 'regex:'.self::RE_NOMBRE],
+            // Rango de edad plausible para un traslado externo (evita fechas futuras y tecleos absurdos).
+            'fecha_nacimiento' => ['nullable', 'date', 'before:-15 years', 'after:-100 years'],
             'genero' => ['nullable', 'in:masculino,femenino,otro,no_especifica'],
-            'nacionalidad' => ['nullable', 'string', 'max:60'],
+            'nacionalidad' => ['nullable', 'string', 'max:60', 'regex:'.self::RE_NOMBRE],
             'email' => [$borrador ? 'nullable' : 'required', 'email', 'max:150',
                 // El correo es la identidad de acceso al portal: único entre postulantes activos.
                 Rule::unique('postulantes', 'email')->ignore($id)->whereNull('deleted_at')],
-            'telefono' => ['nullable', 'string', 'max:20'],
-            'pais_residencia' => ['nullable', 'string', 'max:60'],
-            'direccion' => ['nullable', 'string', 'max:200'],
+            'telefono' => ['nullable', 'string', 'regex:'.self::RE_TELEFONO],
             'institucion_origen_id' => ['nullable', 'exists:instituciones_externas,id'],
             'carrera_externa_id' => ['nullable', 'exists:carreras_externas,id'],
             'carrera_destino_ids' => [$borrador ? 'nullable' : 'required', 'array'],
             'carrera_destino_ids.*' => ['integer', 'exists:carreras,id'],
-            'ciclo_postulacion' => [$borrador ? 'nullable' : 'required', 'regex:/^\d{4}-\d$/'],
+            'ciclo_postulacion' => [$borrador ? 'nullable' : 'required', 'regex:/^20\d{2}-[12]$/'],
+            // Art. 15 del Reglamento de Admisión: consentimiento expreso e
+            // inequívoco. Un borrador aún no es un registro, así que no se exige.
+            'consentimiento_datos' => [$borrador ? 'nullable' : 'accepted'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
+            // Adjuntar es opcional al registrar (el asesor los recibe por partes);
+            // lo que ya no es opcional es aprobar el expediente sin ellos: eso lo
+            // exige revisar(). Los sílabos admiten ZIP porque suelen ser varios.
+            'dni' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'certificado' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'silabos' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,zip', 'max:10240'],
             'constancia' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'solicitud' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ];
+
+        $mensajes = [
+            'ciclo_postulacion.regex' => 'El ciclo debe tener el formato AAAA-N, con N igual a 1 o 2 (por ejemplo, 2026-1).',
+            'carrera_destino_ids.required' => 'Selecciona al menos una carrera destino en USIL.',
+            'consentimiento_datos.accepted' => 'El postulante debe autorizar expresamente el tratamiento de sus datos personales (Art. 15 del Reglamento de Admisión).',
+            'email.required' => 'El correo es obligatorio para registrar al postulante.',
+            'email.unique' => 'Ya existe un postulante registrado con ese correo.',
+            'nombres.regex' => 'Los nombres solo admiten letras, espacios, apóstrofos y guiones.',
+            'apellido_paterno.regex' => 'El apellido paterno solo admite letras, espacios, apóstrofos y guiones.',
+            'apellido_materno.regex' => 'El apellido materno solo admite letras, espacios, apóstrofos y guiones.',
+            'nacionalidad.regex' => 'La nacionalidad solo admite letras y espacios.',
+            'telefono.regex' => 'El teléfono admite de 6 a 20 caracteres entre dígitos, espacios y los signos + ( ) -.',
+            'fecha_nacimiento.before' => 'El postulante debe tener al menos 15 años.',
+            'fecha_nacimiento.after' => 'Revisa la fecha de nacimiento: la edad no es plausible.',
         ];
 
         if (! $sinDoc) {
-            $rules['tipo_documento'] = ['required', 'in:DNI,CE,PASAPORTE,PTP'];
+            $rules['tipo_documento'] = ['required', Rule::in(array_keys(self::REGLAS_DOCUMENTO))];
             $rules['numero_documento'] = ['required', 'string', 'max:20',
                 Rule::unique('postulantes', 'numero_documento')
                     ->where(fn ($q) => $q->where('tipo_documento', $request->tipo_documento))
                     ->ignore($id)->whereNull('deleted_at')];
+            $mensajes['numero_documento.unique'] = 'Ya existe un postulante con ese tipo y número de documento.';
+
+            // Formato propio de cada tipo (un DNI no admite letras). Si el tipo no es
+            // válido, 'tipo_documento' ya lo rechaza y no hay formato que aplicar.
+            if ($regla = self::REGLAS_DOCUMENTO[$request->tipo_documento] ?? null) {
+                $rules['numero_documento'][] = 'regex:'.$regla[0];
+                $mensajes['numero_documento.regex'] = $regla[1];
+            }
         }
 
-        $datos = $request->validate($rules, [
-            'numero_documento.unique' => 'Ya existe un postulante con ese tipo y número de documento.',
-            'ciclo_postulacion.regex' => 'El ciclo debe tener el formato AAAA-N (por ejemplo, 2026-1).',
-            'carrera_destino_id.required' => 'Selecciona la carrera destino en USIL.',
-            'email.required' => 'El correo es obligatorio para registrar al postulante.',
-            'email.unique' => 'Ya existe un postulante registrado con ese correo.',
-        ]);
+        $datos = $request->validate($rules, $mensajes);
+
+        // La casilla se guarda como el instante en que se otorgó: es la constancia.
+        $acepta = $request->boolean('consentimiento_datos');
+        unset($datos['consentimiento_datos']);
+        if ($acepta) {
+            $datos['consentimiento_datos_en'] = now();
+        }
 
         // Solo columnas persistibles (los archivos se procesan aparte).
-        return collect($datos)->except(self::DOCUMENTOS)->all();
+        return collect($datos)->except(array_keys(self::DOCUMENTOS))->all();
     }
 }

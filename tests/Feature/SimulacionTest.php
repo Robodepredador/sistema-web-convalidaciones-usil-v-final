@@ -156,12 +156,14 @@ class SimulacionTest extends TestCase
                 'curso_origen_nombre' => 'Inglés I',
                 'curso_usil_id' => $this->ctx['cursoUsil']->id,   // llega con destino por error
                 'clasificacion' => 'no_convalidable',
+                'motivo' => 'Idiomas',
             ]],
         ])->assertOk();
 
         $detalle = Simulacion::first()->detalles()->first();
         $this->assertNull($detalle->curso_usil_id);
         $this->assertEquals(0, (float) $detalle->creditos_reconocidos);
+        $this->assertSame('Idiomas', $detalle->motivo);
     }
 
     /**

@@ -13,6 +13,8 @@ const originales = () => ({
     nombre: props.institucion.nombre,
     pais: props.institucion.pais ?? '',
     gestion: props.institucion.gestion ?? '',
+    licenciamiento: props.institucion.licenciamiento ?? 'desconocido',
+    licenciamiento_resolucion: props.institucion.licenciamiento_resolucion ?? '',
     activa: props.institucion.activa,
     carreras: (props.institucion.carreras ?? []).map((c) => ({
         id: c.id,
@@ -32,6 +34,8 @@ const camposBorrador = () => ({
     nombre: form.nombre,
     pais: form.pais,
     gestion: form.gestion,
+    licenciamiento: form.licenciamiento,
+    licenciamiento_resolucion: form.licenciamiento_resolucion,
     activa: form.activa,
     carreras: form.carreras,
 });
@@ -67,6 +71,14 @@ const erroresDatos = ref({});
 const nombreTipo = computed(() => props.tipos.find((t) => t.id === form.tipo_id)?.nombre ?? '—');
 const etiquetaGestion = computed(() =>
     form.gestion === 'publica' ? 'Pública' : form.gestion === 'privada' ? 'Privada' : 'Sin especificar');
+
+// Licenciamiento SUNEDU: condiciona los requisitos del traslado externo.
+const LICENCIAMIENTO = {
+    licenciada: 'Licenciada por SUNEDU',
+    no_licenciada: 'No licenciada',
+    desconocido: 'Sin verificar',
+};
+const etiquetaLicenciamiento = computed(() => LICENCIAMIENTO[form.licenciamiento] ?? LICENCIAMIENTO.desconocido);
 
 const validarDatos = () => {
     const e = {};
@@ -291,6 +303,27 @@ const enviar = () => {
                             <p v-if="form.errors.gestion" class="mt-1 text-xs text-red-600">{{ form.errors.gestion }}</p>
                         </template>
                         <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">{{ etiquetaGestion }}</p>
+                    </div>
+
+                    <!-- Licenciamiento SUNEDU -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Licenciamiento SUNEDU</label>
+                        <template v-if="editandoDatos">
+                            <select v-model="form.licenciamiento"
+                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                <option value="desconocido">Sin verificar</option>
+                                <option value="licenciada">Licenciada por SUNEDU</option>
+                                <option value="no_licenciada">No licenciada</option>
+                            </select>
+                            <input v-model="form.licenciamiento_resolucion" maxlength="120"
+                                   placeholder="N.º de resolución (opcional)"
+                                   class="mt-2 w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                            <p v-if="form.errors.licenciamiento" class="mt-1 text-xs text-red-600">{{ form.errors.licenciamiento }}</p>
+                        </template>
+                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
+                            {{ etiquetaLicenciamiento }}
+                            <span v-if="form.licenciamiento_resolucion" class="text-slate-500">· {{ form.licenciamiento_resolucion }}</span>
+                        </p>
                     </div>
 
                     <!-- Institución activa -->

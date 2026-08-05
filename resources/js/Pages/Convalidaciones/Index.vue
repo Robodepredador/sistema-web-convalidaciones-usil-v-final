@@ -8,6 +8,8 @@ const props = defineProps({ convalidaciones: Object, preconvalidaciones: Object,
 const filtro = reactive({
     q: props.filtros?.q ?? '',
     estado: props.filtros?.estado ?? '',
+    desde: props.filtros?.desde ?? '',
+    hasta: props.filtros?.hasta ?? '',
 });
 
 const aplicar = () => {
@@ -15,8 +17,7 @@ const aplicar = () => {
 };
 
 const limpiar = () => {
-    filtro.q = '';
-    filtro.estado = '';
+    Object.keys(filtro).forEach((k) => { filtro[k] = ''; });
     router.get('/convalidaciones', {}, { preserveScroll: true, replace: true });
 };
 
@@ -149,7 +150,7 @@ const estados = [
 
         <!-- ── Filtros ── -->
         <div class="mb-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="grid gap-3 sm:grid-cols-[1fr_200px_auto]">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-500">Buscar</label>
                     <input v-model="filtro.q" type="text" placeholder="Estudiante, documento o memo…" @keyup.enter="aplicar"
@@ -162,10 +163,20 @@ const estados = [
                         <option v-for="e in estados" :key="e.value" :value="e.value">{{ e.label }}</option>
                     </select>
                 </div>
-                <div class="mt-5 flex items-center gap-2">
-                    <button @click="aplicar" class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864]">Filtrar</button>
-                    <button @click="limpiar" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Limpiar</button>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Desde</label>
+                    <input v-model="filtro.desde" type="date" :max="filtro.hasta || undefined" @keyup.enter="aplicar"
+                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                 </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Hasta</label>
+                    <input v-model="filtro.hasta" type="date" :min="filtro.desde || undefined" @keyup.enter="aplicar"
+                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                </div>
+            </div>
+            <div class="mt-3 flex items-center gap-2">
+                <button @click="aplicar" class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864]">Filtrar</button>
+                <button @click="limpiar" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Limpiar</button>
             </div>
         </div>
 

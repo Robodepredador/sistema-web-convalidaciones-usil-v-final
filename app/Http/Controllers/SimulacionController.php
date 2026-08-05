@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Exports\PreconvalidacionExport;
 use App\Models\Carrera;
-use App\Models\Convalidacion;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
 use App\Models\MallaCurricular;
@@ -38,6 +37,15 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class SimulacionController extends Controller
 {
+    /**
+     * Nota mínima aprobatoria en escala vigesimal (Reglamento de Estudios de
+     * Pregrado, Art. 15). Es un piso normativo, no un valor por defecto que el
+     * evaluador pueda bajar: un curso desaprobado no se convalida.
+     */
+    private const ESCALA_VIGESIMAL = '0-20';
+
+    private const NOTA_MINIMA_VIGESIMAL = 11;
+
     public function __construct(
         private SimulacionService $service,
         private ConvalidacionEngine $engine,
@@ -63,6 +71,9 @@ class SimulacionController extends Controller
                 ->orWhere('apellido_materno', 'like', "%$v%")
                 ->orWhere('numero_documento', 'like', "%$v%")))
             ->when($request->carrera_destino_id, fn ($qq, $v) => $qq->where('carrera_id', $v))
+            // Rango por día completo sobre la fecha en que se solicitó el destino.
+            ->when($request->desde, fn ($qq, $v) => $qq->whereDate('created_at', '>=', $v))
+            ->when($request->hasta, fn ($qq, $v) => $qq->whereDate('created_at', '<=', $v))
             ->when($carrerasPermitidas !== null, fn ($qq) => $qq->whereIn('carrera_id', $carrerasPermitidas))
             ->orderByDesc('id')
             ->paginate(12)->withQueryString();
@@ -91,13 +102,14 @@ class SimulacionController extends Controller
                     'carrera_externa' => $p->carreraExterna?->nombre,
                     'carrera_destino' => $d->carrera?->nombre,
                     'simulaciones_count' => (int) ($conteos["{$d->postulante_id}-{$d->carrera_id}"] ?? 0),
+                    'solicitado' => optional($d->created_at)->format('d/m/Y H:i'),
                 ];
             });
 
         return inertia('Simulaciones/Index', [
             'postulantes' => $postulantes,
             'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'filtros' => $request->only(['q', 'carrera_destino_id']),
+            'filtros' => $request->only(['q', 'carrera_destino_id', 'desde', 'hasta']),
             'ia' => ['disponible' => $this->ia->disponible(), 'proveedor' => $this->ia->proveedor()],
         ]);
     }
@@ -120,6 +132,9 @@ class SimulacionController extends Controller
     public function editar(Request $request, Simulacion $simulacion)
     {
         AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+        // Se corta ya en el espacio de trabajo: abrirlo para no poder guardar es peor.
+        abort_if($simulacion->estaCerrada(), 422,
+            'El expediente tiene una convalidación confirmada; anúlela antes de editar el mapeo.');
 
         $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno', 'postulante']);
 
@@ -155,6 +170,7 @@ class SimulacionController extends Controller
                     'creditos_origen' => $d->creditos_origen,
                     'ciclo_origen' => $d->ciclo_origen,
                     'clasificacion' => $d->clasificacion,
+                    'motivo' => $d->motivo,
                     'curso_usil_id' => $d->curso_usil_id,
                     'confianza' => $d->confianza,
                 ])->values(),
@@ -204,8 +220,10 @@ class SimulacionController extends Controller
             'cursos.*' => ['string'],
         ]);
 
-        $pool = $this->engine->poolCursosUsil((int) $datos['carrera_usil_id']);
-        $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool);
+        $carreraId = (int) $datos['carrera_usil_id'];
+        $pool = $this->engine->poolCursosUsil($carreraId);
+        // Con la carrera destino se aplican también sus reglas propias de no convalidables.
+        $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool, 0.55, $carreraId);
 
         return response()->json(['mapa' => $mapa]);
     }
@@ -279,10 +297,37 @@ class SimulacionController extends Controller
             'documento_id' => ['nullable', 'integer', 'exists:postulante_documentos,id'],
             'documento' => ['nullable', 'file', 'max:20480', 'mimes:pdf,png,jpg,jpeg,gif,webp,txt,csv'],
             'carrera_externa_id' => ['nullable', 'integer', 'exists:carreras_externas,id'],
+            // De quién es el récord que se sube al vuelo: sin saberlo no se puede
+            // comprobar su consentimiento de tratamiento de datos.
+            'postulante_id' => ['nullable', 'integer', 'exists:postulantes,id'],
+            // Carrera destino: decide qué reglas de no convalidables aplican.
+            'carrera_usil_id' => ['nullable', 'integer', 'exists:carreras,id'],
         ]);
 
         // La extracción con IA de un PDF puede tardar más que el límite por defecto.
         @set_time_limit(180);
+
+        // El récord va íntegro al proveedor de IA (nombre, documento y notas), así
+        // que el consentimiento se comprueba ANTES que nada: es la base legal del
+        // tratamiento (Art. 15 del Reglamento de Admisión, Ley 29733), no un
+        // detalle de configuración.
+        $doc = $request->filled('documento_id')
+            ? PostulanteDocumento::with('postulante')->findOrFail($request->integer('documento_id'))
+            : null;
+
+        $dueno = $doc?->postulante ?: ($request->filled('postulante_id')
+            ? Postulante::find($request->integer('postulante_id'))
+            : null);
+
+        if (! $dueno) {
+            return response()->json(['message' => 'Indica de qué postulante es el documento: sin eso no se puede '
+                .'comprobar su consentimiento para el tratamiento de datos personales.'], 422);
+        }
+        if (! $dueno->tieneConsentimientoDatos()) {
+            return response()->json(['message' => 'El postulante no tiene registrado su consentimiento para el '
+                .'tratamiento de datos personales. Regístralo en su expediente antes de usar la extracción automática, '
+                .'o transcribe los cursos a mano.'], 422);
+        }
 
         if (! $this->ia->disponible()) {
             return response()->json(['message' => 'IA no configurada. Ve a Configuración y define la API key.'], 422);
@@ -292,8 +337,7 @@ class SimulacionController extends Controller
         $carreraExternaId = $request->integer('carrera_externa_id') ?: null;
 
         // 1) Documento existente del postulante (fuente principal).
-        if ($request->filled('documento_id')) {
-            $doc = PostulanteDocumento::with('postulante')->findOrFail($request->integer('documento_id'));
+        if ($doc) {
             if (! Storage::exists($doc->ruta)) {
                 return response()->json(['message' => 'El documento del postulante no se encuentra en el almacenamiento.'], 404);
             }
@@ -302,7 +346,7 @@ class SimulacionController extends Controller
             $rutaTrazabilidad = $doc->ruta;
             $carreraExternaId = $carreraExternaId ?: $doc->postulante?->carrera_externa_id;
         } elseif ($request->hasFile('documento')) {
-            // 2) Subida puntual (alternativa).
+            // 2) Subida puntual (alternativa), ya con el consentimiento verificado.
             $archivo = $request->file('documento');
             $contenido = file_get_contents($archivo->getRealPath());
             $nombre = $archivo->getClientOriginalName();
@@ -332,13 +376,17 @@ class SimulacionController extends Controller
             'ciclo' => $c['ciclo'] ?? '',
         ];
 
-        // Separa por clasificación (no convalidables entre los aprobados).
+        // Separa por clasificación (no convalidables entre los aprobados). Cada
+        // descarte viaja con el motivo de la regla que lo produjo: así el Excel
+        // dice por qué, en vez de un «No convalidable» a secas.
+        $carreraDestinoId = $request->integer('carrera_usil_id') ?: null;
         $aprobados = [];
         $noConv = [];
         foreach ($extraccion['aprobados'] as $c) {
             $fila = $normalizar($c);
-            if ($this->engine->esNoConvalidable($fila['nombre'])) {
-                $noConv[] = $fila;
+            $motivo = $this->engine->motivoNoConvalidable($fila['nombre'], $carreraDestinoId);
+            if ($motivo !== false) {
+                $noConv[] = $fila + ['motivo' => $motivo ?: 'Política de convalidación'];
             } else {
                 $aprobados[] = $fila;
             }
@@ -370,10 +418,25 @@ class SimulacionController extends Controller
         return redirect()->route('simulaciones.show', $simulacion->id)->with('status', 'Simulación generada.');
     }
 
+    /**
+     * Un expediente con convalidación vigente sustenta un memorándum ya emitido:
+     * su detalle no se toca. Sin esta guarda, el contenido del acto oficial
+     * cambiaba después de firmado, conservando su número.
+     */
+    private function abortSiCerrada(Simulacion $simulacion, string $accion): void
+    {
+        if ($simulacion->estaCerrada()) {
+            throw ValidationException::withMessages([
+                'simulacion' => "No se puede {$accion}: el expediente tiene una convalidación confirmada. Anúlela primero.",
+            ]);
+        }
+    }
+
     /** Actualiza una simulación existente y su detalle. */
     public function update(Request $request, Simulacion $simulacion): RedirectResponse|JsonResponse
     {
         AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+        $this->abortSiCerrada($simulacion, 'modificar el mapeo');
 
         $this->persistirSimulacion($request, $simulacion);
 
@@ -406,8 +469,12 @@ class SimulacionController extends Controller
             'filas.*.creditos_origen' => ['nullable', 'numeric'],
             'filas.*.ciclo_origen' => ['nullable', 'string', 'max:30'],
             'filas.*.clasificacion' => ['required', 'in:convalidable,desaprobado,no_convalidable'],
+            // Un descarte sin motivo es lo que hoy deja al postulante sin explicación.
+            'filas.*.motivo' => ['required_if:filas.*.clasificacion,no_convalidable', 'nullable', 'string', 'max:300'],
             'filas.*.confianza' => ['nullable', 'numeric'],
             'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud'],
+        ], [
+            'filas.*.motivo.required_if' => 'Indica por qué el curso no se convalida: es lo que verá el postulante.',
         ]);
 
         // La carrera destino debe estar dentro del alcance del evaluador (RF-40):
@@ -425,6 +492,8 @@ class SimulacionController extends Controller
         // Solo se puede convalidar hacia cursos del plan de estudios destino (mismo pool que ve el front).
         $poolIds = array_flip(array_column($this->engine->poolCursosUsil((int) $datos['carrera_usil_id']), 'id'));
 
+        $notaMinima = $this->notaMinimaAplicable($datos);
+
         // Solo las filas convalidables llevan destino; regla 1‑a‑1: un curso USIL no se repite.
         $usados = [];
         foreach ($datos['filas'] ?? [] as $i => $f) {
@@ -433,6 +502,17 @@ class SimulacionController extends Controller
 
                 continue;
             }
+
+            // El filtro por nota vivía solo en el navegador y solo en la rama de
+            // extracción con IA: una fila escrita a mano entraba con nota 08.
+            // Es un 'if' y no un abort_if porque el mensaje se evaluaría siempre,
+            // y en una fila sin nota eso es acceder a una clave inexistente.
+            $nota = $this->notaNumerica($f['nota_origen'] ?? null);
+            if ($nota !== null && $nota < $notaMinima) {
+                abort(422, "«{$f['curso_origen_nombre']}» tiene nota {$f['nota_origen']}, por debajo de la mínima "
+                    ."aprobatoria ({$notaMinima}). Un curso desaprobado no se convalida: clasifícalo como desaprobado.");
+            }
+
             $cid = $f['curso_usil_id'] ?? null;
             if ($cid) {
                 abort_if(! isset($poolIds[$cid]), 422, 'Un curso USIL asignado no pertenece al plan de estudios de la carrera destino.');
@@ -483,6 +563,9 @@ class SimulacionController extends Controller
                     'creditos_origen' => $f['creditos_origen'] ?? null,
                     'ciclo_origen' => $f['ciclo_origen'] ?? null,
                     'clasificacion' => $f['clasificacion'],
+                    // Solo tiene sentido en lo descartado: un curso convalidado
+                    // no arrastra el motivo de cuando no lo estaba.
+                    'motivo' => $f['clasificacion'] === 'convalidable' ? null : ($f['motivo'] ?? null),
                     'confianza' => $f['confianza'] ?? null,
                     'creditos_reconocidos' => $cid ? (float) ($creditosUsil[$cid] ?? 0) : 0,
                     'excluido' => false,
@@ -492,6 +575,37 @@ class SimulacionController extends Controller
 
             return $sim;
         });
+    }
+
+    /**
+     * Nota mínima que rige esta simulación.
+     *
+     * En escala vigesimal el reglamento fija 11 y el evaluador no puede bajar de
+     * ahí (sí subirlo: una carrera puede exigir más). En otras escalas manda lo
+     * que declare la simulación, porque el sistema no sabe traducirlas.
+     */
+    private function notaMinimaAplicable(array $datos): float
+    {
+        $escala = $datos['escala_notas'] ?? self::ESCALA_VIGESIMAL;
+        $declarada = $datos['nota_minima'] ?? null;
+
+        if ($escala !== self::ESCALA_VIGESIMAL) {
+            return (float) ($declarada ?? 0);
+        }
+
+        abort_if($declarada !== null && (float) $declarada < self::NOTA_MINIMA_VIGESIMAL, 422,
+            'En escala vigesimal la nota mínima aprobatoria es '.self::NOTA_MINIMA_VIGESIMAL
+            .' (Reglamento de Estudios, Art. 15): no puede fijarse por debajo.');
+
+        return (float) ($declarada ?? self::NOTA_MINIMA_VIGESIMAL);
+    }
+
+    /** La nota de origen como número, o null si no lo es («APROBADO», «A», vacío). */
+    private function notaNumerica(?string $nota): ?float
+    {
+        $n = str_replace(',', '.', trim((string) $nota));
+
+        return is_numeric($n) ? (float) $n : null;
     }
 
     public function show(Request $request, Simulacion $simulacion)
@@ -511,6 +625,8 @@ class SimulacionController extends Controller
                 'estado' => $simulacion->estado,
                 'documento_fuente' => $simulacion->documento_path ? basename($simulacion->documento_path) : null,
                 'tiene_pdf' => (bool) $simulacion->pdf_path,
+                // Cerrado por convalidación vigente: la pantalla no ofrece editarlo.
+                'convalidada' => $simulacion->estaCerrada(),
             ],
             'detalles' => $simulacion->detalles->map(fn (SimulacionDetalle $d) => [
                 'id' => $d->id,
@@ -536,8 +652,8 @@ class SimulacionController extends Controller
         ]);
 
         // Una simulación con convalidación vigente es el sustento de un memorándum
-        // oficial: eliminarla dejaba la resolución sin respaldo. Anular primero.
-        if ($simulacion->convalidacion()->where('estado', Convalidacion::CONFIRMADA)->exists()) {
+        // en vigor: eliminarla dejaba la resolución sin respaldo. Anular primero.
+        if ($simulacion->tieneConvalidacionVigente()) {
             throw ValidationException::withMessages([
                 'simulacion' => 'No se puede eliminar: tiene una convalidación confirmada. Anúlela primero.',
             ]);
@@ -551,13 +667,25 @@ class SimulacionController extends Controller
         return back()->with('status', 'Simulación eliminada.');
     }
 
-    /** RF-27: excluir/incluir una fila por excepción. */
+    /**
+     * RF-27: excluir/incluir una fila por excepción.
+     *
+     * Cambia los créditos que reconoce el expediente, así que es una decisión
+     * académica: exige motivo y queda en la traza de auditoría.
+     */
     public function toggleDetalle(Request $request, Simulacion $simulacion, SimulacionDetalle $detalle): RedirectResponse
     {
         AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
         abort_unless($detalle->simulacion_id === $simulacion->id, 404);
+        $this->abortSiCerrada($simulacion, 'cambiar la exclusión de un curso');
+
+        $datos = $request->validate(['motivo' => ['required', 'string', 'min:5', 'max:300']]);
 
         $detalle->update(['excluido' => ! $detalle->excluido]);
+
+        AuditoriaService::registrar('editar', 'simulacion_detalle', $detalle->id,
+            ['excluido' => ! $detalle->excluido],
+            ['excluido' => $detalle->excluido, 'motivo' => $datos['motivo'], 'simulacion_id' => $simulacion->id]);
 
         return back()->with('status', $detalle->excluido ? 'Curso excluido.' : 'Curso incluido.');
     }
@@ -638,6 +766,20 @@ class SimulacionController extends Controller
     {
         $this->autorizarLectura($simulacion);
 
+        return $this->renderPdf($simulacion);
+    }
+
+    /**
+     * Renderiza el PDF de preconvalidación SIN comprobar permisos.
+     *
+     * No está enrutado: cada punto de entrada autoriza a su manera antes de
+     * llamarlo, porque los criterios no coinciden. El personal se filtra por
+     * alcance de carrera (autorizarLectura); el postulante, por propiedad del
+     * expediente y convalidación confirmada (Portal\PreconvalidacionController).
+     * Al postulante se le sirve 'inline' para que lo vea en el navegador.
+     */
+    public function renderPdf(Simulacion $simulacion, string $disposition = 'attachment')
+    {
         // Evita que avisos de PHP 8.5 (p. ej. "null como offset" al cargar
         // relaciones con FK nula) se filtren y corrompan el binario del PDF.
         $nivelPrevio = error_reporting();
@@ -652,7 +794,7 @@ class SimulacionController extends Controller
 
         return response($contenido, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$this->nombreArchivo($simulacion, 'pdf').'"',
+            'Content-Disposition' => $disposition.'; filename="'.$this->nombreArchivo($simulacion, 'pdf').'"',
         ]);
     }
 

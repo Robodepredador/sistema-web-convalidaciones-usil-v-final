@@ -66,6 +66,18 @@ return [
     ],
     'not_in' => ':Attribute seleccionado no es válido.',
     'numeric' => ':Attribute debe ser un número.',
+    /**
+     * Claves de Illuminate\Validation\Rules\Password. Sin ellas el formulario
+     * muestra "validation.password.mixed" en crudo: APP_FALLBACK_LOCALE=es, así
+     * que no hay traducción en inglés que sirva de red.
+     */
+    'password' => [
+        'letters' => 'La contraseña debe contener al menos una letra.',
+        'mixed' => 'La contraseña debe contener al menos una mayúscula y una minúscula.',
+        'numbers' => 'La contraseña debe contener al menos un número.',
+        'symbols' => 'La contraseña debe contener al menos un símbolo.',
+        'uncompromised' => 'Esta contraseña apareció en una filtración de datos. Elige otra distinta.',
+    ],
     'present' => 'El campo :attribute debe estar presente.',
     'regex' => 'El formato de :attribute no es válido.',
     'required' => 'El campo :attribute es obligatorio.',

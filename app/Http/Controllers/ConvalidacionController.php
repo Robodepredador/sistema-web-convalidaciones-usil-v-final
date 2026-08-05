@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -45,6 +46,20 @@ class ConvalidacionController extends Controller
         return $r;
     }
 
+    /**
+     * Número del memorándum, en el formato en que se imprime: «0007 - 2026-1 / CPEL-USIL».
+     *
+     * Se guarda tal cual y el PDF imprime lo guardado. Antes había dos números
+     * distintos para el mismo documento —uno en la BD, otro en el papel— y el
+     * buscador solo encontraba el primero. La unidad se congela al emitir porque
+     * es configurable y no debe reescribir documentos ya firmados.
+     */
+    public static function numeroMemorandum(int $convalidacionId, ?string $periodo): string
+    {
+        return str_pad((string) $convalidacionId, 4, '0', STR_PAD_LEFT)
+            .' - '.($periodo ?: '—').' / '.Configuracion::get('memo_unidad', self::MEMO_DEFAULTS['memo_unidad']);
+    }
+
     public function index(Request $request)
     {
         // Alcance por rol: convalidaciones cuya simulación es de una carrera visible.
@@ -52,6 +67,10 @@ class ConvalidacionController extends Controller
 
         $q = $request->query('q');
         $estado = $request->query('estado');
+        // Se filtra por created_at y no por fecha_confirmacion: esa columna es una
+        // fecha sin hora, y la bandeja muestra el instante real de la transacción.
+        $desde = $request->query('desde');
+        $hasta = $request->query('hasta');
 
         // --- CONVALIDACIONES CONFIRMADAS / ANULADAS ---
         $convalidacionesQuery = Convalidacion::with([
@@ -72,7 +91,9 @@ class ConvalidacionController extends Controller
                         ->orWhere('apellidos', 'like', "%{$q}%")
                         ->orWhere('numero_documento', 'like', "%{$q}%");
                 })->orWhere('memorandum_numero', 'like', "%{$q}%");
-            }));
+            }))
+            ->when($desde, fn ($query, $v) => $query->whereDate('convalidaciones.created_at', '>=', $v))
+            ->when($hasta, fn ($query, $v) => $query->whereDate('convalidaciones.created_at', '<=', $v));
 
         $convalidaciones = $convalidacionesQuery->orderByDesc('id')
             ->paginate(15, ['*'], 'page')
@@ -91,7 +112,7 @@ class ConvalidacionController extends Controller
                     'creditos' => (float) $detalles->sum('creditos_reconocidos'),
                     'convalidados' => $detalles->count(),
                     'memorandum' => $c->memorandum_numero,
-                    'fecha' => optional($c->fecha_confirmacion)->format('d/m/Y'),
+                    'fecha' => optional($c->created_at)->format('d/m/Y H:i'),
                     'estado' => $c->estado,
                     'motivo_anulacion' => $c->motivo_anulacion,
                     'pdf_preconv' => $sim ? route('convalidaciones.preconvalidacion.pdf', $sim->id) : null,
@@ -120,7 +141,9 @@ class ConvalidacionController extends Controller
                 $w->where('nombres', 'like', "%{$q}%")
                     ->orWhere('apellidos', 'like', "%{$q}%")
                     ->orWhere('numero_documento', 'like', "%{$q}%");
-            }));
+            }))
+            ->when($desde, fn ($query, $v) => $query->whereDate('created_at', '>=', $v))
+            ->when($hasta, fn ($query, $v) => $query->whereDate('created_at', '<=', $v));
 
         $preconvalidaciones = $preconvalidacionesQuery->orderByDesc('id')
             ->paginate(15, ['*'], 'pre')
@@ -167,7 +190,7 @@ class ConvalidacionController extends Controller
         return inertia('Convalidaciones/Index', [
             'convalidaciones' => $convalidaciones,
             'preconvalidaciones' => $preconvalidaciones,
-            'filtros' => ['q' => $q, 'estado' => $estado],
+            'filtros' => ['q' => $q, 'estado' => $estado, 'desde' => $desde, 'hasta' => $hasta],
             'kpis' => [
                 'pendientes' => $totalPendientes,
                 'confirmadas' => $totalConfirmadas,
@@ -202,15 +225,25 @@ class ConvalidacionController extends Controller
             ]);
         }
 
-        $simulacion->update(['estado' => 'aceptada']);
+        $convalidacion = DB::transaction(function () use ($simulacion, $request) {
+            $simulacion->update(['estado' => 'aceptada']);
 
-        $convalidacion = Convalidacion::create([
-            'simulacion_id' => $simulacion->id,
-            'fecha_confirmacion' => now()->toDateString(),
-            'memorandum_numero' => 'MEMO-'.now()->format('Y').'-'.str_pad($simulacion->id, 5, '0', STR_PAD_LEFT),
-            'estado' => Convalidacion::CONFIRMADA,
-            'usuario_id' => $request->user()->id,
-        ]);
+            $c = Convalidacion::create([
+                'simulacion_id' => $simulacion->id,
+                'fecha_confirmacion' => now()->toDateString(),
+                'estado' => Convalidacion::CONFIRMADA,
+                'usuario_id' => $request->user()->id,
+            ]);
+            // El número depende del id, que no existe hasta después del INSERT.
+            // Los responsables se congelan aquí: son configurables y no deben
+            // reescribir un documento ya emitido si alguien los cambia luego.
+            $c->update([
+                'memorandum_numero' => self::numeroMemorandum($c->id, $simulacion->ciclo_postulacion),
+                'responsables' => self::responsablesMemo(),
+            ]);
+
+            return $c;
+        });
 
         // RF-33: generar el memorándum oficial.
         $this->generarMemorandum($convalidacion);
@@ -233,10 +266,19 @@ class ConvalidacionController extends Controller
 
         $previos = $convalidacion->only(['estado']);
 
-        $convalidacion->update([
-            'estado' => Convalidacion::ANULADA,
-            'motivo_anulacion' => $request->motivo,
-        ]);
+        DB::transaction(function () use ($convalidacion, $request) {
+            $convalidacion->update([
+                'estado' => Convalidacion::ANULADA,
+                'motivo_anulacion' => $request->motivo,
+            ]);
+            // La simulación deja de estar 'aceptada': el expediente vuelve a ser
+            // editable y debe poder confirmarse de nuevo tras corregirlo.
+            $convalidacion->simulacion?->update(['estado' => 'generada']);
+        });
+
+        // El archivo emitido pasa a llevar el sello de anulación y su motivo:
+        // desde aquí la descarga sirve el archivo, no una versión recalculada.
+        $this->generarMemorandum($convalidacion);
 
         AuditoriaService::registrar('editar', 'convalidaciones', $convalidacion->id, $previos, [
             'estado' => Convalidacion::ANULADA, 'motivo' => $request->motivo,
@@ -245,18 +287,26 @@ class ConvalidacionController extends Controller
         return back()->with('status', 'Convalidación anulada.');
     }
 
+    /**
+     * Descarga del memorándum emitido.
+     *
+     * Sirve el archivo guardado al confirmar, no una versión recalculada: un
+     * documento oficial no puede cambiar de contenido entre dos descargas. Solo
+     * se regenera si el archivo falta (respaldo restaurado, migración, etc.), y
+     * en ese caso se vuelve a guardar para que la siguiente descarga sea la misma.
+     */
     public function memorandumPdf(Request $request, Convalidacion $convalidacion)
     {
         AlcanceService::autorizarCarrera($request->user(), $convalidacion->simulacion?->carrera_usil_id);
 
-        $contenido = $this->renderMemorandum($convalidacion);
+        if (! $convalidacion->memorandum_pdf_path || ! Storage::exists($convalidacion->memorandum_pdf_path)) {
+            $this->generarMemorandum($convalidacion);
+        }
 
-        $nombre = 'Memorandum_'.$convalidacion->memorandum_numero.'.pdf';
+        // El número lleva espacios y '/': no sirve tal cual como nombre de archivo.
+        $nombre = 'Memorandum_'.preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) $convalidacion->memorandum_numero).'.pdf';
 
-        return response($contenido, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$nombre.'"',
-        ]);
+        return Storage::download($convalidacion->memorandum_pdf_path, $nombre);
     }
 
     private function generarMemorandum(Convalidacion $convalidacion): void
@@ -288,10 +338,12 @@ class ConvalidacionController extends Controller
             'simulacion.detalles' => fn ($q) => $q->where('excluido', false)->whereNotNull('curso_usil_id'),
             'simulacion.detalles.cursoUsil.ciclo', 'simulacion.detalles.cursoExterno',
             'simulacion.carreraUsil.facultad', 'simulacion.carreraExterna',
-            'simulacion.postulante.institucionOrigen',
+            'simulacion.postulante.institucionOrigen', 'usuario:id,nombre',
         ]);
 
-        $resp = self::responsablesMemo();
+        // Los del documento emitido; los de Configuración solo para los anteriores
+        // a que se empezaran a congelar.
+        $resp = $convalidacion->responsables ?: self::responsablesMemo();
         $sim = $convalidacion->simulacion;
 
         $detalles = $sim
@@ -313,12 +365,15 @@ class ConvalidacionController extends Controller
                 ?? $sim?->postulante?->institucionOrigen?->nombre
                 ?? $sim?->carreraExterna?->nombre,
             'periodo' => $periodo,
-            'codigoMemo' => str_pad((string) $convalidacion->id, 4, '0', STR_PAD_LEFT)
-                .' - '.$periodo.' / '.$resp['memo_unidad'],
+            // Lo que se imprime es exactamente lo que se guardó y por lo que se busca.
+            'codigoMemo' => $convalidacion->memorandum_numero
+                ?: self::numeroMemorandum($convalidacion->id, $periodo),
             'fecha' => $this->fechaLarga($convalidacion->fecha_confirmacion),
             'detalles' => $detalles,
             'total' => (float) $detalles->sum('creditos_reconocidos'),
             'resp' => $resp,
+            // Trazabilidad: quién emitió el acto en el sistema.
+            'emitidoPor' => $convalidacion->usuario?->nombre,
         ];
     }
 

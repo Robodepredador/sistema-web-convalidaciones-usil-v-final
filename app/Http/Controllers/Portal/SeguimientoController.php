@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\PostulanteController;
 use App\Models\Convalidacion;
 use App\Models\Simulacion;
 use App\Support\SeguimientoTimeline;
@@ -36,6 +37,7 @@ class SeguimientoController extends Controller
                 'ciclo_postulacion' => $p->ciclo_postulacion,
                 'observaciones' => $p->observaciones,
                 'revision_estado' => $p->revision_estado,
+                'revision_provisional' => (bool) $p->revision_provisional,
                 'revision_observaciones' => $p->revision_observaciones,
             ],
             // Carreras solicitadas (una o más).
@@ -46,7 +48,8 @@ class SeguimientoController extends Controller
             'timeline' => SeguimientoTimeline::construir(
                 $p->estado,
                 $p->created_at?->format('d/m/Y'),
-                $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim, $confirmada
+                $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim, $confirmada,
+                PostulanteController::totalDocumentos(), (bool) $p->revision_provisional
             ),
             'simulaciones' => $p->simulaciones->map(fn (Simulacion $s) => [
                 'id' => $s->id,
@@ -54,6 +57,11 @@ class SeguimientoController extends Controller
                 'estado' => $s->estado,
                 'cursos' => $s->detalles->where('excluido', false)->count(),
                 'creditos' => (float) $s->detalles->where('excluido', false)->sum('creditos_reconocidos'),
+                // Null mientras no esté confirmada: la vista muestra entonces por
+                // qué todavía no hay documento, en vez de un botón que daría 403.
+                'pdf_url' => $s->convalidacion?->estado === Convalidacion::CONFIRMADA
+                    ? route('portal.preconvalidacion', $s->id)
+                    : null,
             ])->values(),
         ]);
     }

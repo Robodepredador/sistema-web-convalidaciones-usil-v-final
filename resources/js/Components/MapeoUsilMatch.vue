@@ -8,9 +8,14 @@ const props = defineProps({
     procesando: { type: Boolean, default: false },
     ia: { type: Object, default: () => ({ disponible: false, proveedor: 'gemini' }) },
     soloLectura: { type: Boolean, default: false },  // true en el pipeline con IA: los datos de origen vienen extraídos, no se editan
+    sinIa: { type: Boolean, default: false },        // oculta el botón de sugerencia con IA (modo manual)
+    // Evidencia del histórico para el curso de origen seleccionado. Es informativa:
+    // el componente nunca empareja por su cuenta a partir de ella.
+    antecedentes: { type: Array, default: () => [] },
+    cargandoAntecedentes: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar']);
+const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen']);
 
 const TIPO_LABEL = { convalidable: 'Convalidable', no_convalidable: 'No convalidable', desaprobado: 'Desaprobado' };
 
@@ -99,6 +104,24 @@ const clicOrigen = (fila) => {
     seleccionOrigen.value = seleccionOrigen.value === fila ? null : fila;
 };
 
+// Un solo sitio para avisar del cambio de selección: la selección se limpia desde
+// cuatro caminos distintos (clic, ✕ de la píldora, Cancelar, confirmar el par) y
+// con emits sueltos siempre se olvidaba alguno.
+watch(seleccionOrigen, (f) => emit('seleccion-origen', f?.curso_origen_nombre?.trim() || null));
+
+// El antecedente solo MUEVE la selección al curso USIL: confirmar sigue siendo un
+// acto explícito del evaluador. Los antecedentes de otra carrera destino no están
+// en este plan de estudios, así que quedan como referencia sin acción.
+const usilDelAntecedente = (a) => props.poolUsil.find((c) => Number(c.id) === Number(a.curso_usil_id)) ?? null;
+const antecedenteAplicable = (a) => {
+    const usil = usilDelAntecedente(a);
+    return !!usil && !matchDeUsil(usil.id);
+};
+const elegirAntecedente = (a) => {
+    if (!antecedenteAplicable(a)) return;
+    seleccionUsil.value = usilDelAntecedente(a);
+};
+
 const puedeConfirmarMatch = computed(() => !!seleccionUsil.value && !!seleccionOrigen.value);
 const confirmarMatch = () => {
     if (!puedeConfirmarMatch.value) return;
@@ -107,6 +130,9 @@ const confirmarMatch = () => {
     seleccionOrigen.value = null;
 };
 const cancelarSeleccion = () => { seleccionUsil.value = null; seleccionOrigen.value = null; };
+
+// Se muestran los más comparables; el resto vive en la pantalla del histórico.
+const antecedentesVisibles = computed(() => props.antecedentes.slice(0, 4));
 
 // ---- Alta de curso externo en línea: la tarjeta editable aparece dentro de la propia bandeja ----
 const agregando = ref(false);
@@ -221,7 +247,7 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
     <div>
         <!-- Barra de sugerencias -->
         <div class="mb-3 flex flex-wrap items-center gap-2">
-            <button type="button" @click="emit('sugerir-ia')" :disabled="procesando || !ia?.disponible" :title="ia?.disponible ? '' : 'Configura la API key en Configuración'"
+            <button v-if="!sinIa" type="button" @click="emit('sugerir-ia')" :disabled="procesando || !ia?.disponible" :title="ia?.disponible ? '' : 'Configura la API key en Configuración'"
                     class="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50">
                 ✨ Sugerir con IA
             </button>
@@ -269,6 +295,41 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                 </div>
             </div>
             <p v-if="pasoTexto" class="mt-2 text-xs font-medium" :class="puedeConfirmarMatch ? 'text-emerald-600' : 'text-[#2E75B6]'">{{ pasoTexto }}</p>
+
+            <!-- Antecedentes: cómo se resolvió este mismo curso en expedientes anteriores.
+                 Es material de consulta. Pulsar uno solo mueve la selección al curso USIL;
+                 la equivalencia la sigue confirmando el evaluador. -->
+            <div v-if="seleccionOrigen" class="mt-3 border-t border-slate-100 pt-2.5">
+                <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    Antecedentes en el histórico
+                </p>
+                <p v-if="cargandoAntecedentes" class="text-xs text-slate-400">Buscando…</p>
+                <p v-else-if="!antecedentes.length" class="text-xs text-slate-400">
+                    Sin registros previos de este curso.
+                </p>
+                <ul v-else class="space-y-1.5">
+                    <li v-for="(a, i) in antecedentesVisibles" :key="i">
+                        <button type="button" @click="elegirAntecedente(a)" :disabled="!antecedenteAplicable(a)"
+                                :title="antecedenteAplicable(a) ? 'Selecciona este curso en la malla — la equivalencia la confirmas tú' : 'De otra carrera destino: solo referencia'"
+                                class="flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition"
+                                :class="antecedenteAplicable(a) ? 'border-slate-200 hover:border-[#2E75B6] hover:bg-blue-50' : 'cursor-default border-dashed border-slate-200 opacity-70'">
+                            <span class="min-w-0 flex-1 truncate font-medium text-slate-700">{{ a.curso_usil }}</span>
+                            <span v-if="a.confirmadas" class="shrink-0 rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
+                                {{ a.confirmadas }} con memo
+                            </span>
+                            <span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-600">{{ a.veces }}×</span>
+                        </button>
+                        <p class="mt-0.5 truncate pl-2.5 text-[11px] text-slate-400">
+                            {{ a.origen_nombre }} · {{ a.institucion }} → {{ a.carrera_usil }}
+                            <span v-if="a.mismo_destino && a.mismo_origen" class="font-medium text-[#2E75B6]">· mismo caso</span>
+                        </p>
+                    </li>
+                </ul>
+                <p v-if="antecedentes.length > antecedentesVisibles.length" class="mt-1.5 text-[11px] text-slate-400">
+                    y {{ antecedentes.length - antecedentesVisibles.length }} más en el
+                    <a href="/simulaciones/historico" target="_blank" rel="noopener" class="font-medium text-[#2E75B6] hover:underline">histórico completo</a>.
+                </p>
+            </div>
         </div>
 
         <!-- Panel doble: un solo contenedor (no dos tarjetas separadas), dividido por una línea interna -->

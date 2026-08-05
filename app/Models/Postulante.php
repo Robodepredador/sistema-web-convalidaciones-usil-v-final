@@ -22,11 +22,11 @@ class Postulante extends Model implements Authenticatable
     protected $fillable = [
         'codigo', 'tipo_documento', 'numero_documento', 'nombres',
         'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'genero', 'nacionalidad',
-        'email', 'password_hash', 'acceso_habilitado', 'debe_cambiar_password', 'ultimo_acceso', 'telefono', 'pais_residencia', 'direccion',
+        'email', 'password_hash', 'acceso_habilitado', 'debe_cambiar_password', 'ultimo_acceso', 'telefono',
         'institucion_origen_id', 'carrera_externa_id', 'carrera_destino_id', 'ciclo_postulacion',
         'estado', 'estado_equivalencias', 'equivalencias_revisado_por', 'equivalencias_revisado_en',
-        'observaciones', 'usuario_id',
-        'revision_estado', 'revision_observaciones', 'revisado_por', 'revisado_en',
+        'observaciones', 'consentimiento_datos_en', 'usuario_id',
+        'revision_estado', 'revision_provisional', 'revision_observaciones', 'revisado_por', 'revisado_en',
     ];
 
     protected $hidden = ['password_hash'];
@@ -35,6 +35,8 @@ class Postulante extends Model implements Authenticatable
         'fecha_nacimiento' => 'date',
         'acceso_habilitado' => 'boolean',
         'debe_cambiar_password' => 'boolean',
+        'revision_provisional' => 'boolean',
+        'consentimiento_datos_en' => 'datetime',
         'ultimo_acceso' => 'datetime',
         'equivalencias_revisado_en' => 'datetime',
         'revisado_en' => 'datetime',
@@ -100,6 +102,15 @@ class Postulante extends Model implements Authenticatable
     public function setApellidoMaternoAttribute($v): void
     {
         $this->attributes['apellido_materno'] = self::aNombrePropio($v);
+    }
+
+    /**
+     * ¿Autorizó expresamente el tratamiento de sus datos personales?
+     * Es la puerta del envío de su récord académico al proveedor de IA.
+     */
+    public function tieneConsentimientoDatos(): bool
+    {
+        return $this->consentimiento_datos_en !== null;
     }
 
     public function institucionOrigen(): BelongsTo

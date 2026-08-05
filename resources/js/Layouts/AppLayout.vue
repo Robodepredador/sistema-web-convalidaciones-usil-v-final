@@ -1,11 +1,20 @@
 <script setup>
 import { Link, usePage, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const page = usePage();
 const usuario = computed(() => page.props.auth?.user ?? null);
 const flash = computed(() => page.props.flash?.status ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
+
+// Varias acciones se envían con preserveScroll, así que el aviso puede quedar
+// fuera de la pantalla: si aparece uno, se lo acercamos al usuario.
+const avisos = ref(null);
+watch([flash, flashError], async ([ok, error]) => {
+    if (!ok && !error) return;
+    await nextTick();
+    avisos.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
 // Errores de validación compartidos por Inertia (se limpian al navegar con éxito).
 const erroresValidacion = computed(() => Object.values(page.props.errors ?? {}).filter(Boolean));
 const esAdmin = computed(() => usuario.value?.rol === 'Superusuario');
@@ -119,21 +128,25 @@ const logout = () => router.post('/logout');
             </header>
 
             <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-                <div v-if="flash"
-                     class="mb-6 flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                    <span aria-hidden="true">✓</span><span>{{ flash }}</span>
-                </div>
+                <!-- Retroalimentación de cada acción. role/aria-live hacen que el
+                     lector de pantalla lo anuncie sin que el usuario tenga que buscarlo. -->
+                <div ref="avisos" class="scroll-mt-6">
+                    <div v-if="flash" role="status" aria-live="polite"
+                         class="mb-6 flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        <span aria-hidden="true">✓</span><span>{{ flash }}</span>
+                    </div>
 
-                <!-- Retroalimentación de errores (validación o mensaje del servidor) -->
-                <div v-if="flashError || erroresValidacion.length"
-                     class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    <p class="flex items-start gap-2 font-medium">
-                        <span aria-hidden="true">⚠️</span>
-                        <span>{{ flashError || `Revisa la información: ${erroresValidacion.length} campo(s) requieren corrección.` }}</span>
-                    </p>
-                    <ul v-if="erroresValidacion.length" class="mt-1.5 list-disc space-y-0.5 pl-8">
-                        <li v-for="(e, i) in erroresValidacion" :key="i">{{ e }}</li>
-                    </ul>
+                    <!-- Retroalimentación de errores (validación o mensaje del servidor) -->
+                    <div v-if="flashError || erroresValidacion.length" role="alert" aria-live="assertive"
+                         class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        <p class="flex items-start gap-2 font-medium">
+                            <span aria-hidden="true">⚠️</span>
+                            <span>{{ flashError || `Revisa la información: ${erroresValidacion.length} campo(s) requieren corrección.` }}</span>
+                        </p>
+                        <ul v-if="erroresValidacion.length" class="mt-1.5 list-disc space-y-0.5 pl-8">
+                            <li v-for="(e, i) in erroresValidacion" :key="i">{{ e }}</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <slot />

@@ -26,14 +26,24 @@ class RevisionFlujoTest extends TestCase
         ]);
     }
 
+    /** Con el expediente documental completo: sin él la aprobación ya no procede. */
     private function postulanteDe(User $asesor): Postulante
     {
-        return Postulante::create([
+        $p = Postulante::create([
             'codigo' => 'POST-2026-'.random_int(10000, 99999),
             'tipo_documento' => 'DNI', 'numero_documento' => (string) random_int(10000000, 99999999),
             'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => uniqid().'@ex.com',
             'usuario_id' => $asesor->id,
         ]);
+
+        foreach (['dni', 'certificado', 'silabos', 'constancia', 'solicitud'] as $tipo) {
+            $p->documentos()->create([
+                'tipo' => $tipo, 'nombre_original' => "{$tipo}.pdf",
+                'ruta' => "postulantes/{$p->id}/{$tipo}.pdf", 'tamano' => 1024,
+            ]);
+        }
+
+        return $p;
     }
 
     public function test_ejecutivo_aprueba_expediente(): void
@@ -47,6 +57,7 @@ class RevisionFlujoTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('aprobada', $p->fresh()->revision_estado);
+        $this->assertFalse((bool) $p->fresh()->revision_provisional);
         $this->assertSame($ejecutivo->id, $p->fresh()->revisado_por);
     }
 

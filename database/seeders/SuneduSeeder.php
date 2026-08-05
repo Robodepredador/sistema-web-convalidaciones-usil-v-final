@@ -189,8 +189,11 @@ class SuneduSeeder extends Seeder
         $up = $sembrar($universidadesPublicas, $tipoUniv, 'publica');
         $upr = $sembrar($universidadesPrivadas, $tipoUniv, 'privada');
 
-        // Reemplaza el set anterior de institutos del catálogo (conserva los de demo sin gestión).
-        InstitucionExterna::where('tipo_id', $tipoInst)->whereNotNull('gestion')->delete();
+        // Reemplaza el set anterior de institutos del catálogo. Nunca borra una
+        // institución con carreras de procedencia colgando: esas ya son datos en
+        // uso (mallas y cursos de origen) y la FK abortaría el seeder entero.
+        InstitucionExterna::where('tipo_id', $tipoInst)->whereNotNull('gestion')
+            ->whereDoesntHave('carreras')->delete();
 
         $ipu = $sembrar($institutosPublicos, $tipoInst, 'publica');
         $ipr = $sembrar($institutosPrivados, $tipoInst, 'privada');

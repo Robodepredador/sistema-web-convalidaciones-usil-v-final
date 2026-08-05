@@ -24,6 +24,7 @@ class InstitucionController extends Controller
             ->when($request->buscar, fn ($q, $v) => $q->where('nombre', 'like', '%'.$v.'%'))
             ->when($request->tipo_id, fn ($q, $v) => $q->where('tipo_id', $v))
             ->when($request->gestion, fn ($q, $v) => $q->where('gestion', $v))
+            ->when($request->licenciamiento, fn ($q, $v) => $q->where('licenciamiento', $v))
             ->when($request->pais, fn ($q, $v) => $q->where('pais', $v))
             ->when($request->estado === 'activa', fn ($q) => $q->where('activa', true))
             ->when($request->estado === 'inactiva', fn ($q) => $q->where('activa', false))
@@ -35,6 +36,7 @@ class InstitucionController extends Controller
                 'tipo' => $i->tipo?->nombre,
                 'pais' => $i->pais,
                 'gestion' => $i->gestion,
+                'licenciamiento' => $i->licenciamiento,
                 'activa' => $i->activa,
                 'carreras_count' => $i->carreras_count,
             ]);
@@ -44,7 +46,7 @@ class InstitucionController extends Controller
             'institucionesActivas' => InstitucionExterna::where('activa', true)->count(),
             'tipos' => TipoInstitucion::orderBy('nombre')->get(['id', 'nombre']),
             'paises' => InstitucionExterna::whereNotNull('pais')->distinct()->orderBy('pais')->pluck('pais'),
-            'filtros' => $request->only(['buscar', 'tipo_id', 'gestion', 'pais', 'estado']),
+            'filtros' => $request->only(['buscar', 'tipo_id', 'gestion', 'licenciamiento', 'pais', 'estado']),
         ]);
     }
 
@@ -65,6 +67,8 @@ class InstitucionController extends Controller
                 'nombre' => $datos['nombre'],
                 'pais' => $datos['pais'] ?? null,
                 'gestion' => $datos['gestion'] ?? null,
+                'licenciamiento' => $datos['licenciamiento'] ?? 'desconocido',
+                'licenciamiento_resolucion' => $datos['licenciamiento_resolucion'] ?? null,
                 'activa' => $datos['activa'] ?? true,
             ]);
 
@@ -93,6 +97,8 @@ class InstitucionController extends Controller
                 'nombre' => $institucion->nombre,
                 'pais' => $institucion->pais,
                 'gestion' => $institucion->gestion,
+                'licenciamiento' => $institucion->licenciamiento,
+                'licenciamiento_resolucion' => $institucion->licenciamiento_resolucion,
                 'activa' => $institucion->activa,
                 'carreras' => $institucion->carreras->map(fn ($c) => [
                     'id' => $c->id,
@@ -107,7 +113,7 @@ class InstitucionController extends Controller
     public function update(UpdateInstitucionRequest $request, InstitucionExterna $institucion): RedirectResponse
     {
         $datos = $request->validated();
-        $antes = $institucion->only(['tipo_id', 'nombre', 'pais', 'gestion', 'activa']);
+        $antes = $institucion->only(['tipo_id', 'nombre', 'pais', 'gestion', 'licenciamiento', 'activa']);
 
         $enviadas = collect($datos['carreras'] ?? []);
         $idsConserva = $enviadas->pluck('id')->filter()->all();
@@ -130,6 +136,8 @@ class InstitucionController extends Controller
                 'nombre' => $datos['nombre'],
                 'pais' => $datos['pais'] ?? null,
                 'gestion' => $datos['gestion'] ?? null,
+                'licenciamiento' => $datos['licenciamiento'] ?? 'desconocido',
+                'licenciamiento_resolucion' => $datos['licenciamiento_resolucion'] ?? null,
                 'activa' => $datos['activa'] ?? false,
             ]);
 
@@ -146,7 +154,7 @@ class InstitucionController extends Controller
             }
         });
 
-        AuditoriaService::registrar('editar', 'instituciones_externas', $institucion->id, $antes, $institucion->only(['tipo_id', 'nombre', 'pais', 'gestion', 'activa']));
+        AuditoriaService::registrar('editar', 'instituciones_externas', $institucion->id, $antes, $institucion->only(['tipo_id', 'nombre', 'pais', 'gestion', 'licenciamiento', 'activa']));
 
         return redirect()->route('instituciones.index')->with('status', 'Institución actualizada.');
     }

@@ -38,7 +38,9 @@
         <br>
         <p><span class="k">Convalidación - Institución de Procedencia:</span> {{ $simulacion->universidad_origen ?? $simulacion->postulante?->institucionOrigen?->nombre }}</p>
         <p><span class="k">Carrera de Procedencia:</span> {{ $simulacion->carreraExterna?->nombre }}</p>
-        <p><span class="k">Fecha de Revisión:</span> {{ now()->format('d/m/Y') }}</p>
+        {{-- La fecha de la evaluación, no la de la impresión: dos descargas del
+             mismo expediente daban dos documentos con fechas distintas. --}}
+        <p><span class="k">Fecha de Revisión:</span> {{ optional($simulacion->updated_at ?? $simulacion->created_at)->format('d/m/Y') ?: '—' }}</p>
     </div>
 
     <table class="tabla">
@@ -56,14 +58,15 @@
                     <td class="c">{{ $d->cursoUsil?->ciclo?->numero }}</td>
                     <td>{{ $d->cursoUsil?->nombre }}</td>
                     <td>{{ $d->nombre_origen }}</td>
-                    <td class="c">{{ number_format($d->creditos_reconocidos, 0) }}</td>
+                    {{-- El '+' quita el decimal sobrante sin redondear: 3.5 → 3.5, 4.0 → 4. --}}
+                    <td class="c">{{ +$d->creditos_reconocidos }}</td>
                 </tr>
             @empty
                 <tr><td colspan="4" class="c" style="color:#999;">Sin cursos convalidados.</td></tr>
             @endforelse
             <tr class="total">
                 <td colspan="3" style="text-align:right;">Total de créditos convalidados</td>
-                <td class="c">{{ number_format($creditos, 0) }}</td>
+                <td class="c">{{ +$creditos }}</td>
             </tr>
         </tbody>
     </table>

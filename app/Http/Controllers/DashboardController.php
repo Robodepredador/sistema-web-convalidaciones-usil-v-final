@@ -157,6 +157,7 @@ class DashboardController extends Controller
                     : '—',
                 'subtitulo' => $d->carrera?->nombre,
                 'estado' => $d->estado_equivalencias,
+                'fecha' => optional($d->created_at)->format('d/m/Y H:i'),
             ])->all();
     }
 
@@ -168,6 +169,7 @@ class DashboardController extends Controller
                 'titulo' => $p->nombre_completo,
                 'subtitulo' => $p->carreraDestino?->nombre,
                 'estado' => $p->revision_estado,
+                'fecha' => optional($p->created_at)->format('d/m/Y H:i'),
             ])->all();
     }
 

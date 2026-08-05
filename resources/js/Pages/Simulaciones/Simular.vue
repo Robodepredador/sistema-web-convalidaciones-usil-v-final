@@ -2,6 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import MapeoUsilMatch from '../../Components/MapeoUsilMatch.vue';
+import ConfirmDialog from '../../Components/ConfirmDialog.vue';
 
 // El Coordinador evalúa pero no ve Convalidaciones: el popup no debe ofrecerle
 // un enlace que le devolvería un 403.
@@ -19,6 +20,11 @@ const props = defineProps({
     edicion: { type: Object, default: null },   // simulación a editar (o null para nueva)
     simulacionesPrevias: Array,
 });
+
+// ponytail: IA apagada en el modo manual (pedido, temporal). En true vuelven a
+// aparecer «Cargar cursos automáticamente» y «Sugerir con IA». El modo Asistida
+// no se toca: ahí la IA es el flujo.
+const IA_EN_MANUAL = false;
 
 const editando = !!props.edicion;
 // Al editar una simulación con IA, se entra al pipeline para volver a elegir el mapeo.
@@ -58,6 +64,7 @@ const filaBase = (c = {}) => ({
     creditos_origen: c.creditos ?? '',
     ciclo_origen: c.ciclo ?? '',
     clasificacion: c.clasificacion ?? 'convalidable',
+    motivo: c.motivo ?? null,
     curso_usil_id: '',
     confianza: null,
     origen: 'manual',
@@ -74,7 +81,10 @@ const filas = reactive(
                 ciclo: f.ciclo_origen,
                 // En modo manual cada curso se evalúa por igual (todos convalidables);
                 // solo el pipeline con IA conserva la clasificación extraída del récord.
-                clasificacion: props.edicion.metodo === 'ia' ? f.clasificacion : 'convalidable',
+                // Un descarte hecho a mano se conserva siempre: es una decisión
+                // del evaluador sobre este expediente, no una lectura automática.
+                clasificacion: props.edicion.metodo === 'ia' || f.motivo ? f.clasificacion : 'convalidable',
+                motivo: f.motivo ?? null,
             }),
             curso_usil_id: f.curso_usil_id ?? '',
             confianza: f.confianza ?? null,
@@ -112,6 +122,29 @@ const usilPorId = computed(() => Object.fromEntries(props.poolUsil.map((p) => [p
 const convalidadosLista = computed(() => filas.filter((f) => f.clasificacion === 'convalidable' && f.curso_usil_id));
 const noConvalidadosLista = computed(() => filas.filter((f) => f.clasificacion === 'no_convalidable' || filaSinAsignar(f)));
 const desaprobadosLista = computed(() => filas.filter((f) => f.clasificacion === 'desaprobado'));
+
+// Descartar un curso de origen es una decisión del evaluador sobre ESTE
+// expediente: no cambia la política de la carrera y exige su motivo, que es lo
+// que el postulante leerá en el Excel. Reconsiderarlo lo devuelve al mapeo.
+const marcando = ref(null);
+const motivoDescarte = ref('');
+const errorDescarte = ref('');
+
+const abrirDescarte = (f) => { marcando.value = f; motivoDescarte.value = f.motivo ?? ''; errorDescarte.value = ''; };
+
+const confirmarDescarte = () => {
+    if (motivoDescarte.value.trim().length < 5) {
+        errorDescarte.value = 'Indica el motivo (mínimo 5 caracteres).';
+
+        return;
+    }
+    marcando.value.clasificacion = 'no_convalidable';
+    marcando.value.motivo = motivoDescarte.value.trim();
+    marcando.value.curso_usil_id = '';
+    marcando.value = null;
+};
+
+const reconsiderar = (f) => { f.clasificacion = 'convalidable'; f.motivo = null; };
 const tabPreconv = ref('conv');   // 'conv' | 'no' | 'desap'
 
 // Nombre y créditos llegan desde la tarjeta editable en línea de MapeoUsilMatch (sin window.prompt).
@@ -165,6 +198,40 @@ const sugerir = async (origenSugerencia) => {
     } finally { procesando.value = false; }
 };
 
+// ---------------------------------------------------------------- antecedentes del histórico
+// Al seleccionar un curso de origen se consulta cómo se resolvió antes ese mismo
+// curso. Es evidencia para el evaluador: no asigna nada ni altera las filas.
+const antecedentes = ref([]);
+const cargandoAntecedentes = ref(false);
+const cacheAntecedentes = new Map();   // el evaluador vuelve sobre los mismos cursos al comparar
+let peticionAntecedentes = 0;
+
+const buscarAntecedentes = async (nombre) => {
+    const token = ++peticionAntecedentes;
+    if (!nombre) { antecedentes.value = []; cargandoAntecedentes.value = false; return; }
+    if (cacheAntecedentes.has(nombre)) { antecedentes.value = cacheAntecedentes.get(nombre); cargandoAntecedentes.value = false; return; }
+
+    cargandoAntecedentes.value = true;
+    try {
+        const { data } = await window.axios.get('/simulaciones/antecedentes', {
+            params: {
+                curso: nombre,
+                carrera_usil_id: props.postulante.carrera_destino_id,
+                carrera_externa_id: props.postulante.carrera_externa_id,
+            },
+        });
+        const lista = data.antecedentes ?? [];
+        cacheAntecedentes.set(nombre, lista);
+        // Una respuesta lenta no debe pisar la selección que el usuario ya cambió.
+        if (token === peticionAntecedentes) antecedentes.value = lista;
+    } catch {
+        // El histórico es una ayuda opcional: si falla, el emparejamiento manual sigue igual.
+        if (token === peticionAntecedentes) antecedentes.value = [];
+    } finally {
+        if (token === peticionAntecedentes) cargandoAntecedentes.value = false;
+    }
+};
+
 // ================================================================ PIPELINE CON IA
 const PASOS_IA = [
     { n: 1, label: 'Recepción', icon: '📥' },
@@ -209,10 +276,14 @@ const ejecutarExtraccion = async () => {
             ({ data } = await window.axios.post('/simulaciones/extraer-ia', {
                 documento_id: documentoId.value,
                 carrera_externa_id: props.postulante.carrera_externa_id,
+                carrera_usil_id: props.postulante.carrera_destino_id,
             }));
         } else {
             const fd = new FormData();
             fd.append('documento', archivo.value);
+            // De quién es el récord: el servidor comprueba su consentimiento antes de enviarlo a la IA.
+            fd.append('postulante_id', props.postulante.id);
+            if (props.postulante.carrera_destino_id) fd.append('carrera_usil_id', props.postulante.carrera_destino_id);
             if (props.postulante.carrera_externa_id) fd.append('carrera_externa_id', props.postulante.carrera_externa_id);
             ({ data } = await window.axios.post('/simulaciones/extraer-ia', fd, { headers: { 'Content-Type': 'multipart/form-data' } }));
         }
@@ -328,6 +399,7 @@ const guardar = () => {
                 creditos_origen: aNumero(f.creditos_origen),
                 ciclo_origen: f.ciclo_origen == null || f.ciclo_origen === '' ? null : String(f.ciclo_origen).slice(0, 30),
                 clasificacion: f.clasificacion,
+                motivo: f.motivo ? String(f.motivo).slice(0, 300) : null,
                 curso_usil_id: f.curso_usil_id || null,
                 confianza: aNumero(f.confianza),
                 origen: f.origen || (metodo.value === 'ia' ? 'ia' : 'manual'),
@@ -477,7 +549,7 @@ const eliminarSimulacion = (s) => {
                                 Ver récord
                             </a>
                             <!-- 2ª opción: extraer los cursos automáticamente con IA -->
-                            <button type="button" @click="cargarCursosDesdeDocumento" :disabled="procesando || !ia?.disponible || (!documentoId && !archivo)"
+                            <button v-if="IA_EN_MANUAL" type="button" @click="cargarCursosDesdeDocumento" :disabled="procesando || !ia?.disponible || (!documentoId && !archivo)"
                                     :title="ia?.disponible ? '' : 'Configura la API key en Configuración'"
                                     class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-violet-300 px-3.5 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50 disabled:opacity-50">
                                 ✨ {{ procesando ? 'Extrayendo…' : 'Cargar cursos automáticamente' }}
@@ -488,7 +560,9 @@ const eliminarSimulacion = (s) => {
             </div>
 
             <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
-                             :ia="ia"
+                             :ia="ia" :sin-ia="!IA_EN_MANUAL"
+                             :antecedentes="antecedentes" :cargando-antecedentes="cargandoAntecedentes"
+                             @seleccion-origen="buscarAntecedentes"
                              @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')"
                              @agregar="agregarFila" @quitar="(f) => quitarFila(filas.indexOf(f))" />
 
@@ -600,7 +674,12 @@ const eliminarSimulacion = (s) => {
                         <div><label class="mb-1 block text-xs font-medium text-slate-500">Escala</label>
                             <select v-model="escala" class="rounded-md border-slate-300 text-sm"><option value="0-20">0 - 20</option><option value="0-100">0 - 100</option><option value="0-5">0 - 5</option></select></div>
                         <div><label class="mb-1 block text-xs font-medium text-slate-500">Nota mínima</label>
-                            <input v-model="notaMinima" type="number" step="0.1" class="w-28 rounded-md border-slate-300 text-sm" /></div>
+                            <!-- En escala vigesimal el piso es 11 (Reglamento de Estudios, Art. 15); el servidor lo rechaza igual. -->
+                            <input v-model="notaMinima" type="number" step="0.1" :min="escala === '0-20' ? 11 : 0"
+                                   class="w-28 rounded-md border-slate-300 text-sm" />
+                            <p v-if="escala === '0-20' && Number(notaMinima) < 11" class="mt-1 text-xs text-red-600">
+                                Mínimo 11 en escala vigesimal.
+                            </p></div>
                         <div class="flex gap-3 text-sm">
                             <span class="rounded-lg bg-green-50 px-3 py-2 text-green-700">Cumplen: <strong>{{ aprobadosValidados.length }}</strong></span>
                             <span class="rounded-lg bg-slate-100 px-3 py-2 text-slate-500">Fuera: <strong>{{ aprobadosFuera.length }}</strong></span>
@@ -688,7 +767,8 @@ const eliminarSimulacion = (s) => {
                             <!-- No convalidados -->
                             <template v-else-if="tabPreconv === 'no'">
                                 <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr>
-                                    <th class="px-4 py-2.5 font-semibold">Curso de origen</th><th class="w-16 px-4 py-2.5 font-semibold">Nota</th><th class="px-4 py-2.5 font-semibold">Motivo</th>
+                                    <th class="px-4 py-2.5 font-semibold">Curso de origen</th><th class="w-16 px-4 py-2.5 font-semibold">Nota</th>
+                                    <th class="px-4 py-2.5 font-semibold">Motivo</th><th class="w-36 px-4 py-2.5 font-semibold"></th>
                                 </tr></thead>
                                 <tbody class="divide-y divide-slate-100">
                                     <tr v-for="(f, i) in noConvalidadosLista" :key="i" class="hover:bg-slate-50/70">
@@ -696,11 +776,18 @@ const eliminarSimulacion = (s) => {
                                         <td class="px-4 py-2 text-slate-600">{{ f.nota_origen || '—' }}</td>
                                         <td class="px-4 py-2">
                                             <span class="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                                                {{ f.clasificacion === 'no_convalidable' ? 'No convalidable (política)' : 'Sin equivalencia USIL' }}
+                                                {{ f.clasificacion === 'no_convalidable' ? 'No convalidable' : 'Sin equivalencia USIL' }}
                                             </span>
+                                            <span v-if="f.motivo" class="ml-2 text-xs text-slate-500">{{ f.motivo }}</span>
+                                        </td>
+                                        <td class="px-4 py-2 text-right">
+                                            <button v-if="f.clasificacion === 'no_convalidable'" type="button" @click="reconsiderar(f)"
+                                                    class="text-xs font-medium text-[#2E75B6] hover:underline">Reconsiderar</button>
+                                            <button v-else type="button" @click="abrirDescarte(f)"
+                                                    class="text-xs font-medium text-amber-700 hover:underline">Marcar no convalidable</button>
                                         </td>
                                     </tr>
-                                    <tr v-if="!noConvalidadosLista.length"><td colspan="3" class="px-4 py-6 text-center text-slate-400">Sin cursos no convalidados.</td></tr>
+                                    <tr v-if="!noConvalidadosLista.length"><td colspan="4" class="px-4 py-6 text-center text-slate-400">Sin cursos no convalidados.</td></tr>
                                 </tbody>
                             </template>
                             <!-- Desaprobados -->
@@ -819,5 +906,18 @@ const eliminarSimulacion = (s) => {
                 </div>
             </div>
         </Transition>
+
+        <ConfirmDialog :open="!!marcando"
+                       titulo="¿Marcar como no convalidable?"
+                       mensaje="El curso quedará descartado en este expediente y el motivo aparecerá en el Excel que recibe el postulante. No cambia la política de la carrera."
+                       texto-confirmar="Marcar" tono="aviso"
+                       @cancelar="marcando = null" @confirmar="confirmarDescarte">
+            <p class="mb-3 font-medium text-slate-700">{{ marcando?.curso_origen_nombre }}</p>
+            <label class="mb-1 block text-xs font-medium text-slate-500" for="motivo-descarte">Motivo</label>
+            <textarea id="motivo-descarte" v-model="motivoDescarte" rows="3" maxlength="300"
+                      class="w-full rounded-md border-slate-300 text-sm"
+                      placeholder="Ej.: el sílabo no cubre las competencias de ningún curso del plan."></textarea>
+            <p v-if="errorDescarte" class="mt-1 text-xs text-red-600">{{ errorDescarte }}</p>
+        </ConfirmDialog>
     </div>
 </template>

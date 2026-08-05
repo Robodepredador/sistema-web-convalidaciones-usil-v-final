@@ -41,15 +41,20 @@ class SeguimientoTimelineTest extends TestCase
     {
         // Pendiente: muestra el avance de entrega de documentos.
         $pendiente = SeguimientoTimeline::construir('nuevo', '01/01/2026', 1, 'pendiente', false, false);
-        $this->assertSame('1 de 3 documentos entregados', $pendiente[1]['detalle']);
+        $this->assertSame('1 de 5 documentos entregados', $pendiente[1]['detalle']);
 
         // Observada: pide corregir.
         $observada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'observada', false, false);
         $this->assertSame('Documentación observada: revisa las indicaciones', $observada[1]['detalle']);
 
         // Aprobada: expediente validado por Admisión.
-        $aprobada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'aprobada', false, false);
+        $aprobada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 5, 'aprobada', false, false);
         $this->assertSame('Documentos revisados y aprobados por Admisión', $aprobada[1]['detalle']);
+
+        // Aprobada de forma provisional: avanza, pero el postulante debe regularizar.
+        $provisional = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 2, 'aprobada', false, false, 5, true);
+        $this->assertSame('Aprobado de forma provisional: queda pendiente regularizar la documentación',
+            $provisional[1]['detalle']);
     }
 
     public function test_rechazado_devuelve_una_sola_etapa(): void

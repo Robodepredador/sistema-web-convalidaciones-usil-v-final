@@ -51,7 +51,8 @@ class PreconvalidacionSheet implements FromArray, WithColumnWidths, WithEvents, 
             ['', 'Año - Semestre de Ingreso:', $s->ciclo_postulacion],
             ['', 'Convalidación - Institución de Procedencia:', $s->universidad_origen ?? $s->postulante?->institucionOrigen?->nombre ?? ''],
             ['', 'Carrera de Procedencia:', $s->carreraExterna?->nombre ?? ''],
-            ['', 'Fecha de Revisión:', now()->format('d/m/Y')],
+            // La fecha de la evaluación, no la de la descarga (igual que el PDF).
+            ['', 'Fecha de Revisión:', optional($s->updated_at ?? $s->created_at)->format('d/m/Y') ?: '—'],
             [],
             ['Ciclo', 'Curso USIL', 'Curso Convalidado', 'Créditos'],
         ];

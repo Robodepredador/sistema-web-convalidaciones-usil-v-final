@@ -17,13 +17,20 @@ const filtro = reactive({
     estado: props.filtros?.estado ?? '',
     revision: props.filtros?.revision ?? '',
     carrera_destino_id: props.filtros?.carrera_destino_id ?? '',
+    desde: props.filtros?.desde ?? '',
+    hasta: props.filtros?.hasta ?? '',
 });
 const aplicar = () => router.get('/postulantes', filtro, { preserveState: true, preserveScroll: true, replace: true });
-const limpiar = () => { filtro.q = ''; filtro.estado = ''; filtro.revision = ''; filtro.carrera_destino_id = ''; router.get('/postulantes', {}, { preserveScroll: true, replace: true }); };
+const limpiar = () => {
+    Object.keys(filtro).forEach((k) => { filtro[k] = ''; });
+    router.get('/postulantes', {}, { preserveScroll: true, replace: true });
+};
 const eliminar = (p) => { if (confirm(`¿Eliminar al postulante "${p.nombre}"?`)) router.delete(`/postulantes/${p.id}`, { preserveScroll: true }); };
 const resetearAcceso = (p) => { if (confirm(`¿Restablecer el acceso al portal de "${p.nombre}"? Se generará una contraseña temporal.`)) router.patch(`/postulantes/${p.id}/reset-acceso`, {}, { preserveScroll: true }); };
 
 const ESTADO = {
+    // Incompleto: se distingue a propósito de 'Nuevo' con un tono más apagado.
+    borrador: { label: 'Borrador', clase: 'bg-white text-slate-400 ring-slate-300' },
     nuevo: { label: 'Nuevo', clase: 'bg-slate-100 text-slate-600 ring-slate-200' },
     en_evaluacion: { label: 'En evaluación', clase: 'bg-amber-50 text-amber-700 ring-amber-200' },
     admitido: { label: 'Admitido', clase: 'bg-green-50 text-green-700 ring-green-200' },
@@ -127,6 +134,16 @@ const cerrarModal = () => {
                         <label class="mb-1 block text-xs font-medium text-slate-500">Carrera destino</label>
                         <Autocomplete v-model="filtro.carrera_destino_id" :options="carrerasOpts" placeholder="Todas las carreras" />
                     </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-500">Registrado desde</label>
+                        <input v-model="filtro.desde" type="date" :max="filtro.hasta || undefined" @keyup.enter="aplicar"
+                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-500">Registrado hasta</label>
+                        <input v-model="filtro.hasta" type="date" :min="filtro.desde || undefined" @keyup.enter="aplicar"
+                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                    </div>
                 </div>
                 <div class="mt-3 flex items-center gap-2">
                     <button @click="aplicar" class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864]">Filtrar</button>
@@ -152,6 +169,7 @@ const cerrarModal = () => {
                             <th class="px-4 py-3 font-semibold">Carrera destino</th>
                             <th class="px-4 py-3 font-semibold">Procedencia</th>
                             <th class="px-4 py-3 font-semibold">Docs.</th>
+                            <th class="px-4 py-3 font-semibold whitespace-nowrap">Registrado</th>
                             <th class="px-4 py-3 font-semibold">Estado</th>
                             <th class="px-4 py-3 font-semibold">Revisión</th>
                             <th class="px-4 py-3 font-semibold">Preconvalidación</th>
@@ -173,6 +191,7 @@ const cerrarModal = () => {
                                 <span :class="p.documentos >= p.documentos_total ? 'text-green-700' : 'text-amber-700'"
                                       class="text-xs font-medium tabular-nums">{{ p.documentos }}/{{ p.documentos_total }}</span>
                             </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-slate-500">{{ p.registrado || '—' }}</td>
                             <td class="px-4 py-3">
                                 <span :class="ESTADO[p.estado]?.clase" class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ estadoLabel(p.estado) }}</span>
                             </td>
@@ -210,7 +229,7 @@ const cerrarModal = () => {
                             </td>
                         </tr>
                         <tr v-if="!postulantes.data.length">
-                            <td :colspan="esRevisor ? 11 : 10" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
+                            <td :colspan="esRevisor ? 12 : 11" class="px-4 py-10 text-center text-slate-400">No se encontraron postulantes.</td>
                         </tr>
                     </tbody>
                 </table>

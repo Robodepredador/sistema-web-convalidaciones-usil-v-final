@@ -10,11 +10,13 @@ use App\Jobs\ImportarMallaExcel;
 use App\Models\CargaMasiva;
 use App\Models\Carrera;
 use App\Models\Ciclo;
+use App\Models\CursoNoConvalidable;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\MallaCurricular;
 use App\Models\UnidadNegocio;
 use App\Services\AuditoriaService;
+use App\Services\ConvalidacionEngine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -284,7 +286,103 @@ class MallaController extends Controller
                 'menciones' => $cursos->whereNotNull('mencion')->pluck('mencion')->unique()->count(),
             ],
             'cursosMalla' => $cursos->map(fn ($cu) => ['id' => $cu->id, 'nombre' => $cu->codigo.' — '.$cu->nombre])->values(),
+            'noConvalidables' => $this->reglasNoConvalidables($malla->carrera_id),
         ]);
+    }
+
+    /**
+     * Materias de ORIGEN que no se convalidan, vistas desde esta carrera.
+     *
+     * Las institucionales llegan en solo lectura (las administra el
+     * Superusuario) y marcadas si la carrera las tiene levantadas; las propias,
+     * editables por su Coordinador.
+     */
+    private function reglasNoConvalidables(int $carreraId): array
+    {
+        $filas = CursoNoConvalidable::whereNull('carrera_id')
+            ->orWhere('carrera_id', $carreraId)
+            ->orderBy('palabra_clave')
+            ->get(['id', 'carrera_id', 'palabra_clave', 'clave_normalizada', 'motivo', 'activo']);
+
+        $propias = $filas->whereNotNull('carrera_id')->keyBy('clave_normalizada');
+
+        return [
+            'institucionales' => $filas->whereNull('carrera_id')->map(fn ($r) => [
+                'clave' => $r->clave_normalizada,
+                'palabra_clave' => $r->palabra_clave,
+                'motivo' => $r->motivo,
+                'activa' => (bool) $r->activo,
+                // Una regla propia con la misma clave manda sobre esta.
+                'anulada_aqui' => isset($propias[$r->clave_normalizada])
+                    && ! $propias[$r->clave_normalizada]->activo,
+            ])->values(),
+            'propias' => $filas->whereNotNull('carrera_id')->map(fn ($r) => [
+                'id' => $r->id,
+                'palabra_clave' => $r->palabra_clave,
+                'motivo' => $r->motivo,
+                'activo' => (bool) $r->activo,
+            ])->values(),
+        ];
+    }
+
+    /** El Coordinador añade una materia que su carrera no convalida. */
+    public function agregarNoConvalidable(Request $request, MallaCurricular $malla): RedirectResponse
+    {
+        $this->autorizarCarrera($request, $malla->carrera_id);
+
+        $datos = $request->validate([
+            'palabra_clave' => ['required', 'string', 'max:120'],
+            'motivo' => ['nullable', 'string', 'max:150'],
+            // Desactivada = levanta la regla institucional de esa misma materia.
+            'activo' => ['boolean'],
+        ]);
+
+        $clave = app(ConvalidacionEngine::class)->normaliza($datos['palabra_clave']);
+        abort_if($clave === '', 422, 'La materia debe tener al menos una letra o un número.');
+
+        CursoNoConvalidable::updateOrCreate(
+            ['clave_normalizada' => $clave, 'carrera_id' => $malla->carrera_id],
+            [
+                'palabra_clave' => $datos['palabra_clave'],
+                'motivo' => $datos['motivo'] ?? null,
+                'activo' => $request->boolean('activo', true),
+            ],
+        );
+
+        AuditoriaService::registrar('crear', 'cursos_no_convalidables', $malla->carrera_id, null,
+            ['carrera_id' => $malla->carrera_id, 'clave' => $clave]);
+
+        return back()->with('status', 'Regla de convalidación actualizada para la carrera.');
+    }
+
+    /** Activa o desactiva una regla propia de la carrera. */
+    public function actualizarNoConvalidable(Request $request, MallaCurricular $malla, CursoNoConvalidable $noConvalidable): RedirectResponse
+    {
+        $this->autorizarCarrera($request, $malla->carrera_id);
+        // Una regla institucional no se toca desde aquí: es del Superusuario.
+        abort_unless($noConvalidable->carrera_id === $malla->carrera_id, 403,
+            'Esa regla no pertenece a esta carrera.');
+
+        $noConvalidable->update(['activo' => $request->boolean('activo')]);
+
+        AuditoriaService::registrar('editar', 'cursos_no_convalidables', $noConvalidable->id, null,
+            ['activo' => $noConvalidable->activo]);
+
+        return back()->with('status', 'Regla actualizada.');
+    }
+
+    /** Elimina una regla propia (la carrera vuelve a regirse por lo institucional). */
+    public function eliminarNoConvalidable(Request $request, MallaCurricular $malla, CursoNoConvalidable $noConvalidable): RedirectResponse
+    {
+        $this->autorizarCarrera($request, $malla->carrera_id);
+        abort_unless($noConvalidable->carrera_id === $malla->carrera_id, 403,
+            'Esa regla no pertenece a esta carrera.');
+
+        $noConvalidable->delete();
+
+        AuditoriaService::registrar('eliminar', 'cursos_no_convalidables', $noConvalidable->id);
+
+        return back()->with('status', 'Regla eliminada. La carrera vuelve a seguir la política institucional.');
     }
 
     public function agregarCiclo(Request $request, MallaCurricular $malla): RedirectResponse

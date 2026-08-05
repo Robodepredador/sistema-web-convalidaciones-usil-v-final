@@ -121,9 +121,18 @@ const ESTADO_SIM = { generada: 'Generada', confirmada: 'Confirmada', borrador: '
                             <p class="font-medium text-slate-700">Simulación #{{ s.id }}</p>
                             <p class="text-xs text-slate-400">{{ s.fecha }} · {{ ESTADO_SIM[s.estado] || s.estado }}</p>
                         </div>
-                        <div class="text-right">
-                            <p class="font-semibold text-[#1F3864]">{{ s.creditos }} créditos</p>
-                            <p class="text-xs text-slate-400">{{ s.cursos }} cursos reconocidos</p>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="font-semibold text-[#1F3864]">{{ s.creditos }} créditos</p>
+                                <p class="text-xs text-slate-400">{{ s.cursos }} cursos reconocidos</p>
+                            </div>
+                            <a v-if="s.pdf_url" :href="s.pdf_url" target="_blank" rel="noopener"
+                               class="shrink-0 rounded-lg bg-[#1F3864] px-3 py-2 text-xs font-medium text-white hover:bg-[#2E75B6]">
+                                Ver documento
+                            </a>
+                            <p v-else class="w-28 shrink-0 text-right text-xs text-slate-400">
+                                Disponible al confirmarse tu convalidación
+                            </p>
                         </div>
                     </div>
                 </div>

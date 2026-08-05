@@ -43,6 +43,29 @@ class Simulacion extends Model
         return $this->hasOne(Convalidacion::class, 'simulacion_id');
     }
 
+    /**
+     * ¿El expediente ya produjo un acto oficial y por tanto no admite EDICIÓN?
+     *
+     * Cuenta también la convalidación ANULADA: el memorándum anulado se conserva
+     * (RF-46) y su detalle es la evidencia de lo que certificó. Reescribirlo
+     * dejaría la resolución archivada diciendo una cosa y la base de datos otra.
+     * Una corrección se hace en una simulación nueva, no encima de esta.
+     */
+    public function estaCerrada(): bool
+    {
+        return $this->convalidacion()->exists();
+    }
+
+    /**
+     * ¿Sustenta un memorándum VIGENTE? Regla del borrado, más laxa que la de la
+     * edición: archivar un expediente cuya resolución ya se anuló es legítimo;
+     * dejar sin respaldo una resolución en vigor, no.
+     */
+    public function tieneConvalidacionVigente(): bool
+    {
+        return $this->convalidacion()->where('estado', Convalidacion::CONFIRMADA)->exists();
+    }
+
     public function carreraUsil(): BelongsTo
     {
         return $this->belongsTo(Carrera::class, 'carrera_usil_id');

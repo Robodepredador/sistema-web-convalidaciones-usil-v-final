@@ -13,13 +13,14 @@ const props = defineProps({
 const filtro = reactive({
     q: props.filtros?.q ?? '',
     carrera_destino_id: props.filtros?.carrera_destino_id ?? '',
+    desde: props.filtros?.desde ?? '',
+    hasta: props.filtros?.hasta ?? '',
 });
 const carrerasOpts = computed(() => props.carreras.map((c) => ({ value: c.id, label: c.nombre })));
 
 const aplicar = () => router.get('/simulaciones', filtro, { preserveState: true, preserveScroll: true, replace: true });
 const limpiar = () => {
-    filtro.q = '';
-    filtro.carrera_destino_id = '';
+    Object.keys(filtro).forEach((k) => { filtro[k] = ''; });
     router.get('/simulaciones', {}, { preserveScroll: true, replace: true });
 };
 </script>
@@ -36,7 +37,12 @@ const limpiar = () => {
                     <span class="font-medium text-violet-600">con IA</span>.
                 </p>
             </div>
-            <div class="flex items-center gap-2 text-xs">
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <Link href="/simulaciones/historico"
+                      class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
+                    Histórico de equivalencias
+                </Link>
                 <span v-if="ia?.disponible"
                       class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
                     ✨ IA activa ({{ ia.proveedor }})
@@ -51,7 +57,7 @@ const limpiar = () => {
 
         <!-- Filtros -->
         <div class="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-500">Buscar postulante</label>
                     <input v-model="filtro.q" @keyup.enter="aplicar" type="search" placeholder="Nombre, apellido o documento"
@@ -61,10 +67,20 @@ const limpiar = () => {
                     <label class="mb-1 block text-xs font-medium text-slate-500">Carrera destino (USIL)</label>
                     <Autocomplete v-model="filtro.carrera_destino_id" :options="carrerasOpts" placeholder="Todas las carreras" />
                 </div>
-                <div class="flex items-end gap-2">
-                    <button @click="aplicar" class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864]">Filtrar</button>
-                    <button @click="limpiar" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Limpiar</button>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Solicitado desde</label>
+                    <input v-model="filtro.desde" type="date" :max="filtro.hasta || undefined" @keyup.enter="aplicar"
+                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                 </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Solicitado hasta</label>
+                    <input v-model="filtro.hasta" type="date" :min="filtro.desde || undefined" @keyup.enter="aplicar"
+                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                </div>
+            </div>
+            <div class="mt-3 flex items-center gap-2">
+                <button @click="aplicar" class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864]">Filtrar</button>
+                <button @click="limpiar" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Limpiar</button>
             </div>
         </div>
 
@@ -78,6 +94,7 @@ const limpiar = () => {
                             <th class="px-4 py-3 font-semibold">Documento</th>
                             <th class="px-4 py-3 font-semibold">Institución de origen</th>
                             <th class="px-4 py-3 font-semibold">Carrera destino</th>
+                            <th class="px-4 py-3 font-semibold whitespace-nowrap">Solicitado</th>
                             <th class="px-4 py-3 text-center font-semibold">Simulaciones</th>
                             <th class="px-4 py-3 text-right font-semibold">Acción</th>
                         </tr>
@@ -94,6 +111,7 @@ const limpiar = () => {
                                 <div class="text-xs text-slate-400">{{ p.carrera_externa }}</div>
                             </td>
                             <td class="px-4 py-3 text-slate-600">{{ p.carrera_destino || '—' }}</td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-slate-500">{{ p.solicitado || '—' }}</td>
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                                     {{ p.simulaciones_count }}
@@ -107,7 +125,7 @@ const limpiar = () => {
                             </td>
                         </tr>
                         <tr v-if="!postulantes.data.length">
-                            <td colspan="6" class="px-4 py-10 text-center text-slate-400">
+                            <td colspan="7" class="px-4 py-10 text-center text-slate-400">
                                 No hay postulantes. Registra postulantes para iniciar simulaciones.
                             </td>
                         </tr>
