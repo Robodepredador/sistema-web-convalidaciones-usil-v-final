@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import Autocomplete from './Autocomplete.vue';
 
 const props = defineProps({
     poolUsil: { type: Array, required: true },
@@ -16,6 +17,9 @@ const props = defineProps({
     // Cuántos cursos USIL distintos se han usado antes para este curso de origen en esta
     // carrera. ≥2 = no hay criterio establecido. null = no se preguntó por una carrera.
     criterios: { type: Number, default: null },
+    // Cursos de la malla vigente de la carrera de origen, para elegir en vez de teclear.
+    // Vacío si esa carrera no tiene malla cargada: entonces todo sigue siendo texto libre.
+    cursosMalla: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen']);
@@ -144,12 +148,31 @@ const nuevoCreditos = ref('');
 const nuevoInput = ref(null);
 const iniciarNuevo = async () => { agregando.value = true; nuevoNombre.value = ''; nuevoCreditos.value = ''; await nextTick(); nuevoInput.value?.focus(); };
 const cancelarNuevo = () => { agregando.value = false; nuevoNombre.value = ''; nuevoCreditos.value = ''; };
-// El padre crea la fila (posee _uid y filaBase); aquí solo se emite nombre + créditos. Se mantiene
-// el input abierto y enfocado para agregar varios cursos seguidos sin volver a pulsar el botón.
+
+// Opciones de la malla de origen. Con `allowFree`, el valor del campo es o bien el id de
+// un curso elegido, o bien el texto que el evaluador escribió; esto resuelve cuál es.
+const opcionesMalla = computed(() => props.cursosMalla.map((c) => ({ value: c.id, label: c.nombre })));
+const cursoDeMalla = (v) => props.cursosMalla.find((c) => String(c.id) === String(v)) ?? null;
+// `nuevoNombre` puede ser un id (curso elegido) o texto: no se le puede aplicar trim() a secas.
+const puedeAgregarNuevo = computed(() => !!cursoDeMalla(nuevoNombre.value) || String(nuevoNombre.value ?? '').trim() !== '');
+// El padre crea la fila (posee _uid y filaBase); aquí solo se emite lo que el usuario puso.
+// Se mantiene el campo abierto y enfocado para agregar varios cursos seguidos.
+//
+// Elegido de la malla: se emite su id y sus créditos, así la fila queda identificada.
+// Escrito a mano: id nulo, exactamente como funcionaba antes de existir la malla.
 const confirmarNuevo = async () => {
-    const n = nuevoNombre.value.trim();
+    const elegido = cursoDeMalla(nuevoNombre.value);
+    const n = elegido ? elegido.nombre : String(nuevoNombre.value ?? '').trim();
     if (!n) return;
-    emit('agregar', { nombre: n, creditos: nuevoCreditos.value });
+
+    emit('agregar', {
+        nombre: n,
+        // Lo tecleado manda sobre lo que traiga la malla: el alumno pudo llevar el curso
+        // con otra cantidad de créditos que la vigente.
+        creditos: nuevoCreditos.value !== '' ? nuevoCreditos.value : (elegido?.creditos ?? ''),
+        curso_externo_id: elegido?.id ?? null,
+    });
+
     nuevoNombre.value = '';
     nuevoCreditos.value = '';
     await nextTick();
@@ -446,7 +469,14 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                             <!-- Tarjeta editable en línea: se agrega el curso sin salir de la bandeja -->
                             <div v-if="agregando" class="border-b border-l-[3px] border-l-[#2E75B6] border-slate-100 bg-blue-50/40 px-3.5 py-2.5">
                                 <div class="flex gap-2">
-                                    <input ref="nuevoInput" v-model="nuevoNombre" type="text" placeholder="Nombre del curso externo…"
+                                    <!-- Con malla de origen cargada se elige de ella; sin ella se teclea,
+                                         que es como funcionaba antes y sigue siendo la salida válida para
+                                         cursos de un plan anterior o de otra carrera. -->
+                                    <div v-if="opcionesMalla.length" class="min-w-0 flex-1" @keydown.enter.prevent="confirmarNuevo" @keydown.esc="cancelarNuevo">
+                                        <Autocomplete v-model="nuevoNombre" :options="opcionesMalla" allow-free
+                                                      placeholder="Elige de la malla de origen o escribe el nombre…" />
+                                    </div>
+                                    <input v-else ref="nuevoInput" v-model="nuevoNombre" type="text" placeholder="Nombre del curso externo…"
                                            @keydown.enter.prevent="confirmarNuevo" @keydown.esc="cancelarNuevo"
                                            class="min-w-0 flex-1 rounded-md border-slate-300 py-1.5 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                                     <input v-model="nuevoCreditos" type="number" step="0.5" min="0" placeholder="Créd."
@@ -454,7 +484,7 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                                            class="w-20 shrink-0 rounded-md border-slate-300 py-1.5 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                                 </div>
                                 <div class="mt-2 flex items-center gap-2">
-                                    <button type="button" @click="confirmarNuevo" :disabled="!nuevoNombre.trim()"
+                                    <button type="button" @click="confirmarNuevo" :disabled="!puedeAgregarNuevo"
                                             class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:bg-slate-300">
                                         Agregar
                                     </button>

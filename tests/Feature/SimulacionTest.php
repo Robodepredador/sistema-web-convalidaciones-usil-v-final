@@ -106,6 +106,77 @@ class SimulacionTest extends TestCase
         $this->assertEquals('similitud', Simulacion::first()->detalles()->first()->origen);
     }
 
+    /**
+     * El catálogo de la malla de origen viaja al espacio de trabajo para poder
+     * elegir de él. Es distinto de `cursosOrigen`, que son las filas con las que
+     * arranca la pantalla: meter aquí la malla haría que la simulación afirmara
+     * que el alumno cursó el plan entero.
+     */
+    public function test_el_workspace_recibe_los_cursos_de_la_malla_de_origen(): void
+    {
+        $this->actingAs($this->ctx['user'])
+            ->get('/simulaciones/simular/'.$this->ctx['postulante']->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('cursosOrigen', 0)
+                ->has('cursosMallaOrigen', 1)
+                ->where('cursosMallaOrigen.0.id', $this->ctx['cursoExt']->id)
+                ->where('cursosMallaOrigen.0.nombre', 'Matemática I'));
+    }
+
+    /** Sin malla activa no hay de dónde elegir; el alta a mano sigue siendo el camino. */
+    public function test_sin_malla_activa_el_catalogo_de_origen_llega_vacio(): void
+    {
+        MallaExterna::where('carrera_externa_id', $this->ctx['carExt']->id)->update(['activa' => false]);
+
+        $this->actingAs($this->ctx['user'])
+            ->get('/simulaciones/simular/'.$this->ctx['postulante']->id)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('cursosMallaOrigen', 0));
+    }
+
+    /** Elegir de la malla deja el curso identificado, no solo su nombre en texto. */
+    public function test_la_fila_elegida_de_la_malla_guarda_el_curso_externo(): void
+    {
+        $this->actingAs($this->ctx['user'])->post('/simulaciones', [
+            'postulante_id' => $this->ctx['postulante']->id,
+            'carrera_usil_id' => $this->ctx['carrera']->id,
+            'metodo' => 'manual',
+            'filas' => [[
+                'curso_origen_nombre' => 'Matemática I',
+                'curso_externo_id' => $this->ctx['cursoExt']->id,
+                'curso_usil_id' => $this->ctx['cursoUsil']->id,
+                'clasificacion' => 'convalidable',
+            ]],
+        ]);
+
+        $this->assertSame(
+            $this->ctx['cursoExt']->id,
+            Simulacion::first()->detalles()->first()->curso_externo_id
+        );
+    }
+
+    /**
+     * Escribir el nombre a mano sigue permitido y deja el identificador nulo: el
+     * récord real puede traer cursos de un plan anterior o de otra carrera, y
+     * obligar a elegir de la lista haría inevaluable justo el caso raro.
+     */
+    public function test_la_fila_escrita_a_mano_no_guarda_curso_externo(): void
+    {
+        $this->actingAs($this->ctx['user'])->post('/simulaciones', [
+            'postulante_id' => $this->ctx['postulante']->id,
+            'carrera_usil_id' => $this->ctx['carrera']->id,
+            'metodo' => 'manual',
+            'filas' => [[
+                'curso_origen_nombre' => 'Taller de teatro (plan 2015)',
+                'curso_usil_id' => $this->ctx['cursoUsil']->id,
+                'clasificacion' => 'convalidable',
+            ]],
+        ]);
+
+        $this->assertNull(Simulacion::first()->detalles()->first()->curso_externo_id);
+    }
+
     /** BD-07: 'catalogo' desapareció con el catálogo de equivalencias. */
     public function test_rechaza_origen_catalogo_retirado(): void
     {

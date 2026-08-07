@@ -153,6 +153,20 @@ class SimulacionController extends Controller
         // El récord de origen se llena a mano o con el extractor de IA; arranca vacío.
         $cursosOrigen = [];
 
+        // Catálogo del que ELEGIR, que no es lo mismo que las filas de arriba: son los
+        // cursos de la malla oficial vigente de la carrera de origen. Volcarlos en
+        // `cursosOrigen` haría que la simulación arrancara afirmando que el alumno
+        // cursó el plan entero. Vacío si esa carrera no tiene malla cargada, y entonces
+        // el alta sigue siendo por texto libre como hasta ahora.
+        $cursosMallaOrigen = $postulante->carrera_externa_id
+            ? CursoExterno::whereHas('mallaExterna', fn ($q) => $q
+                ->where('carrera_externa_id', $postulante->carrera_externa_id)
+                ->where('activa', true))
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'creditos'])
+                ->all()
+            : [];
+
         // Al editar: se reconstruyen las filas desde el detalle guardado.
         $edicionData = null;
         if ($edicion) {
@@ -191,6 +205,7 @@ class SimulacionController extends Controller
             ],
             'poolUsil' => $pool,
             'cursosOrigen' => $cursosOrigen,
+            'cursosMallaOrigen' => $cursosMallaOrigen,
             'documentos' => $postulante->documentos->map(fn ($d) => [
                 'id' => $d->id,
                 'tipo' => $d->tipo,

@@ -12,7 +12,8 @@ const veConvalidaciones = computed(() => permisos.value.includes('*') || permiso
 const props = defineProps({
     postulante: Object,
     poolUsil: Array,
-    cursosOrigen: Array,
+    cursosOrigen: Array,           // filas con las que arranca la pantalla: lo que el alumno cursó
+    cursosMallaOrigen: Array,      // catálogo del que elegir: la malla vigente de la carrera de origen
     documentos: Array,
     tieneMalla: Boolean,
     noConvalidar: String,
@@ -148,9 +149,11 @@ const reconsiderar = (f) => { f.clasificacion = 'convalidable'; f.motivo = null;
 const tabPreconv = ref('conv');   // 'conv' | 'no' | 'desap'
 
 // Nombre y créditos llegan desde la tarjeta editable en línea de MapeoUsilMatch (sin window.prompt).
-const agregarFila = ({ nombre, creditos } = {}) => {
+// `curso_externo_id` viene solo cuando el curso se eligió de la malla de origen; escrito a
+// mano llega nulo, y esa fila queda identificada únicamente por su nombre, como siempre.
+const agregarFila = ({ nombre, creditos, curso_externo_id = null } = {}) => {
     if (!nombre || !String(nombre).trim()) return;
-    filas.push(filaBase({ nombre: String(nombre).trim(), creditos }));
+    filas.push(filaBase({ nombre: String(nombre).trim(), creditos, curso_externo_id }));
 };
 const quitarFila = (i) => filas.splice(i, 1);
 const limpiarFilas = () => { filas.splice(0, filas.length); };
@@ -566,7 +569,7 @@ const eliminarSimulacion = (s) => {
             <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
                              :ia="ia" :sin-ia="!IA_EN_MANUAL"
                              :antecedentes="antecedentes" :cargando-antecedentes="cargandoAntecedentes"
-                             :criterios="criteriosAntecedentes"
+                             :criterios="criteriosAntecedentes" :cursos-malla="cursosMallaOrigen ?? []"
                              @seleccion-origen="buscarAntecedentes"
                              @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')"
                              @agregar="agregarFila" @quitar="(f) => quitarFila(filas.indexOf(f))" />
