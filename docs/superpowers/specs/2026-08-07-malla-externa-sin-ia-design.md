@@ -224,5 +224,9 @@ de TI. Descartada por tres razones independientes:
    mallas, sin responsable de mantenimiento en el RBAC actual. El histórico registra
    decisiones tomadas, que no caducan.
 
-Reponerlo revertiría un hallazgo de auditoría y requiere decisión explícita de TI. En
-cualquier caso exigiría cargar antes las mallas externas, que es lo que hace este diseño.
+**Actualización 2026-08-07:** TI levantó la restricción, y supervisión concretó un flujo
+distinto del evaluado aquí — el coordinador mapea un par de mallas a demanda, no un
+catálogo exhaustivo. Ese flujo corrige las tres objeciones y está diseñado en
+`2026-08-07-catalogo-equivalencias-por-malla-design.md`, que toma este spec como
+prerrequisito: sigue haciendo falta cargar antes las mallas externas, que es lo que hace
+este diseño.

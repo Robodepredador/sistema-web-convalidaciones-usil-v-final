@@ -22,7 +22,12 @@ expediente por expediente.
 ## Relación con BD-07
 
 Esto **es** un catálogo curso↔curso, del tipo que se eliminó en BD-07 con confirmación de
-TI. Se documenta abiertamente y requiere que TI lo avale.
+TI. Se documenta abiertamente en vez de disimularlo.
+
+**TI levantó la restricción el 2026-08-07**, así que no hay bloqueo para construirlo. El
+resto de esta sección se conserva igual: explica por qué este artefacto no repite el
+defecto del que se eliminó, y esa justificación sigue haciendo falta cuando alguien lea el
+informe de auditoría y pregunte.
 
 Lo que cambia respecto de la tabla eliminada, y por qué el argumento en contra ya no
 aplica:
