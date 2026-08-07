@@ -24,7 +24,7 @@ class MallaExternaPlantillaTest extends TestCase
 
     private User $decano;      // tiene mallas_externas.gestionar
 
-    private User $coord;       // no lo tiene (hasta la fase 3)
+    private User $asesor;      // no lo tiene: solo registra postulantes
 
     protected function setUp(): void
     {
@@ -32,7 +32,7 @@ class MallaExternaPlantillaTest extends TestCase
         $this->seed(RoleSeeder::class);
 
         $this->decano = $this->usuarioCon(Role::DECANO);
-        $this->coord = $this->usuarioCon(Role::COORDINADOR);
+        $this->asesor = $this->usuarioCon(Role::ASESOR);
     }
 
     private function usuarioCon(string $rol): User
@@ -64,7 +64,7 @@ class MallaExternaPlantillaTest extends TestCase
 
     public function test_la_plantilla_exige_el_permiso_de_mallas_externas(): void
     {
-        $this->actingAs($this->coord)->get('/mallas-externas/plantilla')->assertForbidden();
+        $this->actingAs($this->asesor)->get('/mallas-externas/plantilla')->assertForbidden();
     }
 
     /** La lista debe salir con la misma forma que devuelve la extracción con IA. */
@@ -140,7 +140,7 @@ class MallaExternaPlantillaTest extends TestCase
     {
         $csv = "codigo,nombre,creditos\nMAT101,Cálculo I,4\n";
 
-        $this->actingAs($this->coord)
+        $this->actingAs($this->asesor)
             ->post('/mallas-externas/previsualizar', ['archivo' => $this->archivo($csv)])
             ->assertForbidden();
     }

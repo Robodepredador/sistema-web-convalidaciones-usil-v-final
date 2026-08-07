@@ -12,9 +12,14 @@ use Illuminate\Support\Facades\DB;
  *
  * No hay tabla ni caché que mantener. La evidencia se agrega en vivo sobre
  * `simulacion_detalle`, que es donde el sistema ya venía anotando cada
- * equivalencia decidida por un evaluador. Es deliberado: el catálogo
- * curso↔curso mantenido aparte se eliminó por decisión de TI (BD-07,
- * migración 2026_08_02_000003) y esto no lo reintroduce.
+ * equivalencia decidida por un evaluador.
+ *
+ * Esta clase sigue siendo PURAMENTE DERIVADA y no consulta `equivalencias_malla`,
+ * donde vive el criterio que el coordinador declara por adelantado. Las dos fuentes
+ * se juntan más arriba, en `HistorialEquivalenciasController::antecedentes()`, y
+ * mantenerlas separadas es deliberado: es lo que permite ver que se contradicen. Si
+ * una absorbiera a la otra, esa señal —lo declarado contra lo practicado— dejaría de
+ * ser observable.
  *
  * El servicio solo INFORMA. Nunca asigna un curso ni modifica una simulación:
  * el emparejamiento sigue siendo íntegramente manual.

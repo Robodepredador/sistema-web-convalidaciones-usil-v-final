@@ -6,10 +6,13 @@ use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
 use App\Models\Convalidacion;
+use App\Models\CursoExterno;
 use App\Models\CursoUsil;
+use App\Models\EquivalenciaMalla;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
+use App\Models\MallaExterna;
 use App\Models\Role;
 use App\Models\Simulacion;
 use App\Models\SimulacionDetalle;
@@ -76,6 +79,17 @@ class HistorialEquivalenciasTest extends TestCase
         $cursoUsil = CursoUsil::create(['ciclo_id' => $ciclo->id, 'codigo' => $codigo.'-1', 'nombre' => $curso, 'creditos' => 4]);
 
         return [$carrera, $malla, $cursoUsil];
+    }
+
+    /** Un curso en la malla oficial de la carrera de origen del fixture. */
+    private function cursoExternoDeSenati(): CursoExterno
+    {
+        $malla = MallaExterna::create([
+            'carrera_externa_id' => $this->ctx['carExt']->id,
+            'anio' => '2026', 'version' => '1', 'activa' => true,
+        ]);
+
+        return CursoExterno::create(['malla_externa_id' => $malla->id, 'nombre' => 'Matemática I']);
     }
 
     /** Otro curso dentro de una malla ya creada, para construir criterios divididos. */
@@ -277,6 +291,71 @@ class HistorialEquivalenciasTest extends TestCase
         $this->actingAs($this->ctx['coord'])
             ->getJson('/simulaciones/antecedentes?curso=X&carrera_usil_id='.$this->ctx['civil']->id)
             ->assertForbidden();
+    }
+
+    /** El criterio declarado por el coordinador acompaña a los antecedentes. */
+    public function test_el_endpoint_devuelve_la_equivalencia_declarada(): void
+    {
+        $cursoExt = $this->cursoExternoDeSenati();
+
+        EquivalenciaMalla::create([
+            'curso_externo_id' => $cursoExt->id,
+            'curso_usil_id' => $this->ctx['calculo']->id,
+            'malla_externa_id' => $cursoExt->malla_externa_id,
+            'malla_usil_id' => $this->ctx['mallaSw']->id,
+            'usuario_id' => $this->ctx['admin']->id,
+        ]);
+
+        $this->actingAs($this->ctx['coord'])
+            ->getJson('/simulaciones/antecedentes?curso='.urlencode('Matemática I')
+                .'&carrera_usil_id='.$this->ctx['sw']->id
+                .'&curso_externo_id='.$cursoExt->id)
+            ->assertOk()
+            ->assertJsonPath('catalogo.curso_usil_id', $this->ctx['calculo']->id)
+            ->assertJsonPath('catalogo.curso_usil', 'Cálculo de una variable')
+            ->assertJsonPath('catalogo.contradice', false);
+    }
+
+    /**
+     * Sin curso identificado no se puede consultar el catálogo: se busca por id y el
+     * evaluador que teclea el nombre no deja ninguno. No se cae a buscar por nombre,
+     * que sería volver al emparejamiento difuso teniendo un identificador exacto.
+     */
+    public function test_sin_curso_externo_no_hay_catalogo_y_los_antecedentes_siguen_igual(): void
+    {
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+
+        $this->actingAs($this->ctx['coord'])
+            ->getJson('/simulaciones/antecedentes?curso='.urlencode('Matemática I').'&carrera_usil_id='.$this->ctx['sw']->id)
+            ->assertOk()
+            ->assertJsonPath('catalogo', null)
+            ->assertJsonPath('antecedentes.0.curso_usil', 'Cálculo de una variable');
+    }
+
+    /** Lo declarado y lo practicado pueden discrepar, y eso es lo que hay que decir. */
+    public function test_avisa_cuando_el_catalogo_contradice_al_historico(): void
+    {
+        $algebra = $this->cursoEn($this->ctx['mallaSw'], 'SW-2', 'Álgebra lineal');
+        $cursoExt = $this->cursoExternoDeSenati();
+
+        // El coordinador declaró Álgebra; los expedientes resolvieron Cálculo.
+        EquivalenciaMalla::create([
+            'curso_externo_id' => $cursoExt->id,
+            'curso_usil_id' => $algebra->id,
+            'malla_externa_id' => $cursoExt->malla_externa_id,
+            'malla_usil_id' => $this->ctx['mallaSw']->id,
+            'usuario_id' => $this->ctx['admin']->id,
+        ]);
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+
+        $this->actingAs($this->ctx['coord'])
+            ->getJson('/simulaciones/antecedentes?curso='.urlencode('Matemática I')
+                .'&carrera_usil_id='.$this->ctx['sw']->id
+                .'&curso_externo_id='.$cursoExt->id)
+            ->assertOk()
+            ->assertJsonPath('catalogo.curso_usil', 'Álgebra lineal')
+            ->assertJsonPath('catalogo.contradice', true);
     }
 
     /** Cuántos cursos USIL distintos se han usado para este mismo curso de origen. */

@@ -20,6 +20,9 @@ const props = defineProps({
     // Cursos de la malla vigente de la carrera de origen, para elegir en vez de teclear.
     // Vacío si esa carrera no tiene malla cargada: entonces todo sigue siendo texto libre.
     cursosMalla: { type: Array, default: () => [] },
+    // Criterio declarado por el coordinador para este curso. Solo llega si la fila se
+    // eligió de la malla de origen: se busca por identificador, no por nombre.
+    catalogo: { type: Object, default: null },
 });
 
 const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen']);
@@ -114,7 +117,11 @@ const clicOrigen = (fila) => {
 // Un solo sitio para avisar del cambio de selección: la selección se limpia desde
 // cuatro caminos distintos (clic, ✕ de la píldora, Cancelar, confirmar el par) y
 // con emits sueltos siempre se olvidaba alguno.
-watch(seleccionOrigen, (f) => emit('seleccion-origen', f?.curso_origen_nombre?.trim() || null));
+// Se emite también el identificador: el criterio declarado se busca por él, así que
+// el nombre solo no basta para saber si hay uno.
+watch(seleccionOrigen, (f) => emit('seleccion-origen', f
+    ? { nombre: f.curso_origen_nombre?.trim() || null, curso_externo_id: f.curso_externo_id ?? null }
+    : null));
 
 // El antecedente solo MUEVE la selección al curso USIL: confirmar sigue siendo un
 // acto explícito del evaluador. Los antecedentes de otra carrera destino no están
@@ -128,6 +135,12 @@ const elegirAntecedente = (a) => {
     if (!antecedenteAplicable(a)) return;
     seleccionUsil.value = usilDelAntecedente(a);
 };
+
+// El criterio declarado se comporta igual que un antecedente: mueve la selección y ya.
+const usilDelCatalogo = computed(() =>
+    props.catalogo ? props.poolUsil.find((c) => Number(c.id) === Number(props.catalogo.curso_usil_id)) ?? null : null);
+const catalogoAplicable = computed(() => !!usilDelCatalogo.value && !matchDeUsil(usilDelCatalogo.value.id));
+const elegirCatalogo = () => { if (catalogoAplicable.value) seleccionUsil.value = usilDelCatalogo.value; };
 
 const puedeConfirmarMatch = computed(() => !!seleccionUsil.value && !!seleccionOrigen.value);
 const confirmarMatch = () => {
@@ -326,6 +339,25 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                  Es material de consulta. Pulsar uno solo mueve la selección al curso USIL;
                  la equivalencia la sigue confirmando el evaluador. -->
             <div v-if="seleccionOrigen" class="mt-3 border-t border-slate-100 pt-2.5">
+                <!-- Criterio declarado por el coordinador. Va primero porque es una decisión
+                     tomada para este par de mallas, no una estadística. Pulsar solo mueve la
+                     selección: la equivalencia la sigue confirmando el evaluador. -->
+                <div v-if="catalogo && !cargandoAntecedentes" class="mb-2.5">
+                    <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        Criterio declarado
+                    </p>
+                    <button type="button" @click="elegirCatalogo" :disabled="!catalogoAplicable"
+                            :title="catalogoAplicable ? 'Selecciona este curso en la malla — la equivalencia la confirmas tú' : 'Ese curso USIL ya está emparejado'"
+                            class="flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition"
+                            :class="catalogoAplicable ? 'border-emerald-200 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50' : 'cursor-default border-dashed border-slate-200 opacity-70'">
+                        <span class="min-w-0 flex-1 truncate font-medium text-slate-800">{{ catalogo.curso_usil }}</span>
+                        <span class="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-800">declarado</span>
+                    </button>
+                    <p v-if="catalogo.contradice" class="mt-1 rounded-md bg-blue-50 px-2 py-1.5 text-[11px] leading-snug text-[#1F3864] ring-1 ring-inset ring-blue-100">
+                        Los expedientes anteriores se resolvieron de otra forma. Compara antes de decidir.
+                    </p>
+                </div>
+
                 <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     Antecedentes en el histórico
                 </p>

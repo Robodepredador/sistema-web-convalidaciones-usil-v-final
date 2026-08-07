@@ -48,6 +48,7 @@ const nav = computed(() => {
 
     if (puede('catalogos.gestionar')) items.push({ label: 'Instituciones Externas', href: '/instituciones', icon: ICON.building });
     if (puede('mallas_externas.gestionar')) items.push({ label: 'Mallas Externas', href: '/equivalencias', icon: ICON.swap });
+    if (puede('evaluacion.editar')) items.push({ label: 'Equivalencias por malla', href: '/mapeo-mallas', icon: ICON.swap });
     if (puede('solicitudes.ver')) items.push({ label: 'Postulantes', href: '/postulantes', icon: ICON.postulante });
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
     if (puede('convalidacion.ver')) items.push({ label: 'Convalidaciones', href: '/convalidaciones', icon: ICON.check });

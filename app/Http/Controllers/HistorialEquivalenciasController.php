@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Exports\HistorialEquivalenciasExport;
 use App\Models\Carrera;
+use App\Models\EquivalenciaMalla;
 use App\Services\AlcanceService;
+use App\Services\ConvalidacionEngine;
 use App\Services\HistorialEquivalenciasService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +25,10 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class HistorialEquivalenciasController extends Controller
 {
-    public function __construct(private HistorialEquivalenciasService $historial) {}
+    public function __construct(
+        private HistorialEquivalenciasService $historial,
+        private ConvalidacionEngine $engine,
+    ) {}
 
     /**
      * Antecedentes de un curso de origen concreto (panel del espacio de trabajo).
@@ -36,6 +41,9 @@ class HistorialEquivalenciasController extends Controller
             'curso' => ['required', 'string', 'max:200'],
             'carrera_usil_id' => ['nullable', 'integer'],
             'carrera_externa_id' => ['nullable', 'integer'],
+            // Solo viene si el evaluador eligió el curso de la malla de origen. Sin él
+            // no hay con qué buscar el criterio declarado.
+            'curso_externo_id' => ['nullable', 'integer'],
         ]);
 
         // La carrera destino llega por la petición: si el usuario la pide fuera de
@@ -45,13 +53,64 @@ class HistorialEquivalenciasController extends Controller
             AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
         }
 
-        // El servicio ya devuelve la forma final (lista + cuenta de criterios).
-        return response()->json($this->historial->antecedentes(
+        $resultado = $this->historial->antecedentes(
             $datos['curso'],
             $datos['carrera_usil_id'] ?? null,
             $datos['carrera_externa_id'] ?? null,
             AlcanceService::carrerasVisibles($request->user()),
-        ));
+        );
+
+        // Las dos fuentes se juntan AQUÍ y no dentro del servicio: el histórico sigue
+        // siendo puramente derivado de `simulacion_detalle` y el catálogo es criterio
+        // declarado. Mantenerlos separados es lo que permite ver que se contradicen;
+        // si uno absorbiera al otro, esa señal dejaría de existir.
+        $resultado['catalogo'] = $this->catalogoDeclarado($datos, $resultado['antecedentes']);
+
+        return response()->json($resultado);
+    }
+
+    /**
+     * Lo que el coordinador declaró para este curso en este plan de estudios.
+     *
+     * Se busca por `curso_externo_id`, que solo existe si el evaluador eligió el curso
+     * de la malla de origen. No se cae a buscar por nombre: sería volver al
+     * emparejamiento difuso justo donde hay un identificador exacto disponible.
+     *
+     * @param  array<int,array<string,mixed>>  $antecedentes  ya ordenados por afinidad y frecuencia
+     */
+    private function catalogoDeclarado(array $datos, array $antecedentes): ?array
+    {
+        if (empty($datos['curso_externo_id']) || empty($datos['carrera_usil_id'])) {
+            return null;
+        }
+
+        $mallaUsil = $this->engine->mallaDeCarrera((int) $datos['carrera_usil_id']);
+        if (! $mallaUsil) {
+            return null;
+        }
+
+        $par = EquivalenciaMalla::with('cursoUsil:id,nombre,codigo')
+            ->where('curso_externo_id', $datos['curso_externo_id'])
+            ->where('malla_usil_id', $mallaUsil->id)
+            ->first();
+
+        if (! $par?->cursoUsil) {
+            return null;
+        }
+
+        // Lo más practicado en esta misma carrera destino. Los antecedentes ya llegan
+        // ordenados, así que el primero con `mismo_destino` es el de mayor frecuencia.
+        $masPracticado = collect($antecedentes)->firstWhere('mismo_destino', true);
+
+        return [
+            'curso_usil_id' => (int) $par->curso_usil_id,
+            'curso_usil' => $par->cursoUsil->nombre,
+            'codigo_usil' => $par->cursoUsil->codigo,
+            // Lo declarado y lo practicado pueden discrepar: es criterio dividido otra
+            // vez, ahora entre el coordinador y los expedientes.
+            'contradice' => $masPracticado !== null
+                && (int) $masPracticado['curso_usil_id'] !== (int) $par->curso_usil_id,
+        ];
     }
 
     /** Pantalla de consulta del histórico. */

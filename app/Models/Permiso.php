@@ -67,10 +67,15 @@ class Permiso extends Model
             'dashboard.ver', 'solicitudes.ver', 'solicitudes.editar', 'solicitudes.validar', 'reportes.ver',
         ],
         // Evalúa simulaciones de sus carreras; los postulantes los gestiona Admisión.
-        // Sin 'mallas_externas.gestionar': no registra mallas de otras instituciones.
+        // Con 'mallas_externas.gestionar' desde 2026-08-07: el mapeo de equivalencias
+        // arranca subiendo la malla de la institución de origen, así que sin él
+        // dependería de otro rol para el primer paso de su propio flujo. Nota: ese
+        // permiso NO tiene alcance por carrera, de modo que podrá registrar mallas de
+        // cualquier institución, no solo de las que le tocan.
         Role::COORDINADOR => [
             'dashboard.ver', 'evaluacion.ver', 'evaluacion.editar',
-            'evaluacion.proponer', 'catalogos.gestionar', 'reportes.ver',
+            'evaluacion.proponer', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'reportes.ver',
         ],
         Role::DIRECTOR => [
             'dashboard.ver', 'solicitudes.ver', 'solicitudes.asignar', 'evaluacion.ver',

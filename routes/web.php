@@ -18,6 +18,7 @@ use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\MallaController;
 use App\Http\Controllers\MallaExternaController;
 use App\Http\Controllers\MallaImportController;
+use App\Http\Controllers\MapeoMallasController;
 use App\Http\Controllers\Portal\AccesoController as PortalAccesoController;
 use App\Http\Controllers\Portal\PasswordController as PortalPasswordController;
 use App\Http\Controllers\Portal\PreconvalidacionController as PortalPreconvalidacionController;
@@ -241,6 +242,19 @@ Route::middleware('auth')->group(function () {
             Route::get('simulaciones/{simulacion}/pdf', [SimulacionController::class, 'generarPdf'])->name('simulaciones.pdf');
             Route::get('simulaciones/{simulacion}/excel', [SimulacionController::class, 'exportarExcel'])->name('simulaciones.excel');
         }); // fin evaluacion.ver (simulaciones)
+
+        // Mapeo de mallas: el criterio del coordinador, declarado antes de que existan
+        // expedientes. Va con `evaluacion.editar` —cuya descripción en el catálogo de
+        // permisos es literalmente «Registrar/editar equivalencias y mapeo»— y el
+        // alcance por carrera destino se comprueba dentro del controlador.
+        Route::middleware('permission:evaluacion.editar')->group(function () {
+            Route::get('mapeo-mallas', [MapeoMallasController::class, 'index'])->name('mapeo-mallas.index');
+            Route::get('mapeo-mallas/crear', [MapeoMallasController::class, 'crear'])->name('mapeo-mallas.crear');
+            Route::get('mapeo-mallas/cursos', [MapeoMallasController::class, 'cursos'])->name('mapeo-mallas.cursos');
+            Route::post('mapeo-mallas', [MapeoMallasController::class, 'store'])->name('mapeo-mallas.store');
+            Route::delete('mapeo-mallas/{equivalenciaMalla}', [MapeoMallasController::class, 'destroy'])
+                ->name('mapeo-mallas.destroy')->whereNumber('equivalenciaMalla');
+        });
 
         // CU-04 / CU-05: Simulación — creación y edición (permisos evaluacion.editar / evaluacion.proponer)
         Route::middleware('permission:evaluacion.editar,evaluacion.proponer')->group(function () {

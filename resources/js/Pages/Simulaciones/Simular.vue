@@ -206,17 +206,28 @@ const sugerir = async (origenSugerencia) => {
 // curso. Es evidencia para el evaluador: no asigna nada ni altera las filas.
 const antecedentes = ref([]);
 const criteriosAntecedentes = ref(null);   // ≥2 = el curso se ha resuelto de formas distintas
+const catalogoDeclarado = ref(null);       // criterio del coordinador para este curso
 const cargandoAntecedentes = ref(false);
 const cacheAntecedentes = new Map();   // el evaluador vuelve sobre los mismos cursos al comparar
 let peticionAntecedentes = 0;
 
-const SIN_ANTECEDENTES = { antecedentes: [], criterios: null };
-const aplicarAntecedentes = (r) => { antecedentes.value = r.antecedentes; criteriosAntecedentes.value = r.criterios; };
+const SIN_ANTECEDENTES = { antecedentes: [], criterios: null, catalogo: null };
+const aplicarAntecedentes = (r) => {
+    antecedentes.value = r.antecedentes;
+    criteriosAntecedentes.value = r.criterios;
+    catalogoDeclarado.value = r.catalogo;
+};
 
-const buscarAntecedentes = async (nombre) => {
+// La clave de caché incluye el id: el mismo nombre elegido de la malla y tecleado a
+// mano dan respuestas distintas, porque solo el primero puede traer catálogo.
+const buscarAntecedentes = async (seleccion) => {
+    const nombre = seleccion?.nombre ?? null;
+    const cursoExternoId = seleccion?.curso_externo_id ?? null;
     const token = ++peticionAntecedentes;
+    const clave = `${cursoExternoId ?? ''}|${nombre ?? ''}`;
+
     if (!nombre) { aplicarAntecedentes(SIN_ANTECEDENTES); cargandoAntecedentes.value = false; return; }
-    if (cacheAntecedentes.has(nombre)) { aplicarAntecedentes(cacheAntecedentes.get(nombre)); cargandoAntecedentes.value = false; return; }
+    if (cacheAntecedentes.has(clave)) { aplicarAntecedentes(cacheAntecedentes.get(clave)); cargandoAntecedentes.value = false; return; }
 
     cargandoAntecedentes.value = true;
     try {
@@ -225,10 +236,11 @@ const buscarAntecedentes = async (nombre) => {
                 curso: nombre,
                 carrera_usil_id: props.postulante.carrera_destino_id,
                 carrera_externa_id: props.postulante.carrera_externa_id,
+                curso_externo_id: cursoExternoId,
             },
         });
-        const r = { antecedentes: data.antecedentes ?? [], criterios: data.criterios ?? null };
-        cacheAntecedentes.set(nombre, r);
+        const r = { antecedentes: data.antecedentes ?? [], criterios: data.criterios ?? null, catalogo: data.catalogo ?? null };
+        cacheAntecedentes.set(clave, r);
         // Una respuesta lenta no debe pisar la selección que el usuario ya cambió.
         if (token === peticionAntecedentes) aplicarAntecedentes(r);
     } catch {
@@ -570,6 +582,7 @@ const eliminarSimulacion = (s) => {
                              :ia="ia" :sin-ia="!IA_EN_MANUAL"
                              :antecedentes="antecedentes" :cargando-antecedentes="cargandoAntecedentes"
                              :criterios="criteriosAntecedentes" :cursos-malla="cursosMallaOrigen ?? []"
+                             :catalogo="catalogoDeclarado"
                              @seleccion-origen="buscarAntecedentes"
                              @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')"
                              @agregar="agregarFila" @quitar="(f) => quitarFila(filas.indexOf(f))" />

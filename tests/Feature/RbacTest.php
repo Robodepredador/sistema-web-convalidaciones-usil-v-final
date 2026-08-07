@@ -102,13 +102,20 @@ class RbacTest extends TestCase
         $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
     }
 
-    /** El Coordinador no gestiona mallas externas, pero sí conserva Simulaciones. */
-    public function test_coordinador_no_accede_a_mallas_externas(): void
+    /**
+     * El Coordinador SÍ gestiona mallas externas desde 2026-08-07.
+     *
+     * Antes no podía, y era deliberado. Cambió porque el mapeo de equivalencias
+     * arranca subiendo la malla de la institución de origen: sin este permiso el
+     * coordinador dependería de otro rol para dar el primer paso de su propio flujo.
+     */
+    public function test_coordinador_gestiona_mallas_externas(): void
     {
         $coordinador = $this->usuarioConRol(Role::COORDINADOR);
 
-        $this->actingAs($coordinador)->get('/equivalencias')->assertForbidden();
-        $this->actingAs($coordinador)->post('/mallas-externas', [])->assertForbidden();
+        $this->actingAs($coordinador)->get('/equivalencias')->assertOk();
+        // 302 (redirect con errores de validación) = pasó la autorización; 403 = bloqueado.
+        $this->actingAs($coordinador)->post('/mallas-externas', [])->assertStatus(302);
         $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
     }
 
