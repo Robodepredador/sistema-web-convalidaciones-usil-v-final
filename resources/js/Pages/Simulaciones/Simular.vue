@@ -202,14 +202,18 @@ const sugerir = async (origenSugerencia) => {
 // Al seleccionar un curso de origen se consulta cómo se resolvió antes ese mismo
 // curso. Es evidencia para el evaluador: no asigna nada ni altera las filas.
 const antecedentes = ref([]);
+const criteriosAntecedentes = ref(null);   // ≥2 = el curso se ha resuelto de formas distintas
 const cargandoAntecedentes = ref(false);
 const cacheAntecedentes = new Map();   // el evaluador vuelve sobre los mismos cursos al comparar
 let peticionAntecedentes = 0;
 
+const SIN_ANTECEDENTES = { antecedentes: [], criterios: null };
+const aplicarAntecedentes = (r) => { antecedentes.value = r.antecedentes; criteriosAntecedentes.value = r.criterios; };
+
 const buscarAntecedentes = async (nombre) => {
     const token = ++peticionAntecedentes;
-    if (!nombre) { antecedentes.value = []; cargandoAntecedentes.value = false; return; }
-    if (cacheAntecedentes.has(nombre)) { antecedentes.value = cacheAntecedentes.get(nombre); cargandoAntecedentes.value = false; return; }
+    if (!nombre) { aplicarAntecedentes(SIN_ANTECEDENTES); cargandoAntecedentes.value = false; return; }
+    if (cacheAntecedentes.has(nombre)) { aplicarAntecedentes(cacheAntecedentes.get(nombre)); cargandoAntecedentes.value = false; return; }
 
     cargandoAntecedentes.value = true;
     try {
@@ -220,13 +224,13 @@ const buscarAntecedentes = async (nombre) => {
                 carrera_externa_id: props.postulante.carrera_externa_id,
             },
         });
-        const lista = data.antecedentes ?? [];
-        cacheAntecedentes.set(nombre, lista);
+        const r = { antecedentes: data.antecedentes ?? [], criterios: data.criterios ?? null };
+        cacheAntecedentes.set(nombre, r);
         // Una respuesta lenta no debe pisar la selección que el usuario ya cambió.
-        if (token === peticionAntecedentes) antecedentes.value = lista;
+        if (token === peticionAntecedentes) aplicarAntecedentes(r);
     } catch {
         // El histórico es una ayuda opcional: si falla, el emparejamiento manual sigue igual.
-        if (token === peticionAntecedentes) antecedentes.value = [];
+        if (token === peticionAntecedentes) aplicarAntecedentes(SIN_ANTECEDENTES);
     } finally {
         if (token === peticionAntecedentes) cargandoAntecedentes.value = false;
     }
@@ -562,6 +566,7 @@ const eliminarSimulacion = (s) => {
             <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
                              :ia="ia" :sin-ia="!IA_EN_MANUAL"
                              :antecedentes="antecedentes" :cargando-antecedentes="cargandoAntecedentes"
+                             :criterios="criteriosAntecedentes"
                              @seleccion-origen="buscarAntecedentes"
                              @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')"
                              @agregar="agregarFila" @quitar="(f) => quitarFila(filas.indexOf(f))" />

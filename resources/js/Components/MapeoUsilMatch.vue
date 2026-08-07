@@ -13,6 +13,9 @@ const props = defineProps({
     // el componente nunca empareja por su cuenta a partir de ella.
     antecedentes: { type: Array, default: () => [] },
     cargandoAntecedentes: { type: Boolean, default: false },
+    // Cuántos cursos USIL distintos se han usado antes para este curso de origen en esta
+    // carrera. ≥2 = no hay criterio establecido. null = no se preguntó por una carrera.
+    criterios: { type: Number, default: null },
 });
 
 const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen']);
@@ -302,6 +305,14 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
             <div v-if="seleccionOrigen" class="mt-3 border-t border-slate-100 pt-2.5">
                 <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     Antecedentes en el histórico
+                </p>
+                <!-- Criterio dividido. Es contexto, no un error: la asignación es 1-a-1 sobre
+                     el expediente entero, así que el mismo curso puede haber ido a destinos
+                     distintos con toda razón. Por eso el tono es de nota y no de alarma. -->
+                <p v-if="!cargandoAntecedentes && criterios >= 2"
+                   class="mb-1.5 rounded-md bg-blue-50 px-2 py-1.5 text-[11px] leading-snug text-[#1F3864] ring-1 ring-inset ring-blue-100">
+                    Este curso se ha resuelto de <strong>{{ criterios }} formas distintas</strong> en esta carrera.
+                    Revisa cuál encaja con este expediente.
                 </p>
                 <p v-if="cargandoAntecedentes" class="text-xs text-slate-400">Buscando…</p>
                 <p v-else-if="!antecedentes.length" class="text-xs text-slate-400">

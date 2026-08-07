@@ -45,21 +45,20 @@ class HistorialEquivalenciasController extends Controller
             AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
         }
 
-        return response()->json([
-            'antecedentes' => $this->historial->antecedentes(
-                $datos['curso'],
-                $datos['carrera_usil_id'] ?? null,
-                $datos['carrera_externa_id'] ?? null,
-                AlcanceService::carrerasVisibles($request->user()),
-            ),
-        ]);
+        // El servicio ya devuelve la forma final (lista + cuenta de criterios).
+        return response()->json($this->historial->antecedentes(
+            $datos['curso'],
+            $datos['carrera_usil_id'] ?? null,
+            $datos['carrera_externa_id'] ?? null,
+            AlcanceService::carrerasVisibles($request->user()),
+        ));
     }
 
     /** Pantalla de consulta del histórico. */
     public function index(Request $request)
     {
         $permitidas = AlcanceService::carrerasVisibles($request->user());
-        $filtros = $request->only(['q', 'institucion_id', 'carrera_usil_id']);
+        $filtros = $this->filtros($request);
 
         $filas = $this->historial->consulta($filtros, $permitidas)
             ->paginate(20)
@@ -73,6 +72,8 @@ class HistorialEquivalenciasController extends Controller
                 'carrera_usil' => $f->carrera_usil,
                 'veces' => (int) $f->veces,
                 'confirmadas' => (int) $f->confirmadas,
+                // Solo viene con el toggle activo; sin él la consulta ni hace el join.
+                'criterios' => isset($f->criterios) ? (int) $f->criterios : null,
             ]);
 
         return inertia('Simulaciones/Historico', [
@@ -87,12 +88,25 @@ class HistorialEquivalenciasController extends Controller
         ]);
     }
 
+    /**
+     * Filtros de la pantalla.
+     *
+     * `solo_divergentes` NO puede salir de `only()`: llega por query string y la vista
+     * manda `false`, que viaja como la cadena "false" — truthy en PHP, donde solo `""`
+     * y `"0"` son cadenas falsas. Con `only()` el filtro se activaría justo al
+     * desmarcar la casilla.
+     */
+    private function filtros(Request $request): array
+    {
+        return $request->only(['q', 'institucion_id', 'carrera_usil_id'])
+            + ['solo_divergentes' => $request->boolean('solo_divergentes')];
+    }
+
     /** Descarga del histórico consultado (mismos filtros que la pantalla). */
     public function exportar(Request $request)
     {
         $filas = $this->historial
-            ->consulta($request->only(['q', 'institucion_id', 'carrera_usil_id']),
-                AlcanceService::carrerasVisibles($request->user()))
+            ->consulta($this->filtros($request), AlcanceService::carrerasVisibles($request->user()))
             ->get();
 
         return Excel::download(

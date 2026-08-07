@@ -78,6 +78,15 @@ class HistorialEquivalenciasTest extends TestCase
         return [$carrera, $malla, $cursoUsil];
     }
 
+    /** Otro curso dentro de una malla ya creada, para construir criterios divididos. */
+    private function cursoEn(MallaCurricular $malla, string $codigo, string $nombre): CursoUsil
+    {
+        return CursoUsil::create([
+            'ciclo_id' => Ciclo::where('malla_id', $malla->id)->value('id'),
+            'codigo' => $codigo, 'nombre' => $nombre, 'creditos' => 4,
+        ]);
+    }
+
     /** Una simulación con una equivalencia ya decidida. */
     private function equivalencia(string $origen, CursoUsil $destino, Carrera $carrera, MallaCurricular $malla, array $detalle = []): Simulacion
     {
@@ -107,13 +116,19 @@ class HistorialEquivalenciasTest extends TestCase
         return app(HistorialEquivalenciasService::class);
     }
 
+    /** Solo la lista de antecedentes, para los casos que no miran la cuenta de criterios. */
+    private function lista(string $curso, ?int $carreraUsilId = null, ?array $permitidas = null): array
+    {
+        return $this->servicio()->antecedentes($curso, $carreraUsilId, null, $permitidas)['antecedentes'];
+    }
+
     /** El mismo par decidido dos veces cuenta como dos. */
     public function test_cuenta_las_veces_que_se_repite_una_equivalencia(): void
     {
         $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
         $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
 
-        $antecedentes = $this->servicio()->antecedentes('Matemática I', $this->ctx['sw']->id);
+        $antecedentes = $this->lista('Matemática I', $this->ctx['sw']->id);
 
         $this->assertCount(1, $antecedentes, 'Los dos casos son la misma equivalencia: un solo renglón.');
         $this->assertSame(2, $antecedentes[0]['veces']);
@@ -126,9 +141,9 @@ class HistorialEquivalenciasTest extends TestCase
     {
         $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
 
-        $this->assertCount(1, $this->servicio()->antecedentes('Matemática 1', $this->ctx['sw']->id));
-        $this->assertCount(1, $this->servicio()->antecedentes('MATEMATICA I', $this->ctx['sw']->id));
-        $this->assertSame([], $this->servicio()->antecedentes('Cálculo diferencial', $this->ctx['sw']->id));
+        $this->assertCount(1, $this->lista('Matemática 1', $this->ctx['sw']->id));
+        $this->assertCount(1, $this->lista('MATEMATICA I', $this->ctx['sw']->id));
+        $this->assertSame([], $this->lista('Cálculo diferencial', $this->ctx['sw']->id));
     }
 
     /** Un expediente que llegó a memorándum pesa más y se distingue. */
@@ -143,7 +158,7 @@ class HistorialEquivalenciasTest extends TestCase
             'usuario_id' => $this->ctx['admin']->id,
         ]);
 
-        $antecedentes = $this->servicio()->antecedentes('Matemática I', $this->ctx['sw']->id);
+        $antecedentes = $this->lista('Matemática I', $this->ctx['sw']->id);
 
         $this->assertSame(2, $antecedentes[0]['veces']);
         $this->assertSame(1, $antecedentes[0]['confirmadas']);
@@ -157,7 +172,7 @@ class HistorialEquivalenciasTest extends TestCase
         $borrada = $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
         $borrada->delete();
 
-        $this->assertSame([], $this->servicio()->antecedentes('Matemática I', $this->ctx['sw']->id));
+        $this->assertSame([], $this->lista('Matemática I', $this->ctx['sw']->id));
     }
 
     /** RF-40: el histórico de una carrera fuera del alcance no se filtra al coordinador. */
@@ -165,11 +180,10 @@ class HistorialEquivalenciasTest extends TestCase
     {
         $this->equivalencia('Matemática I', $this->ctx['topografia'], $this->ctx['civil'], $this->ctx['mallaCivil']);
 
-        $permitidas = [$this->ctx['sw']->id];
-        $this->assertSame([], $this->servicio()->antecedentes('Matemática I', $this->ctx['sw']->id, null, $permitidas));
+        $this->assertSame([], $this->lista('Matemática I', $this->ctx['sw']->id, [$this->ctx['sw']->id]));
 
         // Sin restricción de alcance (Superusuario) sí se ve.
-        $this->assertCount(1, $this->servicio()->antecedentes('Matemática I', $this->ctx['sw']->id, null, null));
+        $this->assertCount(1, $this->lista('Matemática I', $this->ctx['sw']->id, null));
     }
 
     /** La pantalla responde y pagina sobre la consulta agrupada. */
@@ -184,6 +198,57 @@ class HistorialEquivalenciasTest extends TestCase
                 ->has('filas.data', 1)
                 ->where('filas.data.0.curso_usil', 'Cálculo de una variable')
                 ->where('filas.data.0.veces', 1));
+    }
+
+    /** Criterio dividido: el mismo curso de origen resuelto con dos cursos USIL distintos. */
+    public function test_el_toggle_lista_solo_los_cursos_con_criterio_dividido(): void
+    {
+        $algebra = $this->cursoEn($this->ctx['mallaSw'], 'SW-2', 'Álgebra lineal');
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+        $this->equivalencia('Matemática I', $algebra, $this->ctx['sw'], $this->ctx['mallaSw']);
+        // Criterio único: siempre al mismo destino. No debe aparecer.
+        $this->equivalencia('Física I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+
+        $filas = $this->servicio()->consulta(['solo_divergentes' => true], null)->get();
+
+        $this->assertSame(['Matemática I', 'Matemática I'], $filas->pluck('origen_nombre')->all());
+        $this->assertSame([2, 2], $filas->pluck('criterios')->map(fn ($c) => (int) $c)->all());
+    }
+
+    /** Un cambio de plan crea ids nuevos para los mismos cursos: eso no es divergencia. */
+    public function test_dos_planes_de_la_misma_carrera_no_son_divergencia(): void
+    {
+        $mallaNueva = MallaCurricular::create([
+            'carrera_id' => $this->ctx['sw']->id, 'anio' => 2027, 'version' => 'B',
+            'origen_carga' => 'manual', 'usuario_id' => $this->ctx['admin']->id,
+        ]);
+        Ciclo::create(['malla_id' => $mallaNueva->id, 'numero' => 1]);
+        // Mismo código que en el plan anterior, id distinto.
+        $calculoV2 = $this->cursoEn($mallaNueva, $this->ctx['calculo']->codigo, 'Cálculo de una variable');
+
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+        $this->equivalencia('Matemática I', $calculoV2, $this->ctx['sw'], $mallaNueva);
+
+        $this->assertCount(0, $this->servicio()->consulta(['solo_divergentes' => true], null)->get());
+    }
+
+    /** Entre carreras destino la malla es otra: divergir ahí es lo esperado. */
+    public function test_dos_carreras_destino_distintas_no_son_divergencia(): void
+    {
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+        $this->equivalencia('Matemática I', $this->ctx['topografia'], $this->ctx['civil'], $this->ctx['mallaCivil']);
+
+        $this->assertCount(0, $this->servicio()->consulta(['solo_divergentes' => true], null)->get());
+    }
+
+    /** Inertia serializa `false` como la cadena "false", que sin castear es truthy en PHP. */
+    public function test_el_toggle_apagado_no_filtra_aunque_llegue_como_cadena(): void
+    {
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+
+        $this->actingAs($this->ctx['coord'])->get('/simulaciones/historico?solo_divergentes=false')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('filas.data', 1));
     }
 
     /**
@@ -212,5 +277,24 @@ class HistorialEquivalenciasTest extends TestCase
         $this->actingAs($this->ctx['coord'])
             ->getJson('/simulaciones/antecedentes?curso=X&carrera_usil_id='.$this->ctx['civil']->id)
             ->assertForbidden();
+    }
+
+    /** Cuántos cursos USIL distintos se han usado para este mismo curso de origen. */
+    public function test_el_panel_informa_cuantos_criterios_hay(): void
+    {
+        $algebra = $this->cursoEn($this->ctx['mallaSw'], 'SW-2', 'Álgebra lineal');
+        $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);
+        $this->equivalencia('Matemática I', $algebra, $this->ctx['sw'], $this->ctx['mallaSw']);
+
+        $url = '/simulaciones/antecedentes?curso='.urlencode('Matemática I');
+
+        $this->actingAs($this->ctx['coord'])->getJson($url.'&carrera_usil_id='.$this->ctx['sw']->id)
+            ->assertOk()
+            ->assertJsonPath('criterios', 2);
+
+        // Sin carrera destino no hay contexto: no se afirma nada.
+        $this->actingAs($this->ctx['coord'])->getJson($url)
+            ->assertOk()
+            ->assertJsonPath('criterios', null);
     }
 }

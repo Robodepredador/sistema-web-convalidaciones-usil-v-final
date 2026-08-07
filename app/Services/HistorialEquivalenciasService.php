@@ -91,6 +91,30 @@ class HistorialEquivalenciasService
     }
 
     /**
+     * Pares (curso de origen, carrera destino) resueltos con más de un curso USIL:
+     * criterio dividido.
+     *
+     * Se cuenta por `cu.codigo` y no por `curso_usil_id` porque `cursos_usil` cuelga de
+     * ciclo → malla → plan de estudio: un cambio de plan crea ids nuevos para los mismos
+     * cursos, y por id cada actualización de malla parecería una divergencia.
+     *
+     * Agrupa por nombre exacto y no por similitud como `antecedentes()`, y es
+     * deliberado: así la pantalla conserva paginación y filtros en SQL. La colación
+     * `utf8mb4_unicode_ci` ya une mayúsculas y tildes; lo que se escapa son los
+     * numerales («Matemática 1» vs «Matemática I»), de modo que la pantalla puede
+     * quedarse CORTA —nunca de más— frente al panel del evaluador.
+     */
+    private function divergentes(?array $carrerasPermitidas): Builder
+    {
+        return $this->base($carrerasPermitidas)
+            ->selectRaw('sd.curso_origen_nombre as nombre,
+                s.carrera_usil_id as carrera,
+                COUNT(DISTINCT cu.codigo) as criterios')
+            ->groupBy('sd.curso_origen_nombre', 's.carrera_usil_id')
+            ->havingRaw('COUNT(DISTINCT cu.codigo) > 1');
+    }
+
+    /**
      * Antecedentes de UN curso de origen, para el panel del espacio de trabajo.
      *
      * El nombre se compara con `similitud()` —el mismo comparador que ya sustenta
@@ -98,7 +122,18 @@ class HistorialEquivalenciasService
      * escribió cada evaluador: no hay id de curso externo al que agarrarse
      * (`curso_externo_id` viene nulo en todo el histórico).
      *
-     * @return array<int,array<string,mixed>> ordenados por afinidad de contexto
+     * `criterios` cuenta cuántos cursos USIL distintos se han usado para este mismo
+     * curso DENTRO de la carrera destino preguntada: ≥2 significa que no hay criterio
+     * establecido. Es `null` si no se pregunta por una carrera concreta, porque entre
+     * carreras la malla es otra y divergir ahí es lo normal. Se cuenta por `codigo` y
+     * no por id: un cambio de plan crea ids nuevos para los mismos cursos.
+     *
+     * La otra mitad de esta misma regla vive en `divergentes()`, que la resuelve en SQL
+     * para la pantalla. Las dos definiciones deben leerse juntas.
+     *
+     * La lista va ordenada por afinidad de contexto.
+     *
+     * @return array{antecedentes: array<int,array<string,mixed>>, criterios: int|null}
      */
     public function antecedentes(
         string $nombreOrigen,
@@ -108,7 +143,7 @@ class HistorialEquivalenciasService
     ): array {
         $nombreOrigen = trim($nombreOrigen);
         if ($nombreOrigen === '') {
-            return [];
+            return ['antecedentes' => [], 'criterios' => null];
         }
 
         // 1) Qué nombres del histórico son este mismo curso.
@@ -123,7 +158,7 @@ class HistorialEquivalenciasService
             ->values();
 
         if ($equivalentes->isEmpty()) {
-            return [];
+            return ['antecedentes' => [], 'criterios' => null];
         }
 
         // 2) Frecuencia de cada destino que se les dio.
@@ -137,7 +172,7 @@ class HistorialEquivalenciasService
         $afinidad = fn ($f) => ($carreraUsilId && (int) $f->carrera_usil_id === $carreraUsilId ? 2 : 0)
             + ($carreraExternaId && (int) $f->carrera_externa_id === $carreraExternaId ? 1 : 0);
 
-        return $filas
+        $lista = $filas
             ->sortByDesc(fn ($f) => [$afinidad($f), (int) $f->veces, (int) $f->confirmadas])
             ->map(fn ($f) => [
                 'curso_usil_id' => (int) $f->curso_usil_id,
@@ -152,8 +187,13 @@ class HistorialEquivalenciasService
                 'mismo_destino' => $carreraUsilId !== null && (int) $f->carrera_usil_id === $carreraUsilId,
                 'mismo_origen' => $carreraExternaId !== null && (int) $f->carrera_externa_id === $carreraExternaId,
             ])
-            ->values()
-            ->all();
+            ->values();
+
+        return [
+            'antecedentes' => $lista->all(),
+            'criterios' => $carreraUsilId === null ? null
+                : $lista->where('mismo_destino', true)->unique('codigo_usil')->count(),
+        ];
     }
 
     /**
@@ -162,13 +202,23 @@ class HistorialEquivalenciasService
      * Devuelve el Builder sin ejecutar para que quien llama decida entre paginar
      * (pantalla) y traer todo (exportación) sin duplicar los filtros.
      *
-     * @param  array{q?:string,institucion_id?:mixed,carrera_externa_id?:mixed,carrera_usil_id?:mixed,curso_usil_id?:mixed}  $filtros
+     * @param  array{q?:string,institucion_id?:mixed,carrera_externa_id?:mixed,carrera_usil_id?:mixed,curso_usil_id?:mixed,solo_divergentes?:bool}  $filtros
      */
     public function consulta(array $filtros, ?array $carrerasPermitidas): Builder
     {
         $q = trim((string) ($filtros['q'] ?? ''));
+        $divergentes = (bool) ($filtros['solo_divergentes'] ?? false);
 
         return $this->agregado($carrerasPermitidas)
+            // Apagado, la consulta es exactamente la de siempre: ni join ni columna extra.
+            ->when($divergentes, fn ($qq) => $qq
+                ->joinSub($this->divergentes($carrerasPermitidas), 'dv', fn ($j) => $j
+                    ->on('dv.nombre', '=', 'sd.curso_origen_nombre')
+                    ->on('dv.carrera', '=', 's.carrera_usil_id'))
+                ->addSelect('dv.criterios')
+                // MySQL con ONLY_FULL_GROUP_BY no deduce la dependencia funcional a
+                // través de la subconsulta, aunque (nombre, carrera) ya estén agrupados.
+                ->groupBy('dv.criterios'))
             // Un solo cuadro de búsqueda para los dos lados de la equivalencia:
             // el evaluador busca «Matemática» sin saber si es el nombre de origen
             // o el de la malla USIL.
@@ -179,8 +229,14 @@ class HistorialEquivalenciasService
             ->when($filtros['carrera_externa_id'] ?? null, fn ($qq, $v) => $qq->where('s.carrera_externa_id', $v))
             ->when($filtros['carrera_usil_id'] ?? null, fn ($qq, $v) => $qq->where('s.carrera_usil_id', $v))
             ->when($filtros['curso_usil_id'] ?? null, fn ($qq, $v) => $qq->where('sd.curso_usil_id', $v))
-            ->orderByDesc('veces')
-            ->orderByDesc('confirmadas')
-            ->orderBy('sd.curso_origen_nombre');
+            // Revisando divergencias manda lo más repartido, y las filas del mismo curso
+            // quedan contiguas para poder compararlas de un vistazo.
+            ->when($divergentes,
+                fn ($qq) => $qq->orderByDesc('dv.criterios')
+                    ->orderBy('sd.curso_origen_nombre')
+                    ->orderByDesc('veces'),
+                fn ($qq) => $qq->orderByDesc('veces')
+                    ->orderByDesc('confirmadas')
+                    ->orderBy('sd.curso_origen_nombre'));
     }
 }
