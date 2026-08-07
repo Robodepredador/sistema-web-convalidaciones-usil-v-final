@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\MallaExternaPlantillaExport;
+use App\Imports\MallaCursosImport;
 use App\Models\CursoExterno;
 use App\Models\MallaExterna;
 use App\Services\IAConvalidacionService;
@@ -9,10 +11,68 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MallaExternaController extends Controller
 {
     public function __construct(private IAConvalidacionService $ia) {}
+
+    /** Plantilla para transcribir la malla oficial sin pasar por IA. */
+    public function plantilla()
+    {
+        return Excel::download(new MallaExternaPlantillaExport, 'plantilla_cursos_malla_externa.xlsx');
+    }
+
+    /**
+     * Lee la plantilla llena y devuelve la lista de cursos.
+     *
+     * Sustituye a `extraerIA` como origen de la lista y **devuelve la misma forma**,
+     * de modo que la revisión en pantalla y `store()` no distinguen la fuente.
+     *
+     * `omitidas` es lo único que se añade frente a la IA: con un archivo que llena
+     * una persona, decir qué línea se descartó y por qué es la diferencia entre
+     * corregirlo y volver a intentarlo a ciegas.
+     */
+    public function previsualizarExcel(Request $request): JsonResponse
+    {
+        $request->validate([
+            'archivo' => ['required', 'file', 'mimes:xlsx,xls,csv,txt', 'max:5120'],
+        ]);
+
+        $import = new MallaCursosImport;
+        Excel::import($import, $request->file('archivo'));
+
+        $cursos = [];
+        $omitidas = [];
+
+        foreach ($import->filas as $i => $fila) {
+            // La cabecera ocupa la línea 1, así que la colección arranca en la 2.
+            $linea = $i + 2;
+            $nombre = trim((string) ($fila['nombre'] ?? ''));
+
+            if ($nombre === '') {
+                // Una fila del todo vacía es separación visual, no un error que reportar.
+                if (collect($fila)->filter(fn ($v) => trim((string) $v) !== '')->isNotEmpty()) {
+                    $omitidas[] = ['linea' => $linea, 'motivo' => 'Sin nombre de curso.'];
+                }
+
+                continue;
+            }
+
+            $codigo = trim((string) ($fila['codigo'] ?? ''));
+            $creditos = $fila['creditos'] ?? null;
+
+            // Mismos límites que aplica `store()` a la salida de la IA: el destino
+            // es la misma columna, así que se recorta aquí y no al guardar.
+            $cursos[] = [
+                'codigo' => $codigo === '' ? null : mb_substr($codigo, 0, 30),
+                'nombre' => mb_substr($nombre, 0, 200),
+                'creditos' => is_numeric($creditos) ? $creditos : null,
+            ];
+        }
+
+        return response()->json(['cursos' => $cursos, 'omitidas' => $omitidas]);
+    }
 
     /**
      * Extrae el catálogo de cursos desde un PDF de malla oficial usando IA.

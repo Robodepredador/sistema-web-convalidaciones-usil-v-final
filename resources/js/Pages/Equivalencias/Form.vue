@@ -78,6 +78,46 @@ const extraerConIA = async () => {
     }
 };
 
+// --- Carga sin IA -------------------------------------------------------------
+// La lista de cursos sale de la plantilla transcrita en vez de la extracción. Vuelca
+// en `cursosExtraidos`, la MISMA variable que llena la IA, así que la revisión del
+// paso 3 y el guardado no distinguen de dónde vino.
+const excel = ref(null);
+const omitidas = ref([]);
+
+const onExcel = (e) => { excel.value = e.target.files[0] ?? null; };
+
+const subirExcel = async () => {
+    if (!excel.value) { errorExtraccion.value = 'Selecciona el Excel de cursos.'; return; }
+    if (!formRecepcion.carrera_externa_id) { errorExtraccion.value = 'Selecciona primero la carrera externa.'; return; }
+
+    extrayendo.value = true;
+    errorExtraccion.value = '';
+    omitidas.value = [];
+
+    const formData = new FormData();
+    formData.append('archivo', excel.value);
+
+    try {
+        const { data } = await window.axios.post('/mallas-externas/previsualizar', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        cursosExtraidos.value = data.cursos || [];
+        omitidas.value = data.omitidas || [];
+
+        if (cursosExtraidos.value.length === 0) {
+            errorExtraccion.value = 'El archivo no tiene ningún curso con nombre.';
+        } else {
+            // No pasa por el paso 2: leer un Excel es inmediato, no hay nada que esperar.
+            paso.value = 3;
+        }
+    } catch (e) {
+        errorExtraccion.value = e.response?.data?.message || 'No se pudo leer el archivo.';
+    } finally {
+        extrayendo.value = false;
+    }
+};
+
 const guardarMallaOficial = () => {
     const formData = new FormData();
     formData.append('carrera_externa_id', formRecepcion.carrera_externa_id);
@@ -213,10 +253,28 @@ const guardarMallaOficial = () => {
                             <label class="mb-2 block text-sm font-medium text-slate-700">Malla Oficial (Formato PDF) <span class="text-red-500">*</span></label>
                             <input type="file" accept="application/pdf" @change="onArchivo" required
                                    class="w-full text-sm text-slate-500 file:mr-4 file:rounded-md file:border-0 file:bg-[#1F3864]/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#1F3864] hover:file:bg-[#1F3864]/20" />
+                            <p class="mt-1 text-xs text-slate-400">Se conserva siempre como fuente oficial.</p>
+                        </div>
+
+                        <!-- Carga sin IA: el usuario transcribe el PDF a la plantilla. -->
+                        <div class="pt-2 border-t border-slate-100">
+                            <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                                <label class="block text-sm font-medium text-slate-700">Cursos en Excel <span class="font-normal text-slate-400">(opcional)</span></label>
+                                <a href="/mallas-externas/plantilla" class="text-xs font-medium text-[#2E75B6] hover:underline">Descargar plantilla</a>
+                            </div>
+                            <input type="file" accept=".xlsx,.xls,.csv" @change="onExcel"
+                                   class="w-full text-sm text-slate-500 file:mr-4 file:rounded-md file:border-0 file:bg-[#2E75B6]/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#2E75B6] hover:file:bg-[#2E75B6]/20" />
+                            <p class="mt-1 text-xs text-slate-400">
+                                Transcribe la malla del PDF a la plantilla y súbela. Es la alternativa a la extracción con IA.
+                            </p>
                         </div>
                     </div>
 
-                    <div class="mt-10 flex justify-end">
+                    <div class="mt-10 flex flex-wrap items-center justify-end gap-3">
+                        <button @click="subirExcel" :disabled="!excel || !formRecepcion.carrera_externa_id || extrayendo"
+                                class="rounded-md border border-[#2E75B6] px-6 py-3 text-sm font-bold text-[#2E75B6] hover:bg-blue-50 disabled:opacity-50">
+                            Cargar desde Excel →
+                        </button>
                         <button @click="extraerConIA" :disabled="!formRecepcion.pdf || !formRecepcion.carrera_externa_id"
                                 class="rounded-md bg-[#7030A0] px-6 py-3 text-sm font-bold text-white shadow hover:bg-purple-800 disabled:opacity-50">
                             ✨ Procesar con IA →
@@ -238,10 +296,23 @@ const guardarMallaOficial = () => {
                         <span class="text-xs font-medium text-white bg-green-600 px-2.5 py-1 rounded-full">{{ cursosExtraidos.length }} cursos detectados</span>
                     </div>
                     
-                    <div class="mb-4 bg-slate-50 p-4 rounded-md border border-slate-200">
+                    <!-- Solo la IA deduce institución y carrera del documento. Con Excel no
+                         hay nada que deducir, así que el bloque no se muestra en vez de
+                         afirmar «desconocida» sobre datos que el usuario ya eligió arriba. -->
+                    <div v-if="datosExtraidos.institucion || datosExtraidos.carrera" class="mb-4 bg-slate-50 p-4 rounded-md border border-slate-200">
                         <p class="text-xs text-slate-500 uppercase tracking-wide">Info detectada del PDF</p>
                         <p class="font-medium text-slate-800 mt-1">{{ datosExtraidos.institucion?.nombre || 'Institución desconocida' }}</p>
                         <p class="text-sm text-slate-600">{{ datosExtraidos.carrera?.nombre || 'Carrera desconocida' }}</p>
+                    </div>
+
+                    <!-- Filas que el lector descartó, con su línea para poder corregirlas. -->
+                    <div v-if="omitidas.length" class="mb-4 rounded-md border border-amber-200 bg-amber-50 p-4">
+                        <p class="text-sm font-medium text-amber-900">
+                            Se omitieron {{ omitidas.length }} fila{{ omitidas.length === 1 ? '' : 's' }} del archivo
+                        </p>
+                        <ul class="mt-1 space-y-0.5 text-xs text-amber-800">
+                            <li v-for="(o, i) in omitidas" :key="i">Línea {{ o.linea }}: {{ o.motivo }}</li>
+                        </ul>
                     </div>
 
                     <div class="max-h-[400px] overflow-y-auto border border-slate-200 rounded-lg">

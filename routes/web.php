@@ -169,6 +169,11 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:mallas_externas.gestionar')->group(function () {
             Route::get('equivalencias', [EquivalenciaController::class, 'index'])->name('equivalencias.index');
             Route::get('equivalencias/crear', [EquivalenciaController::class, 'create'])->name('equivalencias.create');
+            // Carga sin IA: se baja la plantilla, se transcribe la malla oficial y se
+            // sube. `previsualizar` devuelve la misma forma que `extraer-ia`, así que
+            // la revisión en pantalla y el guardado son los mismos.
+            Route::get('mallas-externas/plantilla', [MallaExternaController::class, 'plantilla'])->name('mallas-externas.plantilla');
+            Route::post('mallas-externas/previsualizar', [MallaExternaController::class, 'previsualizarExcel'])->name('mallas-externas.previsualizar');
             Route::post('mallas-externas/extraer-ia', [MallaExternaController::class, 'extraerIA'])->name('mallas-externas.extraer-ia');
             Route::post('mallas-externas', [MallaExternaController::class, 'store'])->name('mallas-externas.store');
             // Récord académico externo: cursos de la carrera de origen
