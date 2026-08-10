@@ -2,26 +2,23 @@
 
 namespace App\Providers;
 
-use App\Models\Carrera;
-use App\Policies\CarreraPolicy;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
     /**
-     * Bootstrap any application services.
+     * Aquí se registraba una policy sobre Carrera que nunca llegó a invocarse:
+     * el control de acceso real lo hacen el middleware `permission` (qué puede
+     * hacer el rol) y AlcanceService (sobre qué datos). Se retiró junto con la
+     * clase para que la matriz de autorización tenga un solo sitio donde mirar.
      */
     public function boot(): void
     {
-        Gate::policy(Carrera::class, CarreraPolicy::class);
+        //
     }
 }

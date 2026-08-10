@@ -9,7 +9,9 @@ El detalle de lo entregado por sprint está más abajo, en las tablas de trazabi
 
 ## Decisiones técnicas confirmadas
 - **Base de datos:** MySQL 8 (motor InnoDB).
-- **Entorno local:** Laravel Sail (Docker) — paridad dev/QA/prod y escalabilidad.
+- **Entorno local:** PHP, MySQL y Node instalados en la máquina. Se usaba Docker (Sail);
+  se retiró en agosto de 2026 al confirmarse que el entorno de destino no lo tiene.
+- **Colas y caché:** MySQL. Se usaba Redis; sobraba para el volumen real del sistema.
 - **Auth:** sesión (Inertia) con tabla `usuarios` y hashing bcrypt en `password_hash`.
 
 ## Contenido entregado
@@ -32,8 +34,7 @@ El detalle de lo entregado por sprint está más abajo, en las tablas de trazabi
 El repositorio es un proyecto Laravel completo: se clona y se ejecuta, no hay que
 crear un esqueleto aparte ni copiar archivos dentro.
 
-**Requisitos:** PHP 8.2+, Composer 2, Node 20+, MySQL 8. Con Docker basta `docker compose up -d`
-(levanta app + MySQL 8 + Redis) y se omite instalar PHP/MySQL a mano.
+**Requisitos:** PHP 8.2+, Composer 2, Node 20+, MySQL 8 en la propia máquina.
 
 ```bash
 git clone https://github.com/Robodepredador/usil_convalidaciones.git
@@ -56,7 +57,8 @@ npm run dev             # Vite, en una terminal aparte
 php artisan serve       # o iniciar.bat en Windows (abre http://127.0.0.1:8080/login)
 ```
 
-> `.env.example` trae `DB_HOST=mysql` porque asume Docker. Fuera de Docker use `127.0.0.1`.
+> Crear antes la base vacía: `CREATE DATABASE convalidaciones_usil CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+> Para las pruebas hace falta además `convalidaciones_test` (ver `phpunit.xml`).
 
 ## Trabajo en equipo
 
@@ -74,13 +76,11 @@ CI (`.github/workflows/ci.yml`) vuelve a correr ambos, más `composer audit` y `
 
 ## Despliegue
 
-| Destino | Guía | Imagen |
-|---------|------|--------|
-| Servidor propio | `deploy/RUNBOOK.md` | `docker/php/Dockerfile` + `docker-compose.prod.yml` (Nginx + PHP-FPM + worker + MySQL + Redis) |
-| Railway (gestionado) | `deploy/RAILWAY.md` | `Dockerfile` de la raíz (Apache + worker en un contenedor) |
+**Apache 2.4 + PHP 8.2 + MySQL 8, sin contenedores.** El procedimiento completo está en
+[`deploy/RUNBOOK.md`](deploy/RUNBOOK.md); `DESPLIEGUE.md` resume qué lleva el paquete.
 
-La app necesita disco persistente para `storage/app` y un worker de colas vivo:
-sin ellos se pierden los archivos subidos y la carga masiva (RF-11) nunca procesa.
+La app necesita disco persistente para `storage/app` y un worker de colas vivo (por cron o
+systemd): sin ellos se pierden los archivos subidos y la carga masiva (RF-11) nunca procesa.
 Eso descarta las plataformas *serverless* (Vercel, Netlify), que no ofrecen ninguno de los dos.
 
 ## Trazabilidad con la documentación
@@ -114,7 +114,7 @@ npm run build   # producción
 | RF-08..12 | MallaImportController + Job ImportarMallaExcel + cargas_masivas + Mallas/Importar.vue, CargaEstado.vue |
 
 **Carga masiva (RF-08..12):** valida estructura antes de procesar (RF-08), corre en
-background vía colas Redis (RF-11), normaliza y distribuye en ciclos/cursos (RF-10) y
+background vía colas sobre MySQL (RF-11), normaliza y distribuye en ciclos/cursos (RF-10) y
 registra logs de éxito/fallo por línea (RF-12). La vista de estado consulta el progreso por sondeo.
 
 > Formato del Excel: encabezados `ciclo`, `codigo`, `nombre`, `creditos`.

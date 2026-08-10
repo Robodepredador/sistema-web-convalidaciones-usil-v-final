@@ -16,15 +16,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Detrás de un proxy TLS (Nginx en docker-compose.prod, el balanceador en
-        // Railway) el tráfico llega a la app como HTTP plano. Sin esto:
-        //   - url()/route() emitirían http:// bajo un dominio https → contenido
-        //     mixto y los assets de Vite bloqueados por el navegador;
-        //   - AuditoriaService registraría la IP del proxy en `ip_origen`, la
-        //     misma para todos, y la trazabilidad de RNF-08 dejaría de servir.
-        // Se confía en cualquier proxy porque en ambos despliegues el balanceador
-        // es el único camino de entrada: la app no se expone directamente.
-        $middleware->trustProxies(at: '*');
+        // NO se confía en ningún proxy. Aquí había `trustProxies(at: '*')`,
+        // necesario cuando la app vivía detrás de Nginx o del balanceador de
+        // Railway. El despliegue es ahora Apache sirviendo directamente y
+        // terminando TLS él mismo, así que ese ajuste dejó de hacer falta y pasó
+        // a ser un riesgo: confiando en cualquier origen, un cliente puede
+        // falsear la cabecera X-Forwarded-For y ensuciar el `ip_origen` de
+        // `auditoria_log`, que es la trazabilidad de RNF-08.
+        //
+        // Si algún día se pone un proxy o balanceador delante, hay que declararlo
+        // aquí con sus IP reales (ver deploy/RUNBOOK.md, §9).
 
         // RF-39 / RBAC: control de acceso por rol.
         $middleware->alias([

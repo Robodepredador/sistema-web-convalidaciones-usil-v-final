@@ -487,7 +487,8 @@ class MallaController extends Controller
             'estado' => 'pendiente',
         ]);
 
-        // Con QUEUE_CONNECTION=sync corre de inmediato; con redis, en segundo plano (RF-11).
+        // Con QUEUE_CONNECTION=sync corre de inmediato; con `database`, lo recoge
+        // el worker que el cron levanta cada minuto (RF-11, ver RUNBOOK §6).
         ImportarMallaExcel::dispatch($carga->id, $malla->id);
 
         return back()->with('status', 'Cursos importados desde el archivo.');

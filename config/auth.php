@@ -18,7 +18,6 @@ return [
 
     'defaults' => [
         'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
     /*
@@ -82,31 +81,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Resetting Passwords
+    | Recuperación de contraseña
     |--------------------------------------------------------------------------
     |
-    | These configuration options specify the behavior of Laravel's password
-    | reset functionality, including the table utilized for token storage
-    | and the user provider that is invoked to actually retrieve users.
+    | Aquí venía el bloque 'passwords' del esqueleto de Laravel, que apuntaba a
+    | una tabla `password_reset_tokens` que este proyecto NUNCA creó ni usó: la
+    | recuperación (RF-39) tiene su propia implementación en
+    | App\Http\Controllers\Auth\PasswordController, con las columnas
+    | `token_recuperacion` y `token_expira` de la tabla `usuarios`.
     |
-    | The expiry time is the number of minutes that each reset token will be
-    | considered valid. This security feature keeps tokens short-lived so
-    | they have less time to be guessed. You may change this as needed.
-    |
-    | The throttle setting is the number of seconds a user must wait before
-    | generating more password reset tokens. This prevents the user from
-    | quickly generating a very large amount of password reset tokens.
+    | Se retiró para que la configuración no describa algo que no existe. Si
+    | alguna vez se adopta el broker de Laravel, hay que reponerlo Y crear la
+    | tabla con `php artisan make:notifications-table`.
     |
     */
-
-    'passwords' => [
-        'users' => [
-            'provider' => 'users',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
-            'throttle' => 60,
-        ],
-    ],
 
     /*
     |--------------------------------------------------------------------------

@@ -1,88 +1,251 @@
-# Runbook de Despliegue — Sistema de Convalidaciones USIL
+# Runbook de despliegue — Sistema de Convalidaciones USIL
 
-Procedimiento para desplegar a producción y revertir en caso de falla.
+Procedimiento de instalación, actualización y reversión sobre **Apache 2.4 + PHP 8.2 + MySQL 8**, sin contenedores.
 
-## 1. Requisitos previos
-- Servidor con Docker y Docker Compose (o cPanel/VPS con PHP 8.2, MySQL 8, Redis).
-- DNS apuntando al servidor y certificado TLS (HTTPS obligatorio — RNF-01).
-- Secretos definidos: `APP_KEY`, credenciales de BD, credenciales SMTP, API key de IA.
+> Este runbook describía un despliegue con Docker Compose. Se reescribió el 10/08/2026 al confirmarse que TI no dispone de Docker: un procedimiento que nadie puede ejecutar es peor que ninguno. Con él salieron del proyecto `docker/`, ambos `docker-compose*.yml` y la configuración de Railway.
 
-## 2. Preparación
+---
+
+## 1. Requisitos — verificar ANTES de nada
+
+Ejecutar en el servidor y comprobar cada salida. **Si PHP es 8.1 o anterior, la instalación no puede continuar**: `composer install` aborta y la aplicación no arranca.
+
 ```bash
-git clone <repo> && cd usil-convalidaciones
-git checkout v1.0.0                      # release etiquetado
-cp deploy/.env.production.example .env   # completar todos los __definir__
+php -v && php -m && mysql --version && apache2 -v
 ```
 
-> Complete **todos** los `__definir__` antes de continuar. En particular el bloque
-> `MAIL_*`: sin él, `MAIL_MAILER` cae a `log` y los correos de acceso nunca se envían
-> — el flujo aparenta funcionar y falla en silencio. Desde la auditoría del 3 de agosto
-> el correo es el **único** canal de entrega de las contraseñas temporales (del personal
-> y del postulante), así que sin SMTP no se puede dar de alta a nadie.
+| Requisito | Mínimo | Cómo se comprueba |
+|---|---|---|
+| PHP | **8.2** | `php -v` |
+| Extensiones PHP | `pdo_mysql` `mbstring` `gd` `zip` `bcmath` `exif` `fileinfo` `openssl` `ctype` `json` `tokenizer` `xml` | `php -m` |
+| MySQL | 8.0, motor InnoDB | `mysql --version` |
+| Apache | 2.4 con `mod_rewrite` | `apache2ctl -M \| grep rewrite` |
+| Certificado TLS | válido para el dominio | — |
+| Cuenta MySQL | permisos `CREATE`, `ALTER`, `INDEX`, `DROP` sobre su base | las 60 migraciones los necesitan |
 
-## 3. Primera instalación (solo una vez)
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec app php artisan key:generate
+`php.ini` — la carga masiva acepta Excel de hasta 10 MB:
+
+```ini
+upload_max_filesize = 12M
+post_max_size = 12M
+memory_limit = 512M
+max_execution_time = 120
 ```
 
-> **`key:generate` se ejecuta UNA SOLA VEZ, en la instalación inicial.**
-> `APP_KEY` cifra las API keys guardadas en la tabla `configuraciones`.
-> Regenerarla en un redespliegue las vuelve indescifrables y cierra todas las
-> sesiones activas. Respalde el valor junto con los demás secretos.
+**No hacen falta** Docker, Redis, Node ni Composer en el servidor: el paquete de entrega ya lleva `vendor/` instalado y `public/build` compilado.
 
-## 4. Despliegue y actualizaciones
+---
+
+## 2. Estructura y permisos
+
+Desplegar el paquete en, por ejemplo, `/var/www/convalidaciones`.
+
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
-docker compose -f docker-compose.prod.yml exec app php artisan db:seed --force
-docker compose -f docker-compose.prod.yml exec app php artisan config:cache
-docker compose -f docker-compose.prod.yml exec app php artisan route:cache
-docker compose -f docker-compose.prod.yml exec app php artisan view:cache
+cd /var/www/convalidaciones
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
 ```
 
-> El servicio `worker` ya queda activo para la carga masiva e IA (RF-11).
-> `db:seed` es idempotente y **no** crea cuentas demo cuando `APP_ENV=production`.
+> `storage/` guarda los documentos de los postulantes (récords, DNI, sílabos) y los PDF de mallas externas. **Debe quedar fuera del alcance del navegador**: solo `public/` se publica. El `DocumentRoot` del paso 4 se encarga de eso.
 
-## 5. Verificación post-despliegue (smoke test)
-- [ ] La página de login responde por HTTPS.
-- [ ] Inicio de sesión con el admin inicial (`admin@usil.edu.pe`) y cambio de contraseña forzado.
-- [ ] **No existe ninguna cuenta `*.demo@usil.edu.pe` activa** (ver §6).
-- [ ] Registrar una malla externa oficial y verificar que sus cursos se listan.
-- [ ] Generar una simulación y descargar su PDF.
-- [ ] Confirmar una convalidación y verificar la numeración del memorándum.
-- [ ] Registrar un postulante y confirmar que **recibe el correo** con sus credenciales.
-- [ ] Crear un usuario de prueba con perfil **distinto de Superusuario**, entrar con él y
-      completar el cambio de contraseña forzado (RF-42). La contraseña temporal llega por
-      correo: en producción ya **no** se muestra en pantalla.
-- [ ] `docker compose ... logs worker` muestra el worker activo.
+---
 
-## 6. Checklist de seguridad
-- [ ] `APP_DEBUG=false` y `APP_ENV=production`.
-- [ ] `SESSION_SECURE_COOKIE=true` y el sitio responde solo por HTTPS.
-- [ ] Secretos fuera del repositorio; `APP_KEY` respaldada.
-- [ ] Sin cuentas demo:
-      ```sql
-      SELECT email, activo FROM usuarios WHERE email LIKE '%.demo@%';
-      -- Debe devolver 0 filas, o todas con activo = 0.
-      ```
-- [ ] Backups de BD programados y probados (restauración verificada, no solo el dump).
-- [ ] Cabeceras de seguridad activas (Nginx) y TLS válido.
+## 3. Configuración
 
-## 7. Rollback
 ```bash
-# Volver a la versión anterior estable
-git checkout v0.9.0
-docker compose -f docker-compose.prod.yml up -d --build
-# Si una migración falló:
-docker compose -f docker-compose.prod.yml exec app php artisan migrate:rollback
-# Restaurar respaldo de BD si fuera necesario.
+cp deploy/.env.production.example .env
 ```
 
-> No ejecute `key:generate` durante un rollback.
+Completar **todos** los `__definir__`. Tres avisos que ahorran horas de diagnóstico:
 
-## 8. Operación continua
-- Backups diarios de BD y de los PDF (simulaciones/memorándums).
-- Rotación de logs (`LOG_CHANNEL=daily`) y del worker.
-- Monitoreo de disponibilidad (objetivo SLA 99,5% — RNF-07).
-- `auditoria_log` crece sin purga automática: revise su tamaño trimestralmente.
+- **`MAIL_*` es obligatorio.** El correo es el único canal por el que se entregan las contraseñas, del personal y de los postulantes. Sin SMTP el sistema avisa en pantalla de que no se envió, pero nadie podrá iniciar sesión. Salida de emergencia: §8.
+- **`SESSION_SECURE_COOKIE`** se entrega en `false`. Con HTTPS activo hay que ponerlo en `true`. Al revés —`true` sirviendo por HTTP— la cookie no viaja y **nadie puede iniciar sesión**, sin ningún mensaje que lo explique.
+- **`APP_KEY` se genera UNA sola vez** y se respalda. Cifra las API keys guardadas en `configuraciones`; regenerarla las vuelve indescifrables y cierra todas las sesiones.
+
+```bash
+php artisan key:generate      # SOLO en la instalación inicial
+```
+
+---
+
+## 4. Apache
+
+```apache
+<VirtualHost *:443>
+    ServerName convalidaciones.usil.edu.pe
+    DocumentRoot /var/www/convalidaciones/public
+
+    SSLEngine on
+    SSLCertificateFile      /ruta/al/certificado.crt
+    SSLCertificateKeyFile   /ruta/a/la/clave.key
+
+    <Directory /var/www/convalidaciones/public>
+        AllowOverride All          # imprescindible: public/.htaccess trae el reescrito
+        Require all granted
+        Options -Indexes
+    </Directory>
+
+    # Cabeceras de seguridad (requiere mod_headers).
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set Strict-Transport-Security "max-age=31536000"
+
+    ErrorLog  ${APACHE_LOG_DIR}/convalidaciones-error.log
+    CustomLog ${APACHE_LOG_DIR}/convalidaciones-access.log combined
+</VirtualHost>
+
+# Todo el tráfico por HTTPS.
+<VirtualHost *:80>
+    ServerName convalidaciones.usil.edu.pe
+    Redirect permanent / https://convalidaciones.usil.edu.pe/
+</VirtualHost>
+```
+
+```bash
+a2enmod rewrite ssl headers && systemctl reload apache2
+```
+
+---
+
+## 5. Instalación inicial
+
+```bash
+php artisan migrate --force
+php artisan db:seed --force
+php artisan storage:link
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
+`db:seed` deja el sistema operable: 8 perfiles con su matriz de permisos, 206 instituciones de origen licenciadas por SUNEDU, 9 facultades y 40 programas de USIL, sedes y modalidades. **No crea cuentas demo con `APP_ENV=production`.**
+
+> **El administrador inicial se crea con una contraseña aleatoria que se imprime UNA vez, en esa salida.** Anótela antes de cerrar la terminal. Si se pierde, se regenera con `php artisan usuario:password admin@usil.edu.pe`.
+
+**Tarea del día 1, en la aplicación:** el coordinador carga la malla curricular de cada carrera destino. Sin plan de estudios cargado no se puede evaluar ninguna convalidación — el sistema lo dice, pero conviene no descubrirlo con el primer postulante delante.
+
+---
+
+## 6. Worker de la carga masiva — imprescindible
+
+La importación de mallas por Excel (RF-11) corre en segundo plano. **Sin worker, las importaciones quedan encoladas para siempre y la pantalla se queda en «procesando».**
+
+Las colas van sobre MySQL: no hace falta Redis.
+
+### Opción A — cron (por defecto)
+
+```cron
+* * * * * cd /var/www/convalidaciones && php artisan queue:work --stop-when-empty --max-time=55 >> storage/logs/worker.log 2>&1
+```
+
+Procesa lo pendiente y termina; el siguiente minuto vuelve a arrancar. Una importación puede tardar hasta 60 s en empezar: para este uso es irrelevante.
+
+### Opción B — systemd (si se pueden ejecutar servicios)
+
+```ini
+# /etc/systemd/system/convalidaciones-worker.service
+[Unit]
+Description=Worker de colas — Convalidaciones USIL
+After=mysql.service
+
+[Service]
+User=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/convalidaciones
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --timeout=600
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl enable --now convalidaciones-worker
+```
+
+---
+
+## 7. Verificación posterior (smoke test)
+
+- [ ] La página de login responde **por HTTPS** y el HTTP redirige.
+- [ ] Los estilos y el JavaScript cargan (si la página se ve sin formato, falta `public/build`).
+- [ ] Inicio de sesión con `admin@usil.edu.pe` y **cambio de contraseña forzado**.
+- [ ] `SELECT email FROM usuarios WHERE email LIKE '%.demo@%';` devuelve **0 filas**.
+- [ ] Crear un usuario de prueba con perfil distinto de Superusuario: **debe llegar el correo** con sus credenciales. Si la pantalla avisa de que no se envió, revisar `MAIL_*` antes de seguir.
+- [ ] Registrar una institución y su malla externa; el PDF adjunto se descarga desde la aplicación (no por URL directa: está fuera de `public/`).
+- [ ] Importar una malla por Excel y comprobar que **el progreso avanza** (valida el worker del §6).
+- [ ] Generar una preconvalidación y descargar su PDF y su Excel.
+- [ ] Entrar al portal con un postulante y ver sus cursos en pantalla.
+
+## 8. Si el correo aún no está disponible
+
+El sistema no oculta el problema: al dar de alta a alguien, la pantalla dice si el envío no salió. Para entregar una contraseña a mano:
+
+```bash
+php artisan usuario:password correo@usil.edu.pe
+```
+
+Genera una temporal, la imprime y obliga a cambiarla en el primer acceso. Sirve para personal y para postulantes. **Es un apaño para arrancar, no un sustituto del SMTP**: sin correo no hay recuperación de contraseña ni alta masiva.
+
+---
+
+## 9. Nota sobre proxies
+
+La aplicación **no confía en ninguna cabecera de proxy**, porque Apache sirve y termina TLS directamente. Si se coloca un balanceador o un proxy inverso delante, hay que declararlo en `bootstrap/app.php` con sus IP reales:
+
+```php
+$middleware->trustProxies(at: ['10.0.0.1', '10.0.0.2']);
+```
+
+Sin eso, `url()` generaría `http://` bajo un dominio HTTPS y `auditoria_log` registraría la IP del proxy para todos, perdiendo la trazabilidad de RNF-08. **Nunca usar `'*'`**: permite falsear la IP de origen.
+
+---
+
+## 10. Actualizaciones
+
+```bash
+cd /var/www/convalidaciones
+php artisan down                       # modo mantenimiento
+git pull                               # o desplegar el paquete nuevo
+php artisan migrate --force
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan queue:restart              # el worker recarga el código nuevo
+php artisan up
+```
+
+> **`db:seed` NO se ejecuta en las actualizaciones**, solo en la instalación inicial. Los catálogos ya están y volver a sembrarlos no aporta nada.
+
+---
+
+## 11. Reversión
+
+```bash
+php artisan down
+git checkout <etiqueta-anterior>       # p. ej. v1.0.0
+php artisan migrate:rollback --step=1  # SOLO si la actualización trajo migraciones
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan queue:restart
+php artisan up
+```
+
+- **No ejecutar `key:generate` durante una reversión**: invalidaría las API keys cifradas y las sesiones.
+- Si una migración destruyó datos, restaurar el respaldo del §12 antes de volver a levantar.
+
+---
+
+## 12. Operación continua
+
+- **Respaldo diario** de la base, retención 30 días. Probar la **restauración**, no solo el volcado.
+- **Respaldar `storage/app`**: ahí viven los documentos de los postulantes y los PDF de mallas. No están en la base.
+- Rotación de logs (`LOG_CHANNEL=daily`).
+- `auditoria_log` crece sin purga automática: revisar su tamaño cada trimestre.
+- Revisar `failed_jobs` periódicamente: una importación fallida deja rastro ahí.
+
+---
+
+## 13. Estado de seguridad conocido
+
+Documentado en `docs/Auditoria-Entrega-TI-2026-08-10.md`:
+
+- `composer audit` reporta **3 advisories de `laravel/framework`**, sin parche en la rama 11.x. Uno no tiene exposición (la aplicación no usa URLs firmadas); el otro —inyección CRLF en la regla `email`— **está mitigado en código** (`App\Rules\Correo`).
+- Por eso `composer.json` conserva `"advisories": {"block": false}`: activarlo haría fallar `composer install`. Retirarlo cuando se resuelva la versión del framework.
+- El motor de IA se entrega **apagado**. Encenderlo transfiere datos personales a un proveedor externo fuera del país (Ley N.° 29733) y **exige autorización escrita del área legal**.
