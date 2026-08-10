@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Correo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -16,7 +17,7 @@ class RestablecerPasswordRequest extends FormRequest
     {
         return [
             'token' => ['required', 'string'],
-            'email' => ['required', 'email', 'max:150'],
+            'email' => Correo::reglas(),
             'password' => [
                 'required', 'confirmed',
                 Password::min(8)->letters()->numbers()->mixedCase()->symbols(),

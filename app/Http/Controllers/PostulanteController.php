@@ -9,6 +9,7 @@ use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\Simulacion;
 use App\Models\User;
+use App\Rules\Correo;
 use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
 use App\Support\EntregaCredenciales;
@@ -666,7 +667,7 @@ class PostulanteController extends Controller
             'fecha_nacimiento' => ['nullable', 'date', 'before:-15 years', 'after:-100 years'],
             'genero' => ['nullable', 'in:masculino,femenino,otro,no_especifica'],
             'nacionalidad' => ['nullable', 'string', 'max:60', 'regex:'.self::RE_NOMBRE],
-            'email' => [$borrador ? 'nullable' : 'required', 'email', 'max:150',
+            'email' => [...Correo::reglas(! $borrador),
                 // El correo es la identidad de acceso al portal: único entre postulantes activos.
                 Rule::unique('postulantes', 'email')->ignore($id)->whereNull('deleted_at')],
             'telefono' => ['nullable', 'string', 'regex:'.self::RE_TELEFONO],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Correo;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUsuarioRequest extends FormRequest
@@ -15,7 +16,7 @@ class StoreUsuarioRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:150', 'unique:usuarios,email'],
+            'email' => [...Correo::reglas(), 'unique:usuarios,email'],
             'rol_id' => ['required', 'exists:roles,id'],
             'carreras' => ['array'],            // alcance carrera (Coordinador/Director)
             'carreras.*' => ['integer', 'exists:carreras,id'],

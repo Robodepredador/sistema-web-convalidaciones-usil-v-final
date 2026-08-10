@@ -130,7 +130,9 @@ Problemas adicionales del mismo método:
 
 ### B-06 · 24 advisories de seguridad en dependencias PHP
 
-`composer audit` reporta **24 advisories que afectan a 5 paquetes**. `composer.lock` está congelado desde el 9 de julio de 2026.
+> **ESTADO 10/08/2026 — 21 de 24 cerrados.** Ver «Resolución» al final de este apartado.
+
+`composer audit` reportaba **24 advisories que afectaban a 5 paquetes**. `composer.lock` estaba congelado desde el 9 de julio de 2026.
 
 | Paquete | Severidad | Relevancia para este sistema |
 |---|---|---|
@@ -148,7 +150,31 @@ Agravante: [`composer.json`](../composer.json) contiene
 
 Esto **desactiva a propósito el bloqueo por advisories** de Composer. TI debería saber que existe y por qué.
 
-**Corrección:** `composer update` sobre las cinco dependencias, volver a correr la suite, y retirar la política `block: false` (o documentar formalmente por qué se mantiene).
+#### Resolución
+
+Cuatro de los cinco paquetes tenían el parche **dentro de los constraints ya existentes**. El riesgo que se había anticipado —que PHPSpreadsheet obligara a romper `maatwebsite/excel`— no se materializó: la corrección de sus tres altas está en la 1.30.6, que cabe en el `^1.30.4` que ese paquete exige.
+
+| Paquete | De → a | Advisories cerrados |
+|---|---|---|
+| `phpoffice/phpspreadsheet` | 1.30.5 → 1.30.6 | 3 altas |
+| `guzzlehttp/guzzle` | 7.14.0 → 7.15.3 | 1 alta + 4 medias |
+| `dompdf/dompdf` | 3.1.5 → 3.1.6 | 4 medias + 2 bajas |
+| `league/commonmark` | 2.8.2 → 2.9.1 | 4 altas + 2 medias |
+
+**Quedan 3 advisories, todos de `laravel/framework`.** Solo se corrigen en la **12.60+**: la rama 11.x no recibió el parche, lo que indica que ya está fuera de soporte de seguridad. Se comprobó que Laravel 12.65 es alcanzable sin ningún conflicto de dependencias, pero subir es un salto de versión mayor y agrava la desviación de especificación ya escalada (E-1). **Decisión tomada: permanecer en la 11.54 y mitigar en código.**
+
+Exposición real de lo que queda:
+
+| Advisory | Severidad | Exposición | Mitigación |
+|---|---|---|---|
+| Temporary Signed URL Path Confusion | media | **Ninguna.** La aplicación no usa URLs firmadas en ningún punto (verificado por búsqueda sobre `app/` y `routes/`) | No aplica |
+| CRLF injection en la regla `email` (2 entradas del mismo fallo) | **alta** | **Real.** La regla se aplica en login, recuperación de contraseña, alta de usuarios y registro de postulantes, y el sistema envía correo a direcciones que escribe el usuario | **Corregida en código** |
+
+Sobre la mitigación del CRLF: se midió el comportamiento real antes de escribirla. Los saltos de línea sueltos ya los rechaza la regla `email`; el vector que **sí pasa** es la parte local entrecomillada — `"ana\r\n"@usil.edu.pe`. `App\Rules\Correo` rechaza todo carácter de control (C0 y DEL) en los siete puntos donde se valida un correo. Se prefirió esto a `email:rfc,strict`, que también lo bloquea pero de paso rechaza direcciones inusuales aunque válidas.
+
+`tests/Feature/CorreoSinInyeccionTest.php` ataca el vector real y además **afirma que sin la mitigación pasaría**: si algún día se actualiza Laravel, esa prueba avisará de que la defensa ya es redundante.
+
+**Pendiente:** `composer.json` conserva `"advisories": {"block": false}` mientras esos 3 sigan vivos. Activarlo haría fallar `composer install` en el servidor de TI. Debe retirarse en cuanto se resuelva el asunto de la versión de Laravel (E-1).
 
 ---
 

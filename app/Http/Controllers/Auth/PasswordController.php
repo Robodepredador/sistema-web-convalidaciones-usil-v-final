@@ -7,6 +7,7 @@ use App\Http\Requests\CambioPasswordRequest;
 use App\Http\Requests\RestablecerPasswordRequest;
 use App\Mail\RecuperarPasswordMail;
 use App\Models\User;
+use App\Rules\Correo;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class PasswordController extends Controller
     public function enviarEnlace(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'email' => ['required', 'email', 'max:150'],
+            'email' => Correo::reglas(),
         ]);
 
         $user = User::where('email', $datos['email'])->where('activo', true)->first();

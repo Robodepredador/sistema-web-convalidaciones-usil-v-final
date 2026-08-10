@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Correo;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoginRequest extends FormRequest
@@ -14,7 +15,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:150'],
+            'email' => Correo::reglas(),
             'password' => ['required', 'string'],
         ];
     }

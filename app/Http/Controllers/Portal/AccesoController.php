@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\Postulante;
+use App\Rules\Correo;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class AccesoController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => Correo::reglas(),
             'password' => ['required', 'string'],
         ]);
 
