@@ -40,6 +40,11 @@ max_execution_time = 120
 
 Desplegar el paquete en, por ejemplo, `/var/www/convalidaciones`.
 
+> El paquete se construye con `bash deploy/empaquetar.sh`, que parte de un clon
+> limpio del repositorio, instala las dependencias sin las de desarrollo, compila
+> el frontend y **verifica que no viaje `.env`, `backups/` ni ningún caché de
+> configuración con credenciales dentro**. Si algo falta o algo sobra, aborta.
+
 ```bash
 cd /var/www/convalidaciones
 chown -R www-data:www-data storage bootstrap/cache
