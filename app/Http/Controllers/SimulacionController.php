@@ -237,6 +237,8 @@ class SimulacionController extends Controller
         ]);
 
         $carreraId = (int) $datos['carrera_usil_id'];
+        AlcanceService::autorizarCarrera($request->user(), $carreraId);
+
         $pool = $this->engine->poolCursosUsil($carreraId);
         // Con la carrera destino se aplican también sus reglas propias de no convalidables.
         $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool, 0.55, $carreraId);
@@ -270,6 +272,10 @@ class SimulacionController extends Controller
             'cursos' => ['array'],
             'cursos.*' => ['string'],
         ]);
+
+        // El pool de cursos de una carrera ajena no se filtra ni siquiera para
+        // pedir una sugerencia: el id viaja en el cuerpo de la petición.
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
 
         if (! $this->ia->disponible()) {
             return response()->json(['message' => 'IA no configurada. Define la API key en .env.'], 422);
@@ -339,6 +345,15 @@ class SimulacionController extends Controller
             return response()->json(['message' => 'Indica de qué postulante es el documento: sin eso no se puede '
                 .'comprobar su consentimiento para el tratamiento de datos personales.'], 422);
         }
+
+        // El alcance se comprueba ANTES que el consentimiento: `documento_id`
+        // llega por el cuerpo de la petición, así que sin esto un evaluador
+        // restringido a una carrera podía recorrer identificadores y extraer el
+        // récord íntegro —nombre, documento y notas— de cualquier postulante del
+        // sistema, y de paso enviarlo al proveedor de IA. Es la misma puerta que
+        // `verDocumento()` ya cerraba; aquí faltaba.
+        AlcanceService::autorizarPostulante($request->user(), $dueno);
+
         if (! $dueno->tieneConsentimientoDatos()) {
             return response()->json(['message' => 'El postulante no tiene registrado su consentimiento para el '
                 .'tratamiento de datos personales. Regístralo en su expediente antes de usar la extracción automática, '
@@ -788,13 +803,12 @@ class SimulacionController extends Controller
     /**
      * Renderiza el PDF de preconvalidación SIN comprobar permisos.
      *
-     * No está enrutado: cada punto de entrada autoriza a su manera antes de
-     * llamarlo, porque los criterios no coinciden. El personal se filtra por
-     * alcance de carrera (autorizarLectura); el postulante, por propiedad del
-     * expediente y convalidación confirmada (Portal\PreconvalidacionController).
-     * Al postulante se le sirve 'inline' para que lo vea en el navegador.
+     * No está enrutado: quien lo llama autoriza antes. Hoy solo lo hace el
+     * personal, filtrado por alcance de carrera (autorizarLectura). El portal
+     * del postulante lo usaba con su propio criterio de propiedad; dejó de
+     * hacerlo cuando la entrega del documento oficial salió del sistema.
      */
-    public function renderPdf(Simulacion $simulacion, string $disposition = 'attachment')
+    private function renderPdf(Simulacion $simulacion, string $disposition = 'attachment')
     {
         // Evita que avisos de PHP 8.5 (p. ej. "null como offset" al cargar
         // relaciones con FK nula) se filtren y corrompan el binario del PDF.

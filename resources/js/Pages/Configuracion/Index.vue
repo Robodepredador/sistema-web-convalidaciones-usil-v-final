@@ -96,6 +96,18 @@ const probar = async () => {
                     </span>
                 </div>
 
+                <!-- Sin esta autorización el sistema se entrega con la IA apagada. -->
+                <div class="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-sm font-semibold text-amber-900">⚠️ Requiere autorización previa</p>
+                    <p class="mt-1 text-sm text-amber-800">
+                        Activar la IA envía el récord académico del postulante —nombre, documento de identidad y
+                        notas— a un proveedor externo fuera del país. Es una transferencia internacional de datos
+                        personales sujeta a la <strong>Ley N.° 29733</strong>: no la habilites sin la autorización
+                        escrita del área legal de USIL. Mientras esté apagada, el sistema propone las equivalencias
+                        por similitud de nombres, sin enviar nada fuera.
+                    </p>
+                </div>
+
                 <!-- Proveedor -->
                 <label class="mb-1 block text-sm font-medium text-slate-700">Proveedor</label>
                 <div class="mb-5 grid grid-cols-2 gap-3">

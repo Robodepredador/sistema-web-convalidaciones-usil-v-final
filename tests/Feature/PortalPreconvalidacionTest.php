@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
-use App\Models\Convalidacion;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -22,9 +21,12 @@ use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * El postulante consulta el PDF de su preconvalidación desde el portal, pero
- * solo el suyo y no el de otro solicitante. Si la convalidación fue anulada,
- * el resultado ya no debe verse.
+ * El postulante consulta el resultado de su evaluación EN PANTALLA.
+ *
+ * Antes el portal servía el PDF de la preconvalidación. El área usuaria decidió
+ * (2026-08-10) que el postulante vea los cursos en la interfaz y que el
+ * documento oficial se entregue fuera del sistema, así que la ruta de descarga
+ * del portal desapareció. El personal sí conserva las suyas.
  */
 class PortalPreconvalidacionTest extends TestCase
 {
@@ -56,7 +58,7 @@ class PortalPreconvalidacionTest extends TestCase
     /** Postulante con acceso al portal y la contraseña ya cambiada. */
     private function postulante(string $doc): Postulante
     {
-        return Postulante::create([
+        $p = Postulante::create([
             'codigo' => 'POST-2026-'.$doc, 'tipo_documento' => 'DNI', 'numero_documento' => $doc,
             'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => $doc.'@example.com',
             'ciclo_postulacion' => '2026-1', 'institucion_origen_id' => $this->ctx['inst']->id,
@@ -65,8 +67,12 @@ class PortalPreconvalidacionTest extends TestCase
             'revision_estado' => 'aprobada', 'password_hash' => Hash::make('Temp#1234'),
             'acceso_habilitado' => true, 'debe_cambiar_password' => false,
         ]);
+        $p->destinos()->create(['carrera_id' => $this->ctx['carrera']->id]);
+
+        return $p;
     }
 
+    /** Simulación con un curso convalidado y otro descartado con motivo. */
     private function simulacion(Postulante $p): Simulacion
     {
         $sim = Simulacion::create([
@@ -82,96 +88,89 @@ class PortalPreconvalidacionTest extends TestCase
             'curso_origen_nombre' => 'Matemática I', 'clasificacion' => 'convalidable',
             'creditos_reconocidos' => 4, 'excluido' => false, 'origen' => 'manual',
         ]);
+        SimulacionDetalle::create([
+            'simulacion_id' => $sim->id, 'curso_usil_id' => null,
+            'curso_origen_nombre' => 'Inglés I', 'clasificacion' => 'no_convalidable',
+            'motivo' => 'Idiomas no se convalidan', 'creditos_reconocidos' => 0,
+            'excluido' => false, 'origen' => 'manual',
+        ]);
 
         return $sim;
     }
 
-    private function confirmar(Simulacion $sim, string $memo): void
-    {
-        Convalidacion::create([
-            'simulacion_id' => $sim->id, 'fecha_confirmacion' => now()->toDateString(),
-            'memorandum_numero' => $memo, 'estado' => Convalidacion::CONFIRMADA,
-            'usuario_id' => $this->ctx['user']->id,
-        ]);
-    }
-
-    public function test_confirmada_devuelve_el_pdf_en_linea(): void
+    /** Lo que sustituye a la descarga: el detalle viaja al portal. */
+    public function test_el_seguimiento_muestra_los_cursos_convalidados(): void
     {
         $p = $this->postulante('90000001');
-        $sim = $this->simulacion($p);
-        $this->confirmar($sim, 'MEMO-001');
+        $this->simulacion($p);
 
-        $r = $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}");
-
-        $r->assertOk();
-        $r->assertHeader('Content-Type', 'application/pdf');
-        // 'inline' es lo que hace que se vea en el navegador en vez de descargarse.
-        $this->assertStringStartsWith('inline;', $r->headers->get('Content-Disposition'));
-        $this->assertStringStartsWith('%PDF', $r->getContent());
+        $this->actingAs($p, 'postulante')->get('/portal/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('simulaciones', 1)
+                ->where('simulaciones.0.cursos', 1)
+                // Los créditos viajan como número JSON: 4.0 se serializa como 4.
+                ->where('simulaciones.0.creditos', 4)
+                ->has('simulaciones.0.convalidados', 1)
+                ->where('simulaciones.0.convalidados.0.origen', 'Matemática I')
+                ->where('simulaciones.0.convalidados.0.usil', 'Cálculo')
+                ->where('simulaciones.0.convalidados.0.creditos', 4));
     }
 
-    public function test_sin_convalidacion_confirmada_expone_el_pdf(): void
+    /**
+     * El motivo del descarte llega al postulante. El evaluador está obligado a
+     * escribirlo (regla `filas.*.motivo`) justo porque acaba aquí.
+     */
+    public function test_el_seguimiento_muestra_el_motivo_de_los_no_convalidados(): void
     {
         $p = $this->postulante('90000002');
-        $sim = $this->simulacion($p); // generada, sin convalidación
-
-        $r = $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}");
-
-        $r->assertOk();
-        $r->assertHeader('Content-Type', 'application/pdf');
-        $this->assertStringStartsWith('inline;', $r->headers->get('Content-Disposition'));
-        $this->assertStringStartsWith('%PDF', $r->getContent());
-    }
-
-    public function test_sin_convalidacion_confirmada_descarga_el_pdf(): void
-    {
-        $p = $this->postulante('90000007');
-        $sim = $this->simulacion($p);
-
-        $r = $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}?download=1");
-
-        $r->assertOk();
-        $r->assertHeader('Content-Type', 'application/pdf');
-        $this->assertStringStartsWith('attachment;', $r->headers->get('Content-Disposition'));
-        $this->assertStringStartsWith('%PDF', $r->getContent());
-    }
-
-    public function test_anulada_no_expone_el_pdf(): void
-    {
-        $p = $this->postulante('90000003');
-        $sim = $this->simulacion($p);
-        Convalidacion::create([
-            'simulacion_id' => $sim->id, 'fecha_confirmacion' => now()->toDateString(),
-            'memorandum_numero' => 'MEMO-003', 'estado' => Convalidacion::ANULADA,
-            'usuario_id' => $this->ctx['user']->id,
-        ]);
-
-        $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}")->assertForbidden();
-    }
-
-    /** Una simulación ajena da 404: el 403 confirmaría que existe. */
-    public function test_no_alcanza_la_simulacion_de_otro_postulante(): void
-    {
-        $duenio = $this->postulante('90000004');
-        $sim = $this->simulacion($duenio);
-        $this->confirmar($sim, 'MEMO-004');
-
-        $intruso = $this->postulante('90000005');
-
-        $this->actingAs($intruso, 'postulante')->get("/portal/preconvalidacion/{$sim->id}")->assertNotFound();
-    }
-
-    public function test_el_seguimiento_solo_publica_url_de_las_confirmadas(): void
-    {
-        $p = $this->postulante('90000006');
-        $sinConfirmar = $this->simulacion($p);
-        $confirmada = $this->simulacion($p);
-        $this->confirmar($confirmada, 'MEMO-006');
+        $this->simulacion($p);
 
         $this->actingAs($p, 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
-                ->has('simulaciones', 2)
-                ->where('simulaciones.0.pdf_url', route('portal.preconvalidacion', $sinConfirmar->id))
-                ->where('simulaciones.1.pdf_url', route('portal.preconvalidacion', $confirmada->id)));
+                ->has('simulaciones.0.no_convalidados', 1)
+                ->where('simulaciones.0.no_convalidados.0.origen', 'Inglés I')
+                ->where('simulaciones.0.no_convalidados.0.motivo', 'Idiomas no se convalidan'));
+    }
+
+    /** El portal no ofrece descarga alguna: ni URL en las props ni ruta que responda. */
+    public function test_el_portal_no_expone_ninguna_descarga(): void
+    {
+        $p = $this->postulante('90000003');
+        $sim = $this->simulacion($p);
+
+        $this->actingAs($p, 'postulante')->get('/portal/')
+            ->assertInertia(fn ($page) => $page->missing('simulaciones.0.pdf_url'));
+
+        // La ruta que existía ya no está enrutada.
+        $this->actingAs($p, 'postulante')
+            ->get("/portal/preconvalidacion/{$sim->id}")
+            ->assertNotFound();
+    }
+
+    /** Cada postulante ve solo lo suyo. */
+    public function test_solo_ve_sus_propias_simulaciones(): void
+    {
+        $duenio = $this->postulante('90000004');
+        $this->simulacion($duenio);
+        $intruso = $this->postulante('90000005');
+
+        $this->actingAs($intruso, 'postulante')->get('/portal/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('simulaciones', 0));
+    }
+
+    /** El personal sí conserva la descarga: es el canal por el que sale el documento. */
+    public function test_el_personal_conserva_la_descarga_de_la_preconvalidacion(): void
+    {
+        $p = $this->postulante('90000006');
+        $sim = $this->simulacion($p);
+
+        $r = $this->actingAs($this->ctx['user'])
+            ->get("/postulantes/{$p->id}/preconvalidacion/{$sim->id}/pdf");
+
+        $r->assertOk();
+        $r->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $r->getContent());
     }
 }

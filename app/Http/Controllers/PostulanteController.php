@@ -11,11 +11,12 @@ use App\Models\Simulacion;
 use App\Models\User;
 use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
+use App\Support\EntregaCredenciales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -93,7 +94,9 @@ class PostulanteController extends Controller
             ->withCount([
                 'simulaciones',
                 'simulaciones as convalidaciones_count' => fn ($q) => $q->whereHas('convalidacion'),
-                'documentos',
+                // Tipos distintos, no filas: el expediente son 5 documentos
+                // distintos y no 5 versiones del mismo (ver guardarDocumentos).
+                'documentos as documentos_count' => fn ($q) => $q->select(DB::raw('count(distinct tipo)')),
             ])
             ->when($visibles !== null, fn ($x) => $x->whereHas('destinos',
                 fn ($d) => $d->whereIn('carrera_id', $visibles ?: [0])))
@@ -155,15 +158,11 @@ class PostulanteController extends Controller
         $datos = $this->validar($request, null, $borrador);
         $destinoIds = $this->extraerDestinos($datos);
 
-        $siguiente = (Postulante::withTrashed()->max('id') ?? 0) + 1;
-
-        // Postulante sin documento → identificador temporal único.
-        if ($request->boolean('sin_documento')) {
+        $sinDocumento = $request->boolean('sin_documento');
+        if ($sinDocumento) {
             $datos['tipo_documento'] = 'TEMP';
-            $datos['numero_documento'] = 'TMP-'.now()->year.'-'.str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
         }
 
-        $datos['codigo'] = 'POST-'.now()->year.'-'.str_pad((string) $siguiente, 5, '0', STR_PAD_LEFT);
         $datos['usuario_id'] = $request->user()->id;
         $datos['estado'] = $borrador ? 'borrador' : 'nuevo';
 
@@ -176,13 +175,39 @@ class PostulanteController extends Controller
             $datos['debe_cambiar_password'] = true;
         }
 
-        $postulante = Postulante::create($datos);
+        /**
+         * El código se deriva del id que asigna la base, no de `max(id) + 1`.
+         *
+         * Con el cálculo previo, dos asesores registrando a la vez leían el mismo
+         * máximo y generaban el mismo POST-2026-NNNNN; el índice único hacía
+         * fallar a uno de los dos con un error que no explicaba nada. Se inserta
+         * con un marcador irrepetible y se reescribe ya con el id real.
+         */
+        $postulante = DB::transaction(function () use ($datos, $sinDocumento) {
+            // 20 caracteres, el ancho de ambas columnas. Solo vive dentro de esta
+            // transacción: satisface los índices únicos hasta conocer el id.
+            $marcador = 'TMP-'.Str::random(16);
+
+            $datos['codigo'] = $marcador;
+            if ($sinDocumento) {
+                $datos['numero_documento'] = $marcador;
+            }
+
+            $p = Postulante::create($datos);
+
+            $sufijo = str_pad((string) $p->id, 5, '0', STR_PAD_LEFT);
+            $definitivo = ['codigo' => 'POST-'.now()->year.'-'.$sufijo];
+            if ($sinDocumento) {
+                $definitivo['numero_documento'] = 'TMP-'.now()->year.'-'.$sufijo;
+            }
+
+            $p->forceFill($definitivo)->save();
+
+            return $p;
+        });
+
         $this->guardarDocumentos($request, $postulante);
         $this->syncDestinos($postulante, $destinoIds);
-
-        if ($temporal) {
-            $this->enviarAcceso($postulante, $temporal);
-        }
 
         AuditoriaService::registrar('crear', 'postulantes', $postulante->id, null, ['documento' => $postulante->numero_documento]);
 
@@ -190,7 +215,7 @@ class PostulanteController extends Controller
             ? "Borrador guardado ({$postulante->codigo})."
             : "Postulante registrado ({$postulante->codigo}).";
         if ($temporal) {
-            $msg .= " Se enviaron las credenciales a {$postulante->email}.".$this->pistaLocal($temporal);
+            $msg .= ' '.$this->enviarAcceso($postulante, $temporal);
         }
 
         return redirect()->route('postulantes.index')->with('status', $msg);
@@ -404,21 +429,10 @@ class PostulanteController extends Controller
             'acceso_habilitado' => true,
             'debe_cambiar_password' => true,
         ]);
-        $this->enviarAcceso($postulante, $temporal);
+        $aviso = $this->enviarAcceso($postulante, $temporal);
         AuditoriaService::registrar('editar', 'postulantes', $postulante->id, null, ['reset_acceso' => true]);
 
-        return back()->with('status',
-            "Acceso restablecido. Se envió la contraseña temporal a {$postulante->email}.".$this->pistaLocal($temporal));
-    }
-
-    /**
-     * Solo en desarrollo se muestra la contraseña en pantalla. En producción el
-     * canal de entrega es el correo: en el mensaje flash quedaba en la sesión y
-     * en el historial del navegador del asesor.
-     */
-    private function pistaLocal(string $temporal): string
-    {
-        return app()->environment('local') ? " (solo en desarrollo — temporal: {$temporal})" : '';
+        return back()->with('status', 'Acceso restablecido. '.$aviso);
     }
 
     public function destroy(Request $request, Postulante $postulante): RedirectResponse
@@ -532,15 +546,18 @@ class PostulanteController extends Controller
     }
 
     /** Envía al postulante sus credenciales del portal; no rompe el registro si falla el correo. */
-    private function enviarAcceso(Postulante $postulante, string $temporal): void
+    /**
+     * Entrega el acceso al portal y devuelve el aviso que lee el asesor. Si el
+     * correo no salió, lo dice: el postulante se queda sin poder entrar y quien
+     * lo registró tiene que saberlo en ese momento.
+     */
+    private function enviarAcceso(Postulante $postulante, string $temporal): string
     {
-        try {
-            Mail::to($postulante->email)->send(
-                new AccesoPortalMail($postulante, route('portal.login'), $temporal)
-            );
-        } catch (\Throwable $e) {
-            Log::warning('No se pudo enviar el correo de acceso al portal: '.$e->getMessage());
-        }
+        return EntregaCredenciales::enviar(
+            $postulante->email,
+            new AccesoPortalMail($postulante, route('portal.login'), $temporal),
+            $temporal,
+        );
     }
 
     /**
@@ -587,18 +604,40 @@ class PostulanteController extends Controller
         }
     }
 
+    /**
+     * Guarda los adjuntos del expediente: UNO por tipo.
+     *
+     * Antes siempre creaba una fila nueva, así que volver a subir el mismo tipo
+     * —lo normal cuando Admisión lo observa y el postulante lo corrige— dejaba
+     * duplicados y el archivo anterior huérfano en disco para siempre. Además el
+     * portal cuenta filas: cinco versiones del DNI le decían al postulante
+     * «5 de 5 documentos entregados» habiendo presentado uno solo.
+     */
     private function guardarDocumentos(Request $request, Postulante $postulante): void
     {
         foreach (array_keys(self::DOCUMENTOS) as $tipo) {
-            if ($request->hasFile($tipo)) {
-                $archivo = $request->file($tipo);
-                $ruta = $archivo->store("postulantes/{$postulante->id}");
-                $postulante->documentos()->create([
-                    'tipo' => $tipo,
+            if (! $request->hasFile($tipo)) {
+                continue;
+            }
+
+            $archivo = $request->file($tipo);
+            $ruta = $archivo->store("postulantes/{$postulante->id}");
+
+            $previo = $postulante->documentos()->where('tipo', $tipo)->first();
+
+            $postulante->documentos()->updateOrCreate(
+                ['tipo' => $tipo],
+                [
                     'nombre_original' => $archivo->getClientOriginalName(),
                     'ruta' => $ruta,
                     'tamano' => $archivo->getSize(),
-                ]);
+                ],
+            );
+
+            // El archivo sustituido se borra DESPUÉS de registrar el nuevo: si el
+            // guardado falla, el expediente conserva el que tenía.
+            if ($previo && $previo->ruta !== $ruta && Storage::exists($previo->ruta)) {
+                Storage::delete($previo->ruta);
             }
         }
     }

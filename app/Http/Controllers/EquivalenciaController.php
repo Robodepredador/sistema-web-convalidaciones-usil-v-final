@@ -6,7 +6,6 @@ use App\Models\CursoExterno;
 use App\Models\InstitucionExterna;
 use App\Models\MallaExterna;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * CU-03: Mallas Externas (RF-18..23).
@@ -43,7 +42,7 @@ class EquivalenciaController extends Controller
                 'anio' => $m->anio,
                 'version' => $m->version,
                 'activa' => $m->activa,
-                'pdf_path' => $m->pdf_path ? Storage::url($m->pdf_path) : null,
+                'pdf_path' => $m->pdf_path ? route('mallas-externas.pdf', $m->id) : null,
                 'total_cursos' => $m->cursos->count(),
             ]);
 
@@ -76,7 +75,7 @@ class EquivalenciaController extends Controller
                 'carrera' => $malla->carreraExterna?->nombre,
                 'anio' => $malla->anio,
                 'version' => $malla->version,
-                'pdf_url' => $malla->pdf_path ? Storage::url($malla->pdf_path) : null,
+                'pdf_url' => $malla->pdf_path ? route('mallas-externas.pdf', $malla->id) : null,
                 'cursos' => $malla->cursos,
             ] : null,
             'instituciones' => InstitucionExterna::with('carreras:id,institucion_id,nombre')->orderBy('nombre')->get(['id', 'nombre']),

@@ -114,31 +114,53 @@ const ESTADO_SIM = { generada: 'Generada', confirmada: 'Confirmada', borrador: '
 
             <!-- Simulaciones / resultados -->
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 class="mb-3 text-sm font-semibold text-slate-700">Resultados de convalidación</h2>
-                <div v-if="simulaciones.length" class="space-y-2">
-                    <div v-for="s in simulaciones" :key="s.id" class="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-sm">
-                        <div>
-                            <p class="font-medium text-slate-700">Simulación #{{ s.id }}</p>
-                            <p class="text-xs text-slate-400">{{ s.fecha }} · {{ ESTADO_SIM[s.estado] || s.estado }}</p>
-                        </div>
-                        <div class="flex items-center gap-4">
+                <h2 class="mb-1 text-sm font-semibold text-slate-700">Resultados de convalidación</h2>
+                <p class="mb-4 text-xs text-slate-500">
+                    Este es el resultado de tu evaluación académica. El documento oficial lo entrega
+                    la Coordinación Académica por los canales habituales.
+                </p>
+
+                <div v-if="simulaciones.length" class="space-y-4">
+                    <div v-for="s in simulaciones" :key="s.id" class="rounded-lg border border-slate-200 p-4 text-sm">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                                <p class="font-medium text-slate-700">Evaluación #{{ s.id }}</p>
+                                <p class="text-xs text-slate-400">{{ s.fecha }} · {{ ESTADO_SIM[s.estado] || s.estado }}</p>
+                            </div>
                             <div class="text-right">
                                 <p class="font-semibold text-[#1F3864]">{{ s.creditos }} créditos</p>
                                 <p class="text-xs text-slate-400">{{ s.cursos }} cursos reconocidos</p>
                             </div>
-                            <div v-if="s.pdf_url" class="flex items-center gap-2">
-                                <a :href="s.pdf_url" target="_blank" rel="noopener"
-                                   class="shrink-0 rounded-lg bg-[#1F3864] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2E75B6]">
-                                    Ver documento
-                                </a>
-                                <a :href="`${s.pdf_url}?download=1`" target="_blank" rel="noopener"
-                                   class="shrink-0 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 shadow-sm transition hover:bg-green-100">
-                                    Descargar PDF
-                                </a>
-                            </div>
-                            <p v-else class="w-28 shrink-0 text-right text-xs text-slate-400">
-                                Documento no disponible
-                            </p>
+                        </div>
+
+                        <div v-if="s.convalidados.length" class="overflow-x-auto">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="text-xs uppercase tracking-wide text-slate-400">
+                                    <tr>
+                                        <th class="pb-2 pr-3 font-semibold">Curso de origen</th>
+                                        <th class="pb-2 pr-3 font-semibold">Se convalida por</th>
+                                        <th class="pb-2 text-right font-semibold">Créditos</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="(c, i) in s.convalidados" :key="i">
+                                        <td class="py-2 pr-3 text-slate-600">{{ c.origen }}</td>
+                                        <td class="py-2 pr-3 font-medium text-slate-700">{{ c.usil }}</td>
+                                        <td class="py-2 text-right tabular-nums text-slate-600">{{ c.creditos }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p v-else class="py-2 text-slate-400">No se reconocieron cursos en esta evaluación.</p>
+
+                        <!-- El motivo es obligatorio para el evaluador precisamente porque se muestra aquí. -->
+                        <div v-if="s.no_convalidados.length" class="mt-4 rounded-lg bg-slate-50 p-3">
+                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Cursos no convalidados</p>
+                            <ul class="space-y-1">
+                                <li v-for="(c, i) in s.no_convalidados" :key="i" class="text-xs text-slate-600">
+                                    <span class="font-medium">{{ c.origen }}</span> — {{ c.motivo }}
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>

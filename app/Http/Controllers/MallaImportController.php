@@ -8,6 +8,7 @@ use App\Models\CargaMasiva;
 use App\Models\Carrera;
 use App\Models\Ciclo;
 use App\Models\MallaCurricular;
+use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
 use App\Services\LectorMallaExcel;
 use Illuminate\Http\JsonResponse;
@@ -19,14 +20,42 @@ use Inertia\Response;
 
 /**
  * Carga masiva de mallas por Excel (RF-08..12).
+ *
+ * Todo punto de entrada comprueba el alcance por carrera (RF-40). Antes no lo
+ * hacía ninguno: `carrera_id` llega por el cuerpo de la petición, así que un
+ * coordinador restringido a una carrera podía importar la malla de cualquier
+ * otra y, marcándola activa, desactivar el plan de estudios vigente de una
+ * carrera ajena.
  */
 class MallaImportController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
         return inertia('Mallas/Importar', [
-            'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'carreras' => $this->carrerasDelUsuario($request),
         ]);
+    }
+
+    /** Carreras activas dentro del alcance del usuario. */
+    private function carrerasDelUsuario(Request $request)
+    {
+        $visibles = AlcanceService::carrerasVisibles($request->user());
+
+        return Carrera::where('activo', true)
+            ->when($visibles !== null, fn ($q) => $q->whereIn('id', $visibles ?: [0]))
+            ->orderBy('nombre')->get(['id', 'nombre']);
+    }
+
+    /**
+     * La carga pertenece a la carrera de su malla. Sin esto, `estado` y
+     * `progreso` dejaban consultar el avance —y los mensajes de error, que
+     * citan nombres de curso— de las importaciones de cualquier otro.
+     */
+    private function autorizarCarga(Request $request, CargaMasiva $carga): void
+    {
+        $carga->loadMissing('malla');
+
+        AlcanceService::autorizarCarrera($request->user(), $carga->malla?->carrera_id);
     }
 
     /**
@@ -41,6 +70,8 @@ class MallaImportController extends Controller
             'version' => ['required', 'string', 'max:20'],
             'archivo' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
         ]);
+
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_id']);
 
         $carrera = Carrera::findOrFail($datos['carrera_id']);
 
@@ -108,6 +139,10 @@ class MallaImportController extends Controller
         ], [
             'version.unique' => 'Ya existe una malla para esa carrera, año y versión (RN-01 / RN-03).',
         ]);
+
+        // Antes de tocar nada: marcar esta malla activa desactiva las demás de la
+        // carrera, así que registrar en una carrera ajena tumbaba su plan vigente.
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_id']);
 
         $totalCursos = collect($datos['ciclos'] ?? [])->sum(fn ($c) => count($c['cursos'] ?? []))
             + collect($datos['menciones'] ?? [])->sum(fn ($m) => count($m['cursos'] ?? []));
@@ -180,6 +215,8 @@ class MallaImportController extends Controller
     {
         $datos = $request->validated();
 
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_id']);
+
         // Crea la malla cabecera (RN-01/03 aplican vía índice único).
         $carga = DB::transaction(function () use ($datos, $request) {
             $malla = MallaCurricular::create([
@@ -200,8 +237,11 @@ class MallaImportController extends Controller
                 'estado' => 'pendiente',
             ]);
 
-            // RF-11: procesamiento en segundo plano.
-            ImportarMallaExcel::dispatch($carga->id, $malla->id);
+            // RF-11: procesamiento en segundo plano. `afterCommit` porque el
+            // worker vive fuera de esta transacción: sin esto podía tomar el
+            // trabajo antes del COMMIT y fallar al buscar la carga que aún no
+            // existe para él.
+            ImportarMallaExcel::dispatch($carga->id, $malla->id)->afterCommit();
 
             return $carga;
         });
@@ -210,14 +250,18 @@ class MallaImportController extends Controller
             ->with('status', 'Carga iniciada. El procesamiento corre en segundo plano.');
     }
 
-    public function estado(CargaMasiva $carga)
+    public function estado(Request $request, CargaMasiva $carga)
     {
+        $this->autorizarCarga($request, $carga);
+
         return inertia('Mallas/CargaEstado', ['cargaId' => $carga->id]);
     }
 
     /** Endpoint de progreso para el sondeo del frontend (RF-11). */
-    public function progreso(CargaMasiva $carga): JsonResponse
+    public function progreso(Request $request, CargaMasiva $carga): JsonResponse
     {
+        $this->autorizarCarga($request, $carga);
+
         return response()->json([
             'estado' => $carga->estado,
             'total' => $carga->total,

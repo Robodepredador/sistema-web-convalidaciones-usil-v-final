@@ -21,7 +21,6 @@ use App\Http\Controllers\MallaImportController;
 use App\Http\Controllers\MapeoMallasController;
 use App\Http\Controllers\Portal\AccesoController as PortalAccesoController;
 use App\Http\Controllers\Portal\PasswordController as PortalPasswordController;
-use App\Http\Controllers\Portal\PreconvalidacionController as PortalPreconvalidacionController;
 use App\Http\Controllers\Portal\SeguimientoController as PortalSeguimientoController;
 use App\Http\Controllers\PostulanteController;
 use App\Http\Controllers\SimulacionController;
@@ -175,6 +174,9 @@ Route::middleware('auth')->group(function () {
             Route::post('mallas-externas/previsualizar', [MallaExternaController::class, 'previsualizarExcel'])->name('mallas-externas.previsualizar');
             Route::post('mallas-externas/extraer-ia', [MallaExternaController::class, 'extraerIA'])->name('mallas-externas.extraer-ia');
             Route::post('mallas-externas', [MallaExternaController::class, 'store'])->name('mallas-externas.store');
+            // El PDF vive en el disco privado: se sirve por aquí, con permiso.
+            Route::get('mallas-externas/{mallaExterna}/pdf', [MallaExternaController::class, 'pdf'])
+                ->name('mallas-externas.pdf')->whereNumber('mallaExterna');
             // Récord académico externo: cursos de la carrera de origen
             Route::post('carreras-externas/{carreraExterna}/cursos', [CatalogoController::class, 'agregarCursoExterno'])->name('cursos-externos.store');
             Route::put('cursos-externos/{cursoExterno}', [CatalogoController::class, 'actualizarCursoExterno'])->name('cursos-externos.update');
@@ -297,10 +299,12 @@ Route::prefix('portal')->group(function () {
         Route::post('/password/cambiar', [PortalPasswordController::class, 'actualizar'])->name('portal.password.cambiar');
 
         // El seguimiento exige tener la contraseña ya cambiada.
+        //
+        // No hay ruta de descarga: el postulante consulta el resultado en pantalla
+        // y el documento oficial se gestiona fuera del sistema. El personal sí
+        // conserva sus descargas (postulantes.preconvalidacion.pdf / .excel).
         Route::middleware('postulante.cambiar')->group(function () {
             Route::get('/', [PortalSeguimientoController::class, 'index'])->name('portal.seguimiento');
-            Route::get('/preconvalidacion/{simulacion}', [PortalPreconvalidacionController::class, 'ver'])
-                ->name('portal.preconvalidacion')->whereNumber('simulacion');
         });
 
         Route::post('/logout', [PortalAccesoController::class, 'logout'])->name('portal.logout');

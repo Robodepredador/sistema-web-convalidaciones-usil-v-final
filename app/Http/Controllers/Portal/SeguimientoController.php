@@ -16,10 +16,13 @@ class SeguimientoController extends Controller
     public function index()
     {
         $p = Auth::guard('postulante')->user();
-        $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera', 'simulaciones.detalles']);
+        $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera',
+            'simulaciones.detalles.cursoUsil']);
 
-        // Señales reales del avance del expediente.
-        $docsCount = $p->documentos()->count();
+        // Señales reales del avance del expediente. Se cuentan TIPOS distintos y
+        // no filas: si no, varias versiones de un mismo documento le decían al
+        // postulante que había entregado todo el expediente.
+        $docsCount = $p->documentos()->distinct()->count('tipo');
         $destinos = $p->destinos;
         $tieneSim = $p->simulaciones->isNotEmpty();
 
@@ -49,14 +52,33 @@ class SeguimientoController extends Controller
                 $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim,
                 PostulanteController::totalDocumentos(), (bool) $p->revision_provisional
             ),
-            'simulaciones' => $p->simulaciones->map(fn (Simulacion $s) => [
-                'id' => $s->id,
-                'fecha' => $s->created_at?->format('Y-m-d'),
-                'estado' => $s->estado,
-                'cursos' => $s->detalles->where('excluido', false)->count(),
-                'creditos' => (float) $s->detalles->where('excluido', false)->sum('creditos_reconocidos'),
-                'pdf_url' => route('portal.preconvalidacion', $s->id),
-            ])->values(),
+            // El postulante consulta el resultado EN PANTALLA y no descarga nada:
+            // el documento oficial se gestiona fuera del sistema. Por eso aquí
+            // viaja el detalle y no una URL de PDF.
+            'simulaciones' => $p->simulaciones->map(function (Simulacion $s) {
+                $vigentes = $s->detalles->where('excluido', false);
+                $convalidados = $vigentes->whereNotNull('curso_usil_id');
+
+                return [
+                    'id' => $s->id,
+                    'fecha' => $s->created_at?->format('Y-m-d'),
+                    'estado' => $s->estado,
+                    'cursos' => $convalidados->count(),
+                    'creditos' => (float) $convalidados->sum('creditos_reconocidos'),
+                    'convalidados' => $convalidados->map(fn ($d) => [
+                        'origen' => $d->nombre_origen,
+                        'usil' => $d->cursoUsil?->nombre,
+                        'creditos' => (float) $d->creditos_reconocidos,
+                    ])->values(),
+                    // Con su motivo: el evaluador está obligado a escribirlo
+                    // precisamente porque es lo que ve el postulante (ver la regla
+                    // `filas.*.motivo` en SimulacionController::persistirSimulacion).
+                    'no_convalidados' => $vigentes->whereNull('curso_usil_id')->map(fn ($d) => [
+                        'origen' => $d->nombre_origen,
+                        'motivo' => $d->motivo ?: 'No cumple los criterios de convalidación',
+                    ])->values(),
+                ];
+            })->values(),
         ]);
     }
 }

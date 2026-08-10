@@ -10,11 +10,10 @@ use App\Models\Facultad;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditoriaService;
+use App\Support\EntregaCredenciales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -87,12 +86,11 @@ class UsuarioController extends Controller
         ]);
 
         $this->sincronizarCarreras($user, $datos);
-        $this->enviarCredenciales($user, $temporal);
 
         AuditoriaService::registrar('crear', 'usuarios', $user->id, null, ['email' => $user->email]);
 
         return redirect()->route('usuarios.index')
-            ->with('status', "Usuario creado. Se enviaron las credenciales a {$user->email}.".$this->pistaLocal($temporal));
+            ->with('status', 'Usuario creado. '.$this->enviarCredenciales($user, $temporal));
     }
 
     public function edit(User $usuario)
@@ -156,36 +154,24 @@ class UsuarioController extends Controller
             'bloqueado_hasta' => null,
         ])->save();
 
-        $this->enviarCredenciales($usuario, $temporal);
-
         AuditoriaService::registrar('editar', 'usuarios', $usuario->id, null, ['reset_password' => true]);
 
         return back()->with('status',
-            "Contraseña restablecida. Se enviaron las nuevas credenciales a {$usuario->email}.".$this->pistaLocal($temporal));
+            'Contraseña restablecida. '.$this->enviarCredenciales($usuario, $temporal));
     }
 
     /**
-     * Entrega la contraseña temporal por correo. No rompe el alta si falla el
-     * envío (igual que en el portal del postulante): queda registrado en el log
-     * y el administrador puede volver a restablecerla.
+     * Entrega la contraseña temporal y devuelve el aviso que debe leer el
+     * administrador. No rompe el alta si el envío falla —el usuario ya está
+     * creado— pero tampoco afirma que se envió cuando no fue así.
      */
-    private function enviarCredenciales(User $usuario, string $temporal): void
+    private function enviarCredenciales(User $usuario, string $temporal): string
     {
-        try {
-            Mail::to($usuario->email)->send(new AccesoSistemaMail($usuario, route('login'), $temporal));
-        } catch (\Throwable $e) {
-            Log::warning('No se pudo enviar el correo de credenciales del sistema: '.$e->getMessage());
-        }
-    }
-
-    /**
-     * Solo en desarrollo se muestra la contraseña en pantalla. En producción no
-     * debe aparecer: quedaba en la sesión y en el historial del navegador del
-     * administrador, y el canal previsto para entregarla es el correo.
-     */
-    private function pistaLocal(string $temporal): string
-    {
-        return app()->environment('local') ? " (solo en desarrollo — temporal: {$temporal})" : '';
+        return EntregaCredenciales::enviar(
+            $usuario->email,
+            new AccesoSistemaMail($usuario, route('login'), $temporal),
+            $temporal,
+        );
     }
 
     public function destroy(User $usuario): RedirectResponse

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CargaMasiva;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
@@ -310,6 +311,100 @@ class AuditoriaE2ETest extends TestCase
 
         $this->actingAs($this->c['coord'])->get("/documentos/{$suyo->id}/ver")
             ->assertOk('El evaluador debe poder abrir el récord de los postulantes de su alcance.');
+    }
+
+    /**
+     * La misma fuga por la otra puerta: la extracción con IA recibe el
+     * `documento_id` por el cuerpo de la petición.
+     *
+     * `verDocumento()` comprobaba el alcance y `extraerIA()` no, así que bastaba
+     * con recorrer identificadores para sacar el récord íntegro —nombre,
+     * documento y notas— de cualquier postulante, y de paso mandárselo al
+     * proveedor de IA. Que la IA se entregue apagada no arregla esto: la
+     * comprobación tiene que estar en el código.
+     */
+    public function test_extraccion_con_ia_de_un_documento_fuera_del_alcance(): void
+    {
+        Storage::fake();
+        $pAjeno = $this->postulante($this->c['asesorB'], $this->c['carrNeg'], '20000009');
+        $pAjeno->forceFill(['consentimiento_datos_en' => now()])->save();
+        Storage::put('postulantes/z/record.pdf', 'RECORD ACADEMICO CONFIDENCIAL');
+        $doc = PostulanteDocumento::create(['postulante_id' => $pAjeno->id, 'tipo' => 'certificado',
+            'nombre_original' => 'record.pdf', 'ruta' => 'postulantes/z/record.pdf', 'tamano' => 10]);
+
+        $this->actingAs($this->c['coord'])
+            ->postJson('/simulaciones/extraer-ia', ['documento_id' => $doc->id])
+            ->assertForbidden('FUGA: se extrajo el récord de un postulante fuera del alcance del evaluador.');
+
+        // Y tampoco nombrando al postulante directamente, sin pasar por el documento.
+        $this->actingAs($this->c['coord'])
+            ->postJson('/simulaciones/extraer-ia', ['postulante_id' => $pAjeno->id])
+            ->assertForbidden('FUGA: `postulante_id` saltó la comprobación de alcance.');
+    }
+
+    /** El pool de cursos de una carrera ajena tampoco se filtra por sugerencias. */
+    public function test_sugerencia_por_similitud_de_una_carrera_ajena(): void
+    {
+        $this->actingAs($this->c['coord'])
+            ->postJson('/simulaciones/sugerir-similitud', [
+                'carrera_usil_id' => $this->c['carrNeg']->id,
+                'cursos' => ['Matemática I'],
+            ])
+            ->assertForbidden('FUGA: se devolvió el plan de estudios de una carrera fuera del alcance.');
+
+        // Control positivo: la suya sí responde.
+        $this->actingAs($this->c['coord'])
+            ->postJson('/simulaciones/sugerir-similitud', [
+                'carrera_usil_id' => $this->c['carrIng']->id,
+                'cursos' => ['Matemática I'],
+            ])
+            ->assertOk();
+    }
+
+    /**
+     * La carga masiva de mallas no comprobaba el alcance en ninguno de sus
+     * métodos: `carrera_id` viaja en el cuerpo de la petición, y como registrar
+     * una malla activa desactiva las demás de esa carrera, un coordinador podía
+     * tumbar el plan de estudios vigente de una carrera ajena.
+     */
+    public function test_importar_malla_de_una_carrera_ajena(): void
+    {
+        $cuerpo = fn (Carrera $c) => [
+            'carrera_id' => $c->id, 'anio' => 2027, 'version' => 'B',
+            'modalidad' => 'presencial', 'activa' => true,
+            'ciclos' => [[
+                'numero' => 1,
+                'cursos' => [['codigo' => 'X1', 'nombre' => 'Curso nuevo', 'creditos' => 3]],
+            ]],
+        ];
+
+        $this->actingAs($this->c['coord'])
+            ->postJson('/mallas/importar/guardar', $cuerpo($this->c['carrNeg']))
+            ->assertForbidden('FUGA: se registró una malla en una carrera fuera del alcance.');
+
+        $this->assertSame(0, MallaCurricular::where('carrera_id', $this->c['carrNeg']->id)
+            ->where('anio', 2027)->count());
+
+        // Control positivo: en su carrera sí puede.
+        $this->actingAs($this->c['coord'])
+            ->post('/mallas/importar/guardar', $cuerpo($this->c['carrIng']))
+            ->assertRedirect();
+        $this->assertSame(1, MallaCurricular::where('carrera_id', $this->c['carrIng']->id)
+            ->where('anio', 2027)->count());
+    }
+
+    /** El progreso de una carga ajena cita nombres de curso en sus errores. */
+    public function test_progreso_de_una_carga_ajena(): void
+    {
+        $mallaAjena = MallaCurricular::create(['carrera_id' => $this->c['carrNeg']->id, 'anio' => 2027,
+            'version' => 'Z', 'origen_carga' => 'excel', 'usuario_id' => $this->c['admin']->id]);
+        $carga = CargaMasiva::create(['usuario_id' => $this->c['admin']->id, 'malla_id' => $mallaAjena->id,
+            'archivo' => 'cargas/x.xlsx', 'estado' => 'completado']);
+
+        $this->actingAs($this->c['coord'])->get("/mallas/importar/{$carga->id}/progreso")
+            ->assertForbidden('FUGA: se expuso el progreso de una carga de otra carrera.');
+        $this->actingAs($this->c['coord'])->get("/mallas/importar/{$carga->id}/estado")
+            ->assertForbidden();
     }
 
     // ==================================================================
