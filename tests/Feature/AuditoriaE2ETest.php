@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
-use App\Models\Convalidacion;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -193,13 +192,14 @@ class AuditoriaE2ETest extends TestCase
         $sim = Simulacion::where('postulante_id', $p->id)->firstOrFail();
         $this->assertSame(4.0, (float) $sim->detalles()->sum('creditos_reconocidos'));
 
-        // 5) Decano confirma → memorándum oficial.
-        Storage::fake();
-        $this->actingAs($this->c['decano'])->post("/simulaciones/{$sim->id}/confirmar")->assertRedirect('/convalidaciones');
-        $conv = Convalidacion::firstOrFail();
-        $this->assertSame(Convalidacion::CONFIRMADA, $conv->estado);
-        $this->assertNotNull($conv->memorandum_numero);
-        $this->actingAs($this->c['decano'])->get("/convalidaciones/{$conv->id}/memorandum")->assertOk();
+        // 5) La preconvalidación queda en el historial, visible para el decano.
+        //
+        // Aquí terminaba antes el flujo del sistema, con el decano confirmando y
+        // emitiendo el memorándum oficial. Ese acto pasó a gestionarse fuera del
+        // sistema: lo último que el sistema produce es la preconvalidación.
+        $this->actingAs($this->c['decano'])->get('/convalidaciones')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('simulaciones.data.0.id', $sim->id));
 
         // 6) El postulante ve su seguimiento en el portal.
         $p->forceFill(['password_hash' => Hash::make('Portal#2026'), 'acceso_habilitado' => true,
@@ -360,83 +360,37 @@ class AuditoriaE2ETest extends TestCase
     // D. SONDA: EL BUSCADOR ROMPE EL FILTRO DE ALCANCE (OR sin agrupar)
     // ==================================================================
 
-    /** Buscar por número de memorándum saca a la luz convalidaciones de otra facultad. */
-    public function test_buscador_de_convalidaciones_evade_el_alcance(): void
+    /**
+     * El buscador del historial no puede saltarse el filtro de alcance.
+     *
+     * La sonda original buscaba por número de memorándum. Retirado el módulo de
+     * Convalidación, la pantalla lista preconvalidaciones y se busca por
+     * apellido o documento — pero el riesgo es el mismo: un `OR` sin agrupar
+     * dentro del `when($q)` anularía el `whereIn` del alcance.
+     */
+    public function test_buscador_del_historial_evade_el_alcance(): void
     {
-        Storage::fake();
-        $ajena = $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '40000001'),
+        $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '40000001'),
             $this->c['carrNeg'], 'ADM');
-        $this->actingAs($this->c['admin'])->post("/simulaciones/{$ajena->id}/confirmar");
-        $memo = Convalidacion::firstOrFail()->memorandum_numero;
 
-        // Sin buscador el decano de Ingeniería no la ve (correcto).
+        // Sin buscador el decano de Ingeniería no ve la de Negocios (correcto).
         $sin = $this->actingAs($this->c['decano'])->get('/convalidaciones');
-        $this->assertCount(0, $sin->viewData('page')['props']['convalidaciones']['data']);
+        $this->assertCount(0, $sin->viewData('page')['props']['simulaciones']['data']);
 
-        // Con el buscador por memorándum, tampoco debe verla.
-        $con = $this->actingAs($this->c['decano'])->get('/convalidaciones?q='.urlencode($memo));
-        $this->assertCount(0, $con->viewData('page')['props']['convalidaciones']['data'],
-            'FUGA: buscar por memorándum saltó el filtro de alcance por facultad.');
+        // Con el buscador por apellido y por documento, tampoco debe verla.
+        foreach (['Pérez', '40000001'] as $termino) {
+            $con = $this->actingAs($this->c['decano'])->get('/convalidaciones?q='.urlencode($termino));
+            $this->assertCount(0, $con->viewData('page')['props']['simulaciones']['data'],
+                "FUGA: buscar «{$termino}» saltó el filtro de alcance por facultad.");
+        }
 
         // Control positivo: el buscador sigue encontrando lo que SÍ le corresponde.
-        $propia = $this->simulacion($this->postulante($this->c['asesorA'], $this->c['carrIng'], '40000009'),
-            $this->c['carrIng'], 'ISW');
-        $this->actingAs($this->c['admin'])->post("/simulaciones/{$propia->id}/confirmar");
-        $memoPropio = Convalidacion::where('simulacion_id', $propia->id)->firstOrFail()->memorandum_numero;
-
-        $ok = $this->actingAs($this->c['decano'])->get('/convalidaciones?q='.urlencode($memoPropio));
-        $this->assertCount(1, $ok->viewData('page')['props']['convalidaciones']['data'],
-            'El buscador no debe quedar inutilizado: la convalidación de su facultad sí debe encontrarse.');
-    }
-
-    /** Buscar por apellido saca preconvalidaciones de otra facultad. */
-    public function test_buscador_de_preconvalidaciones_evade_el_alcance(): void
-    {
-        $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '40000002'),
-            $this->c['carrNeg'], 'ADM');
-
-        $r = $this->actingAs($this->c['decano'])->get('/convalidaciones?q=Pérez');
-        $this->assertCount(0, $r->viewData('page')['props']['preconvalidaciones']['data'],
-            'FUGA: buscar por apellido saltó el filtro de alcance por facultad.');
-    }
-
-    // ==================================================================
-    // E. SONDA: DECANO OPERA FUERA DE SU FACULTAD
-    // ==================================================================
-
-    /** El decano de Ingeniería confirma y anula convalidaciones de Negocios. */
-    public function test_decano_confirma_convalidacion_de_otra_facultad(): void
-    {
-        Storage::fake();
-        $ajena = $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '50000001'),
-            $this->c['carrNeg'], 'ADM');
-
-        $this->actingAs($this->c['decano'])->post("/simulaciones/{$ajena->id}/confirmar")
-            ->assertForbidden('FUGA: el decano emitió un memorándum oficial de otra facultad.');
-    }
-
-    // ==================================================================
-    // F. SONDA: REPORTES SIN NINGÚN FILTRO DE ALCANCE
-    // ==================================================================
-
-    /**
-     * Reportes debe filtrar por alcance, no quedarse vacío para todos: se
-     * comprueban las dos caras (oculta lo ajeno, muestra lo propio).
-     */
-    public function test_reportes_ignoran_el_alcance_por_rol(): void
-    {
-        $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '80000001'),
-            $this->c['carrNeg'], 'ADM');
-        $this->simulacion($this->postulante($this->c['asesorA'], $this->c['carrIng'], '80000002'),
+        $this->simulacion($this->postulante($this->c['asesorA'], $this->c['carrIng'], '40000009'),
             $this->c['carrIng'], 'ISW');
 
-        $props = $this->actingAs($this->c['coord'])->get('/reportes')
-            ->assertOk()->viewData('page')['props'];
-
-        $this->assertCount(0, collect($props['convalidados'])->where('carrera', 'Administración'),
-            'FUGA: el coordinador de Ingeniería ve en Reportes datos (nombre y documento) de otra facultad.');
-        $this->assertCount(1, collect($props['convalidados'])->where('carrera', 'Ing. de Software'),
-            'El filtro de alcance no debe vaciar el reporte: la carrera propia sí debe aparecer.');
+        $ok = $this->actingAs($this->c['decano'])->get('/convalidaciones?q=40000009');
+        $this->assertCount(1, $ok->viewData('page')['props']['simulaciones']['data'],
+            'El buscador no debe quedar inutilizado: la de su facultad sí debe encontrarse.');
     }
 
     // ==================================================================

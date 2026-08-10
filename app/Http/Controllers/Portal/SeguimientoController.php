@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\PostulanteController;
-use App\Models\Convalidacion;
 use App\Models\Simulacion;
 use App\Support\SeguimientoTimeline;
 use Illuminate\Support\Facades\Auth;
@@ -17,13 +16,12 @@ class SeguimientoController extends Controller
     public function index()
     {
         $p = Auth::guard('postulante')->user();
-        $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera', 'simulaciones.detalles', 'simulaciones.convalidacion']);
+        $p->load(['carreraDestino', 'institucionOrigen', 'carreraExterna', 'destinos.carrera', 'simulaciones.detalles']);
 
         // Señales reales del avance del expediente.
         $docsCount = $p->documentos()->count();
         $destinos = $p->destinos;
         $tieneSim = $p->simulaciones->isNotEmpty();
-        $confirmada = $p->simulaciones->contains(fn (Simulacion $s) => $s->convalidacion?->estado === Convalidacion::CONFIRMADA);
 
         return inertia('Portal/Seguimiento', [
             'postulante' => [
@@ -48,7 +46,7 @@ class SeguimientoController extends Controller
             'timeline' => SeguimientoTimeline::construir(
                 $p->estado,
                 $p->created_at?->format('d/m/Y'),
-                $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim, $confirmada,
+                $docsCount, $p->revision_estado ?? 'pendiente', $tieneSim,
                 PostulanteController::totalDocumentos(), (bool) $p->revision_provisional
             ),
             'simulaciones' => $p->simulaciones->map(fn (Simulacion $s) => [

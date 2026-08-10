@@ -61,10 +61,14 @@ class PortalSeguimientoTest extends TestCase
     {
         $p = $this->postulanteConAcceso(false); // revision_estado='pendiente' por defecto
 
-        // 4 etapas. Etapa 1 (registro) completada, etapa 2 (revisión de documentos) actual.
+        // 3 etapas. Etapa 1 (registro) completada, etapa 2 (revisión de documentos) actual.
+        //
+        // Eran 4 hasta que se retiró el módulo de Convalidación: la última,
+        // «Convalidación confirmada», dependía de un memorándum que el sistema ya
+        // no emite, así que no se completaba nunca.
         $this->actingAs($p, 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
-                ->has('timeline', 4)
+                ->has('timeline', 3)
                 ->where('timeline.0.estado', 'completado')
                 ->where('timeline.1.label', 'Revisión de documentos')
                 ->where('timeline.1.estado', 'actual')
@@ -73,11 +77,11 @@ class PortalSeguimientoTest extends TestCase
         // El Ejecutivo Comercial de Admisión aprueba el expediente.
         $p->update(['revision_estado' => 'aprobada']);
 
-        // Etapa 2 completada, etapa 3 (simulación) actual.
+        // Etapa 2 completada, etapa 3 (preconvalidación) actual y última.
         $this->actingAs($p->fresh(), 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
                 ->where('timeline.1.estado', 'completado')
-                ->where('timeline.2.label', 'Simulación de convalidación')
+                ->where('timeline.2.label', 'Preconvalidación disponible')
                 ->where('timeline.2.estado', 'actual'));
     }
 }

@@ -2,7 +2,15 @@
 
 namespace App\Support;
 
-/** Construye la línea de tiempo del proceso de convalidación del postulante. */
+/**
+ * Construye la línea de tiempo del proceso de convalidación del postulante.
+ *
+ * Son TRES etapas y la última es la preconvalidación disponible. Antes había una
+ * cuarta, «Convalidación confirmada», que se apoyaba en que el sistema emitiera
+ * el memorándum oficial. Ese acto pasó a gestionarse fuera del sistema, así que
+ * la etapa ya no podía completarse nunca: el postulante veía «Pendiente de
+ * confirmación» de forma indefinida, sin que hubiera nada que esperar.
+ */
 class SeguimientoTimeline
 {
     /**
@@ -16,7 +24,6 @@ class SeguimientoTimeline
         int $docsCount,
         string $revisionEstado,
         bool $tieneSim,
-        bool $confirmada,
         int $docsTotal = 5,
         bool $provisional = false,
     ): array {
@@ -45,10 +52,10 @@ class SeguimientoTimeline
                 'detalle' => 'Recibida el '.($registradaEl ?? '—')],
             ['label' => 'Revisión de documentos', 'done' => $aprobada,
                 'detalle' => $detalleDocs],
-            ['label' => 'Simulación de convalidación', 'done' => $tieneSim,
-                'detalle' => $tieneSim ? 'Simulación generada' : 'Aún no generada'],
-            ['label' => 'Convalidación confirmada', 'done' => $confirmada,
-                'detalle' => $confirmada ? 'Convalidación oficial confirmada' : 'Pendiente de confirmación'],
+            ['label' => 'Preconvalidación disponible', 'done' => $tieneSim,
+                'detalle' => $tieneSim
+                    ? 'Ya puedes consultar los cursos preconvalidados'
+                    : 'Pendiente de la evaluación académica'],
         ];
 
         $hayActual = false;

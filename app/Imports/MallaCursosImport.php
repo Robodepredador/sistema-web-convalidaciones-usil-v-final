@@ -21,7 +21,7 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
  */
 class MallaCursosImport implements WithMultipleSheets
 {
-    /** @var CursosSheetImport  Importador de la hoja de cursos. */
+    /** @var CursosSheetImport Importador de la hoja de cursos. */
     private CursosSheetImport $cursosSheet;
 
     public function __construct()

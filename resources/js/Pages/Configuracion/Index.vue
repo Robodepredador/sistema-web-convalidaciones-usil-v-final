@@ -2,19 +2,14 @@
 import { useForm, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ ia: Object, modelos: Object, noConvalidables: Array, memorandum: Object });
+const props = defineProps({ ia: Object, modelos: Object, noConvalidables: Array });
 
 // --- Pestañas ---
 const TABS = [
     { id: 'ia', label: 'Motor de IA', icon: '✨' },
     { id: 'cursos', label: 'Cursos no convalidables', icon: '🚫' },
-    { id: 'memo', label: 'Responsables del memorándum', icon: '📄' },
 ];
 const tab = ref('ia');
-
-// --- Responsables del memorándum (formato oficial CPEL-USIL) ---
-const memoForm = useForm({ ...props.memorandum });
-const guardarMemo = () => memoForm.put('/configuracion/memorandum', { preserveScroll: true });
 
 // --- Lista de materias no convalidables (origen) ---
 const nuevaMateria = useForm({ palabra_clave: '', motivo: '' });
@@ -78,7 +73,7 @@ const probar = async () => {
             <h1 class="flex items-center gap-2 text-2xl font-semibold text-[#1F3864]">
                 <span>⚙️</span> Configuración
             </h1>
-            <p class="mt-1 text-sm text-slate-500">Ajustes del sistema: motor de IA, cursos no convalidables y responsables del memorándum.</p>
+            <p class="mt-1 text-sm text-slate-500">Ajustes del sistema: motor de IA y cursos no convalidables.</p>
         </div>
 
         <!-- Pestañas -->
@@ -240,61 +235,5 @@ const probar = async () => {
             </div>
         </section>
 
-        <!-- ===================== Responsables del memorándum ===================== -->
-        <form v-show="tab === 'memo'" @submit.prevent="guardarMemo">
-            <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Responsables del memorándum</h2>
-                <p class="mb-4 mt-1 text-sm text-slate-500">Nombres y cargos que aparecen en el memorándum oficial de convalidación (PDF). Deja un campo vacío para usar el valor por defecto.</p>
-
-                <div class="grid gap-5 sm:grid-cols-2">
-                    <div>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">Para (destinatario)</p>
-                        <input v-model="memoForm.memo_para_nombre" placeholder="Nombre"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                        <input v-model="memoForm.memo_para_cargo" placeholder="Cargo"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                    <div>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">De (remitente)</p>
-                        <input v-model="memoForm.memo_de_nombre" placeholder="Nombre"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                        <input v-model="memoForm.memo_de_cargo" placeholder="Cargo"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                    <div>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">Firma izquierda</p>
-                        <input v-model="memoForm.memo_firma_izq_nombre" placeholder="Nombre"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                        <input v-model="memoForm.memo_firma_izq_cargo" placeholder="Cargo"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                    <div>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">Firma derecha</p>
-                        <input v-model="memoForm.memo_firma_der_nombre" placeholder="Nombre"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                        <input v-model="memoForm.memo_firma_der_cargo" placeholder="Cargo"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">Asunto</label>
-                        <input v-model="memoForm.memo_asunto" placeholder="Asunto del memorándum"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#2E75B6]">Unidad (código de cabecera)</label>
-                        <input v-model="memoForm.memo_unidad" placeholder="CPEL-USIL"
-                               class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    </div>
-                </div>
-
-                <div class="mt-5 flex items-center gap-3">
-                    <button type="submit" :disabled="memoForm.processing"
-                            class="rounded-md bg-[#1F3864] px-5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6] disabled:opacity-60">
-                        Guardar responsables
-                    </button>
-                    <span v-if="memoForm.recentlySuccessful" class="text-sm text-green-600">✓ Guardado</span>
-                </div>
-            </section>
-        </form>
     </div>
 </template>

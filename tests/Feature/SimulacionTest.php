@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
-use App\Models\Convalidacion;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
@@ -19,7 +18,6 @@ use App\Models\SimulacionDetalle;
 use App\Models\TipoInstitucion;
 use App\Models\UnidadNegocio;
 use App\Models\User;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -237,9 +235,7 @@ class SimulacionTest extends TestCase
         $this->assertSame('Idiomas', $detalle->motivo);
     }
 
-    /**
-     * Crea una simulación con una fila convalidable (mínimo para poder confirmarla).
-     */
+    /** Crea una simulación con una fila convalidable ya persistida. */
     private function simulacionConvalidable(string $documento = '999'): Simulacion
     {
         $sim = Simulacion::create([
@@ -262,109 +258,38 @@ class SimulacionTest extends TestCase
         return $sim;
     }
 
-    /** RF-30: confirmar crea convalidación 1:1 e impide duplicado. */
-    public function test_confirmar_convalidacion_es_unica(): void
-    {
-        $sim = $this->simulacionConvalidable();
-
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar");
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar"); // duplicado
-
-        $this->assertEquals(1, Convalidacion::count());
-        $this->assertEquals('confirmada', Convalidacion::first()->estado);
-    }
-
-    /** RF-46: anular cambia el estado sin eliminar el registro. */
-    public function test_anular_convalidacion(): void
-    {
-        $sim = $this->simulacionConvalidable('888');
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar");
-        $conv = Convalidacion::first();
-
-        $this->actingAs($this->ctx['user'])->post("/convalidaciones/{$conv->id}/anular", ['motivo' => 'Error de datos']);
-
-        $this->assertEquals('anulada', $conv->fresh()->estado);
-        $this->assertEquals(1, Convalidacion::count()); // no se elimina
-    }
-
     /**
-     * BD-03: no se emite memorándum oficial sobre una simulación que no reconoce
-     * ningún curso. Antes se creaba la convalidación con 0 cursos y 0 créditos.
+     * Eliminar una preconvalidación es un acto trazable: exige motivo y conserva
+     * el registro (borrado lógico).
+     *
+     * Aquí vivían las reglas BD-01/BD-02/BD-03, que protegían el memorándum
+     * oficial: no confirmar sin cursos, no eliminar lo que sustentaba un acto
+     * vigente, número de memorándum único. Se retiraron con el módulo de
+     * Convalidación. Lo que queda en pie —y se prueba— es la trazabilidad del
+     * borrado.
+     *
+     * NOTA: sin `confirmar()`, `Simulacion::estaCerrada()` devuelve siempre
+     * falso, así que una preconvalidación ya entregada al postulante puede
+     * editarse y eliminarse sin candado. Es una consecuencia aceptada de la
+     * retirada; ver P-3 en docs/Plan-Correccion-Entrega-TI.md.
      */
-    public function test_no_confirma_simulacion_sin_cursos_convalidables(): void
-    {
-        $sim = Simulacion::create([
-            'nombres' => 'Ana', 'apellidos' => 'Pérez', 'tipo_documento' => 'DNI',
-            'numero_documento' => '777', 'email' => 'a@x.com', 'ciclo_postulacion' => '2026-1',
-            'carrera_externa_id' => $this->ctx['carExt']->id, 'carrera_usil_id' => $this->ctx['carrera']->id,
-            'malla_usil_id' => $this->ctx['malla']->id, 'estado' => 'generada', 'usuario_id' => $this->ctx['user']->id,
-        ]);
-
-        $this->actingAs($this->ctx['user'])
-            ->post("/simulaciones/{$sim->id}/confirmar")
-            ->assertSessionHasErrors('simulacion');
-
-        $this->assertEquals(0, Convalidacion::count());
-    }
-
-    /** BD-03: una fila convalidable pero EXCLUIDA tampoco habilita la confirmación. */
-    public function test_no_confirma_si_todas_las_filas_estan_excluidas(): void
-    {
-        $sim = $this->simulacionConvalidable('776');
-        $sim->detalles()->update(['excluido' => true]);
-
-        $this->actingAs($this->ctx['user'])
-            ->post("/simulaciones/{$sim->id}/confirmar")
-            ->assertSessionHasErrors('simulacion');
-
-        $this->assertEquals(0, Convalidacion::count());
-    }
-
-    /**
-     * BD-02: una simulación con convalidación confirmada es el sustento de un
-     * documento oficial; no puede eliminarse mientras la resolución siga vigente.
-     */
-    public function test_no_elimina_simulacion_con_convalidacion_confirmada(): void
+    public function test_eliminar_simulacion_exige_motivo_y_conserva_el_registro(): void
     {
         $sim = $this->simulacionConvalidable('666');
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar");
 
+        // Sin motivo no se elimina.
         $this->actingAs($this->ctx['user'])
-            ->delete("/simulaciones/{$sim->id}", ['motivo' => 'Ya no aplica'])
-            ->assertSessionHasErrors('simulacion');
+            ->deleteJson("/simulaciones/{$sim->id}")
+            ->assertStatus(422);
+        $this->assertNull($sim->fresh()->deleted_at);
 
-        $this->assertNull($sim->fresh()->deleted_at, 'La simulación no debe eliminarse.');
-    }
+        // Con motivo: borrado lógico, el registro y su detalle siguen ahí.
+        $this->actingAs($this->ctx['user'])
+            ->delete("/simulaciones/{$sim->id}", ['motivo' => 'Duplicada por error de carga'])
+            ->assertRedirect();
 
-    /** BD-02: si la convalidación fue anulada, la simulación sí puede eliminarse. */
-    public function test_elimina_simulacion_con_convalidacion_anulada(): void
-    {
-        $sim = $this->simulacionConvalidable('665');
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar");
-        $conv = Convalidacion::first();
-        $this->actingAs($this->ctx['user'])->post("/convalidaciones/{$conv->id}/anular", ['motivo' => 'Error de datos']);
-
-        $this->actingAs($this->ctx['user'])->delete("/simulaciones/{$sim->id}", ['motivo' => 'Ya no aplica']);
-
-        $this->assertNotNull($sim->fresh()->deleted_at);
-    }
-
-    /** BD-01: el número de memorándum es único a nivel de base de datos. */
-    public function test_numero_de_memorandum_no_se_duplica(): void
-    {
-        $sim = $this->simulacionConvalidable('555');
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar");
-        $numero = Convalidacion::first()->memorandum_numero;
-
-        $otra = $this->simulacionConvalidable('554');
-
-        $this->expectException(QueryException::class);
-        Convalidacion::create([
-            'simulacion_id' => $otra->id,
-            'fecha_confirmacion' => now()->toDateString(),
-            'memorandum_numero' => $numero,   // mismo número: la BD debe rechazarlo
-            'estado' => Convalidacion::CONFIRMADA,
-            'usuario_id' => $this->ctx['user']->id,
-        ]);
+        $eliminada = Simulacion::withTrashed()->findOrFail($sim->id);
+        $this->assertNotNull($eliminada->deleted_at);
+        $this->assertSame('Duplicada por error de carga', $eliminada->motivo_eliminacion);
     }
 }

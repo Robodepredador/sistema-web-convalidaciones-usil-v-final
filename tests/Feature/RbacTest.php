@@ -60,8 +60,6 @@ class RbacTest extends TestCase
         foreach ([
             fn () => $this->put('/simulaciones/1', []),
             fn () => $this->delete('/simulaciones/1'),
-            fn () => $this->post('/simulaciones/1/confirmar'),
-            fn () => $this->post('/convalidaciones/1/anular', []),
             fn () => $this->delete('/postulantes/1'),
         ] as $peticion) {
             $this->actingAs($auditor);
@@ -81,13 +79,12 @@ class RbacTest extends TestCase
         // (La denegación de la ruta de revisión se prueba en RevisionFlujoTest, donde ya existe la ruta.)
     }
 
-    /** El Ejecutivo Comercial revisa expedientes y ve reportes; no evalúa. */
-    public function test_ejecutivo_revisa_y_ve_reportes(): void
+    /** El Ejecutivo Comercial revisa expedientes de admisión; no evalúa. */
+    public function test_ejecutivo_revisa_expedientes_no_evalua(): void
     {
         $ejecutivo = $this->usuarioConRol(Role::EJECUTIVO);
 
         $this->actingAs($ejecutivo)->get('/postulantes')->assertOk();
-        $this->actingAs($ejecutivo)->get('/reportes')->assertOk();
         $this->actingAs($ejecutivo)->get('/simulaciones')->assertForbidden();
     }
 

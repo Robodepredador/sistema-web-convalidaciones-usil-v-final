@@ -36,10 +36,10 @@ class Permiso extends Model
         'evaluacion.aprobar' => ['Evaluación', 'Aprobar la evaluación'],
         'evaluacion.observar' => ['Evaluación', 'Observar / devolver para corrección'],
         'evaluacion.reasignar' => ['Evaluación', 'Reasignar evaluaciones'],
-        // Convalidación final
-        'convalidacion.ver' => ['Convalidación', 'Ver convalidaciones confirmadas'],
-        'convalidacion.confirmar' => ['Convalidación', 'Confirmar convalidación y memorándum'],
-        'convalidacion.anular' => ['Convalidación', 'Anular una convalidación'],
+        // Convalidación. Solo lectura: el sistema dejó de emitir el memorándum
+        // oficial —ese acto se gestiona fuera— así que ya no hay nada que
+        // confirmar ni anular aquí. La pantalla sobrevive como historial.
+        'convalidacion.ver' => ['Convalidación', 'Ver el historial de preconvalidaciones'],
         // Catálogos maestros
         'catalogos.gestionar' => ['Catálogos', 'Gestionar mallas e instituciones'],
         'estructura.gestionar' => ['Catálogos', 'Gestionar la estructura institucional'],
@@ -49,7 +49,9 @@ class Permiso extends Model
         // Administración
         'usuarios.gestionar' => ['Administración', 'Gestionar usuarios, roles y alcance'],
         'configuracion.gestionar' => ['Administración', 'Configurar parámetros del sistema'],
-        'auditoria.ver' => ['Administración', 'Consultar auditoría y trazabilidad'],
+        // 'auditoria.ver' se retiró: `auditoria_log` se sigue escribiendo, pero no
+        // existe pantalla para consultarlo. Un permiso que no se puede ejercer
+        // solo desinforma a quien lea la matriz de roles. Vuelve con la pantalla.
     ];
 
     // -------- Permisos por rol --------
@@ -81,11 +83,10 @@ class Permiso extends Model
         Role::DECANO => [
             'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'evaluacion.editar',
             'evaluacion.proponer', 'evaluacion.aprobar', 'convalidacion.ver',
-            'convalidacion.confirmar', 'convalidacion.anular', 'mallas_externas.gestionar',
+            'mallas_externas.gestionar',
         ],
         Role::AUDITOR => [
             'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'convalidacion.ver',
-            'auditoria.ver',
         ],
         Role::CONSULTA => [
             'dashboard.ver',

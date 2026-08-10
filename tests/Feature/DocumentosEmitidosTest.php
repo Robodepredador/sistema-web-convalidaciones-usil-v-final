@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\ConvalidacionController;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
-use App\Models\Convalidacion;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -24,6 +22,9 @@ use Tests\TestCase;
  * Fidelidad de los documentos emitidos: lo que dicen tiene que coincidir con lo
  * registrado. Se renderiza la plantilla (HTML) en vez del PDF porque el binario
  * de DomPDF lleva el texto comprimido y no se puede afirmar sobre él.
+ *
+ * Queda solo la preconvalidación: el memorándum oficial salió del sistema junto
+ * con el módulo de Convalidación, y su plantilla se eliminó.
  */
 class DocumentosEmitidosTest extends TestCase
 {
@@ -63,34 +64,6 @@ class DocumentosEmitidosTest extends TestCase
             'creditos_reconocidos' => 3.5, 'excluido' => false, 'origen' => 'manual',
         ]);
         $this->sim->load(['detalles.cursoUsil.ciclo', 'carreraUsil.facultad']);
-
-        $this->usuario = $user;
-    }
-
-    private User $usuario;
-
-    public function test_el_memorandum_no_redondea_los_creditos(): void
-    {
-        $conv = Convalidacion::create([
-            'simulacion_id' => $this->sim->id, 'fecha_confirmacion' => now()->toDateString(),
-            'memorandum_numero' => '0001 - 2026-1 / CPEL-USIL', 'estado' => Convalidacion::CONFIRMADA,
-            'usuario_id' => $this->usuario->id,
-        ]);
-
-        $html = view('pdf.memorandum', [
-            'convalidacion' => $conv, 'facultad' => 'Ingeniería', 'carrera' => 'SW',
-            'estudiante' => 'PÉREZ, ANA', 'codigo' => 'POST-2026-00001', 'procedencia' => 'UNI',
-            'periodo' => '2026-1', 'codigoMemo' => $conv->memorandum_numero,
-            'fecha' => '5 de Agosto 2026', 'detalles' => $this->sim->detalles,
-            'total' => 3.5, 'resp' => ConvalidacionController::MEMO_DEFAULTS,
-            'emitidoPor' => $this->usuario->nombre,
-        ])->render();
-
-        $this->assertStringContainsString('3.5', $html, 'El memorándum redondeó los créditos.');
-        // Evidencia del sustento y de quién emitió el acto.
-        $this->assertStringContainsString('Nota de origen', $html);
-        $this->assertStringContainsString('Decana Ruiz', $html);
-        $this->assertStringContainsString($conv->memorandum_numero, $html);
     }
 
     public function test_la_preconvalidacion_no_redondea_ni_fecha_la_impresion(): void

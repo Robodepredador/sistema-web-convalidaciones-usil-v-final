@@ -6,7 +6,6 @@ use App\Models\AuditoriaLog;
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
-use App\Models\Convalidacion;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -19,13 +18,22 @@ use App\Models\UnidadNegocio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
- * Integridad del acto oficial: un expediente que ya produjo un memorándum no
- * cambia de contenido, y el documento que se descarga es el que se emitió.
+ * Integridad del detalle de la preconvalidación: cambiar lo que reconoce un
+ * expediente es una decisión académica y tiene que quedar justificada y trazada.
+ *
+ * Este archivo probaba antes la integridad del ACTO OFICIAL: que un expediente
+ * con memorándum emitido no cambiara de contenido y que la descarga sirviera el
+ * documento archivado. Esas reglas desaparecieron con el módulo de Convalidación
+ * —el memorándum se gestiona ahora fuera del sistema— y con ellas el candado:
+ * `Simulacion::estaCerrada()` se apoyaba en que existiera una convalidación
+ * confirmada, así que hoy devuelve siempre falso.
+ *
+ * La consecuencia está aceptada y documentada (P-3 en
+ * docs/Plan-Correccion-Entrega-TI.md), y se fija abajo con una prueba: si algún
+ * día vuelve un candado, que sea por decisión y no por accidente.
  */
 class IntegridadConvalidacionTest extends TestCase
 {
@@ -82,75 +90,7 @@ class IntegridadConvalidacionTest extends TestCase
         return Simulacion::firstOrFail();
     }
 
-    private function confirmar(Simulacion $sim): Convalidacion
-    {
-        $this->actingAs($this->ctx['user'])->post("/simulaciones/{$sim->id}/confirmar")->assertRedirect();
-
-        return Convalidacion::firstOrFail();
-    }
-
-    /** El cuerpo de la petición de edición, con un curso extra. */
-    private function cuerpoConDosCursos(): array
-    {
-        return [
-            'postulante_id' => $this->ctx['postulante']->id,
-            'carrera_usil_id' => $this->ctx['carrera']->id,
-            'metodo' => 'manual',
-            'filas' => [
-                ['curso_origen_nombre' => 'Matemática I', 'curso_usil_id' => $this->ctx['cursoUsil']->id, 'nota_origen' => '15', 'clasificacion' => 'convalidable'],
-                ['curso_origen_nombre' => 'Álgebra lineal', 'curso_usil_id' => $this->ctx['otroUsil']->id, 'nota_origen' => '14', 'clasificacion' => 'convalidable'],
-            ],
-        ];
-    }
-
-    public function test_no_se_edita_el_detalle_de_una_simulacion_convalidada(): void
-    {
-        $sim = $this->simular();
-        $this->confirmar($sim);
-
-        $this->actingAs($this->ctx['user'])
-            ->putJson("/simulaciones/{$sim->id}", $this->cuerpoConDosCursos())
-            ->assertStatus(422);
-
-        $this->assertEquals(4.0, (float) $sim->fresh()->detalles()->sum('creditos_reconocidos'));
-    }
-
-    public function test_no_se_abre_el_editor_de_una_simulacion_convalidada(): void
-    {
-        $sim = $this->simular();
-        $this->confirmar($sim);
-
-        $this->actingAs($this->ctx['user'])->get("/simulaciones/{$sim->id}/editar")->assertStatus(422);
-    }
-
-    public function test_una_convalidacion_anulada_sigue_congelando_el_expediente(): void
-    {
-        $sim = $this->simular();
-        $conv = $this->confirmar($sim);
-
-        $this->actingAs($this->ctx['user'])
-            ->post("/convalidaciones/{$conv->id}/anular", ['motivo' => 'Sílabo no corresponde'])
-            ->assertRedirect();
-
-        // El memorándum anulado se conserva: su detalle es la evidencia de lo que certificó.
-        $this->actingAs($this->ctx['user'])
-            ->putJson("/simulaciones/{$sim->id}", $this->cuerpoConDosCursos())
-            ->assertStatus(422);
-    }
-
-    public function test_anular_devuelve_la_simulacion_a_generada(): void
-    {
-        $sim = $this->simular();
-        $conv = $this->confirmar($sim);
-        $this->assertSame('aceptada', $sim->fresh()->estado);
-
-        $this->actingAs($this->ctx['user'])
-            ->post("/convalidaciones/{$conv->id}/anular", ['motivo' => 'Error de mapeo'])
-            ->assertRedirect();
-
-        $this->assertSame('generada', $sim->fresh()->estado);
-    }
-
+    /** RF-27: excluir un curso cambia los créditos reconocidos; exige motivo y deja traza. */
     public function test_excluir_un_curso_exige_motivo_y_deja_auditoria(): void
     {
         $sim = $this->simular();
@@ -170,53 +110,31 @@ class IntegridadConvalidacionTest extends TestCase
             ->where('registro_id', $detalle->id)->exists(), 'La exclusión no dejó traza de auditoría.');
     }
 
-    public function test_no_se_excluye_un_curso_de_una_simulacion_convalidada(): void
+    /**
+     * Consecuencia aceptada de retirar Convalidación: ya no hay estado que
+     * congele el expediente, así que el mapeo sigue siendo editable después de
+     * que el postulante lo haya visto en el portal.
+     *
+     * Se fija aquí a propósito. Si el día de mañana se decide reponer un candado
+     * —una acción explícita de «cerrar expediente»— esta prueba fallará y
+     * obligará a revisar la decisión en vez de dejarla pasar en silencio.
+     */
+    public function test_una_preconvalidacion_sigue_siendo_editable(): void
     {
         $sim = $this->simular();
-        $detalle = $sim->detalles()->firstOrFail();
-        $this->confirmar($sim);
 
         $this->actingAs($this->ctx['user'])
-            ->patchJson("/simulaciones/{$sim->id}/detalle/{$detalle->id}", ['motivo' => 'Cambio de criterio'])
-            ->assertStatus(422);
+            ->putJson("/simulaciones/{$sim->id}", [
+                'postulante_id' => $this->ctx['postulante']->id,
+                'carrera_usil_id' => $this->ctx['carrera']->id,
+                'metodo' => 'manual',
+                'filas' => [
+                    ['curso_origen_nombre' => 'Matemática I', 'curso_usil_id' => $this->ctx['cursoUsil']->id, 'nota_origen' => '15', 'clasificacion' => 'convalidable'],
+                    ['curso_origen_nombre' => 'Álgebra lineal', 'curso_usil_id' => $this->ctx['otroUsil']->id, 'nota_origen' => '14', 'clasificacion' => 'convalidable'],
+                ],
+            ])
+            ->assertOk();
 
-        $this->assertFalse((bool) $detalle->fresh()->excluido);
-    }
-
-    /** El número guardado es el que se imprime, y por tanto el que encuentra el buscador. */
-    public function test_el_numero_de_memorandum_guardado_es_el_impreso(): void
-    {
-        $sim = $this->simular();
-        $conv = $this->confirmar($sim);
-
-        $this->assertSame(
-            str_pad((string) $conv->id, 4, '0', STR_PAD_LEFT).' - 2026-1 / CPEL-USIL',
-            $conv->memorandum_numero
-        );
-
-        // Y por tanto el buscador lo encuentra: es el número que el postulante trae en el papel.
-        $this->actingAs($this->ctx['user'])
-            ->get('/convalidaciones?q='.urlencode($conv->memorandum_numero))
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('convalidaciones.data.0.memorandum', $conv->memorandum_numero));
-    }
-
-    /** La descarga sirve el archivo emitido, no una versión recalculada. */
-    public function test_la_descarga_sirve_el_memorandum_archivado(): void
-    {
-        $sim = $this->simular();
-        $conv = $this->confirmar($sim);
-
-        $this->assertNotNull($conv->memorandum_pdf_path);
-        Storage::put($conv->memorandum_pdf_path, 'ARCHIVO-EMITIDO');
-
-        $contenido = $this->actingAs($this->ctx['user'])
-            ->get("/convalidaciones/{$conv->id}/memorandum")
-            ->assertOk()
-            ->streamedContent();
-
-        $this->assertSame('ARCHIVO-EMITIDO', $contenido,
-            'La descarga re-renderizó el memorándum en lugar de servir el emitido.');
+        $this->assertEquals(7.5, (float) $sim->fresh()->detalles()->sum('creditos_reconocidos'));
     }
 }

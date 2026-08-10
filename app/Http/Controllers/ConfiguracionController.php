@@ -15,6 +15,10 @@ use Inertia\Response;
 /**
  * Configuración del sistema (solo Administrador).
  * Incluye el motor de IA para convalidaciones: proveedor, modelo y API key.
+ *
+ * Los responsables del memorándum salieron de aquí junto con el módulo de
+ * Convalidación: el sistema ya no emite ese documento y sus claves
+ * (`memo_*` en `configuraciones`) dejaron de leerse.
  */
 class ConfiguracionController extends Controller
 {
@@ -41,28 +45,7 @@ class ConfiguracionController extends Controller
             'noConvalidables' => CursoNoConvalidable::whereNull('carrera_id')
                 ->orderBy('palabra_clave')
                 ->get(['id', 'palabra_clave', 'motivo', 'activo']),
-            // Responsables del memorándum (formato oficial CPEL-USIL).
-            'memorandum' => ConvalidacionController::responsablesMemo(),
         ]);
-    }
-
-    /** Guarda los responsables/campos del memorándum. */
-    public function updateMemorandum(Request $request): RedirectResponse
-    {
-        $reglas = [];
-        foreach (array_keys(ConvalidacionController::MEMO_DEFAULTS) as $clave) {
-            $reglas[$clave] = ['nullable', 'string', 'max:200'];
-        }
-        $datos = $request->validate($reglas);
-
-        foreach (array_keys(ConvalidacionController::MEMO_DEFAULTS) as $clave) {
-            // Vacío → se borra la clave y vuelve al valor por defecto.
-            Configuracion::set($clave, $datos[$clave] ?? null);
-        }
-
-        AuditoriaService::registrar('editar', 'configuraciones', null, null, ['memorandum' => true]);
-
-        return back()->with('status', 'Responsables del memorándum actualizados.');
     }
 
     /** Agrega una materia a la lista de no convalidables (origen). */

@@ -71,7 +71,6 @@ Route::middleware('auth')->group(function () {
         // Configuración del sistema (motor de IA, etc.)
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
-        Route::put('configuracion/memorandum', [ConfiguracionController::class, 'updateMemorandum'])->name('configuracion.memorandum');
         Route::post('configuracion/probar', [ConfiguracionController::class, 'probar'])->name('configuracion.probar');
         Route::post('configuracion/no-convalidables', [ConfiguracionController::class, 'agregarNoConvalidable'])->name('configuracion.no-convalidables.store');
         Route::patch('configuracion/no-convalidables/{noConvalidable}', [ConfiguracionController::class, 'actualizarNoConvalidable'])->name('configuracion.no-convalidables.update');
