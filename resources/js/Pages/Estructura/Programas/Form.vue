@@ -2,6 +2,7 @@
 import { useForm, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Autocomplete from '../../../Components/Autocomplete.vue';
+import VolverA from '../../../Components/VolverA.vue';
 
 const props = defineProps({ programa: Object, facultades: Array });
 const editando = !!props.programa;
@@ -22,6 +23,7 @@ const enviar = () => {
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/estructura/programas" texto="Programas académicos" />
         <h1 class="mb-6 text-2xl font-semibold text-[#1F3864]">{{ editando ? 'Editar programa académico' : 'Nuevo programa académico' }}</h1>
 
         <form @submit.prevent="enviar" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

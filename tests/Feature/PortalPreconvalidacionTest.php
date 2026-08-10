@@ -23,7 +23,8 @@ use Tests\TestCase;
 
 /**
  * El postulante consulta el PDF de su preconvalidación desde el portal, pero
- * solo el suyo y solo una vez que Admisión confirma la convalidación.
+ * solo el suyo y no el de otro solicitante. Si la convalidación fue anulada,
+ * el resultado ya no debe verse.
  */
 class PortalPreconvalidacionTest extends TestCase
 {
@@ -109,12 +110,30 @@ class PortalPreconvalidacionTest extends TestCase
         $this->assertStringStartsWith('%PDF', $r->getContent());
     }
 
-    public function test_sin_convalidacion_confirmada_no_expone_el_pdf(): void
+    public function test_sin_convalidacion_confirmada_expone_el_pdf(): void
     {
         $p = $this->postulante('90000002');
         $sim = $this->simulacion($p); // generada, sin convalidación
 
-        $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}")->assertForbidden();
+        $r = $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}");
+
+        $r->assertOk();
+        $r->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('inline;', $r->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF', $r->getContent());
+    }
+
+    public function test_sin_convalidacion_confirmada_descarga_el_pdf(): void
+    {
+        $p = $this->postulante('90000007');
+        $sim = $this->simulacion($p);
+
+        $r = $this->actingAs($p, 'postulante')->get("/portal/preconvalidacion/{$sim->id}?download=1");
+
+        $r->assertOk();
+        $r->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('attachment;', $r->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF', $r->getContent());
     }
 
     public function test_anulada_no_expone_el_pdf(): void
@@ -152,7 +171,7 @@ class PortalPreconvalidacionTest extends TestCase
         $this->actingAs($p, 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
                 ->has('simulaciones', 2)
-                ->where('simulaciones.0.pdf_url', null)
+                ->where('simulaciones.0.pdf_url', route('portal.preconvalidacion', $sinConfirmar->id))
                 ->where('simulaciones.1.pdf_url', route('portal.preconvalidacion', $confirmada->id)));
     }
 }

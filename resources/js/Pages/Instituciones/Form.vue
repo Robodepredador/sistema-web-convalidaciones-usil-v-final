@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { onMounted, ref, watch } from 'vue';
 defineProps({ tipos: Array });
 
@@ -55,6 +56,7 @@ const enviar = () => form.post('/instituciones', {
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/instituciones" texto="Instituciones externas" />
         <h1 class="mb-6 text-2xl font-semibold text-[#1F3864]">Nueva institución externa</h1>
 
         <div v-if="borradorRestaurado"

@@ -1,6 +1,7 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import { reactive } from 'vue';
+import VolverA from '../../../Components/VolverA.vue';
 
 const props = defineProps({ modalidades: Object, activas: Number, filtros: Object });
 
@@ -15,10 +16,7 @@ const eliminar = (m) => { if (confirm(`¿Eliminar la modalidad "${m.nombre}"?`))
     <div>
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <Link href="/estructura" class="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-400 hover:text-[#2E75B6]">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                    Estructura Institucional
-                </Link>
+                <VolverA href="/estructura" texto="Estructura institucional" />
                 <h1 class="mt-1 text-2xl font-semibold text-[#1F3864]">Modalidades</h1>
                 <p class="mt-1 text-sm text-slate-500">Modalidades de estudio (presencial, semipresencial, virtual).</p>
             </div>

@@ -1,5 +1,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({ cargaId: Number });
@@ -23,6 +24,7 @@ const color = () => ({
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/mallas" texto="Mallas curriculares" />
         <h1 class="mb-2 text-2xl font-semibold text-[#1F3864]">Procesando carga</h1>
         <p class="mb-6 text-sm text-slate-500">El procesamiento se ejecuta en segundo plano. Esta vista se actualiza sola.</p>
 

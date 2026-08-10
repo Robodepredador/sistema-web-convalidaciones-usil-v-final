@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -42,13 +43,7 @@ const registrar = () => form.post('/mallas/importar/guardar');
 
 <template>
     <div>
-        <Link href="/mallas" class="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#2E75B6]">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Volver a mallas
-        </Link>
-
+        <VolverA href="/mallas" texto="Mallas curriculares" />
         <h1 class="text-2xl font-semibold text-[#1F3864]">Revisar malla importada</h1>
         <p class="mt-1 text-sm text-slate-500">
             Verifica y corrige los datos leídos antes de registrarlos. Nada se guarda hasta que confirmes.

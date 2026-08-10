@@ -25,7 +25,7 @@ const props = defineProps({
     catalogo: { type: Object, default: null },
 });
 
-const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen']);
+const emit = defineEmits(['sugerir-ia', 'sugerir-similitud', 'agregar', 'quitar', 'seleccion-origen', 'importar-excel']);
 
 const TIPO_LABEL = { convalidable: 'Convalidable', no_convalidable: 'No convalidable', desaprobado: 'Desaprobado' };
 
@@ -157,10 +157,21 @@ const antecedentesVisibles = computed(() => props.antecedentes.slice(0, 4));
 // ---- Alta de curso externo en línea: la tarjeta editable aparece dentro de la propia bandeja ----
 const agregando = ref(false);
 const nuevoNombre = ref('');
-const nuevoCreditos = ref('');
 const nuevoInput = ref(null);
-const iniciarNuevo = async () => { agregando.value = true; nuevoNombre.value = ''; nuevoCreditos.value = ''; await nextTick(); nuevoInput.value?.focus(); };
-const cancelarNuevo = () => { agregando.value = false; nuevoNombre.value = ''; nuevoCreditos.value = ''; };
+const iniciarNuevo = async () => { agregando.value = true; nuevoNombre.value = ''; await nextTick(); nuevoInput.value?.focus(); };
+const cancelarNuevo = () => { agregando.value = false; nuevoNombre.value = ''; };
+
+// ---- Importar cursos desde Excel ----
+const excelInput = ref(null);
+const importandoExcel = ref(false);
+const abrirSelectorExcel = () => { excelInput.value?.click(); };
+const onExcelSeleccionado = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    emit('importar-excel', file);
+    // Reset para permitir subir el mismo archivo otra vez.
+    if (excelInput.value) excelInput.value.value = '';
+};
 
 // Opciones de la malla de origen. Con `allowFree`, el valor del campo es o bien el id de
 // un curso elegido, o bien el texto que el evaluador escribió; esto resuelve cuál es.
@@ -180,14 +191,14 @@ const confirmarNuevo = async () => {
 
     emit('agregar', {
         nombre: n,
-        // Lo tecleado manda sobre lo que traiga la malla: el alumno pudo llevar el curso
-        // con otra cantidad de créditos que la vigente.
-        creditos: nuevoCreditos.value !== '' ? nuevoCreditos.value : (elegido?.creditos ?? ''),
+        // Los créditos ya no se piden en el alta: si el curso sale de la malla de origen
+        // vienen de ella, y si se teclea a mano quedan vacíos. El total convalidado se
+        // calcula con los créditos del curso USIL, así que esto no afecta al resultado.
+        creditos: elegido?.creditos ?? '',
         curso_externo_id: elegido?.id ?? null,
     });
 
     nuevoNombre.value = '';
-    nuevoCreditos.value = '';
     await nextTick();
     nuevoInput.value?.focus();
 };
@@ -212,6 +223,9 @@ const resumen = computed(() => {
     return { total: candidatos.value.length, emparejados, creditos };
 });
 const progresoPct = computed(() => (resumen.value.total ? Math.round((resumen.value.emparejados / resumen.value.total) * 100) : 0));
+
+// Los contadores de las cabeceras llegan a valer 1 y quedaban como «1 disponibles».
+const plural = (n, singular, plural_) => (n === 1 ? singular : plural_);
 
 // ---- Líneas de conexión: verdes (confirmadas) + una azul discontinua (par en curso) ----
 const gridEl = ref(null);
@@ -288,12 +302,26 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
         <div class="mb-3 flex flex-wrap items-center gap-2">
             <button v-if="!sinIa" type="button" @click="emit('sugerir-ia')" :disabled="procesando || !ia?.disponible" :title="ia?.disponible ? '' : 'Configura la API key en Configuración'"
                     class="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50">
-                ✨ Sugerir con IA
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>
+                Sugerir con IA
             </button>
             <button type="button" @click="emit('sugerir-similitud')" :disabled="procesando"
                     class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                ↻ Re-sugerir por similitud
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                Sugerir por similitud
             </button>
+            <!-- A la derecha de la barra: importar es una acción de entrada de datos,
+                 no una sugerencia, y desde aquí sirve tanto si la bandeja está vacía
+                 como si ya tiene cursos. -->
+            <template v-if="!soloLectura">
+                <button type="button" @click="abrirSelectorExcel" :disabled="importandoExcel"
+                        class="ml-auto inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        title="Importar cursos desde un archivo Excel con la plantilla de malla externa">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                    {{ importandoExcel ? 'Importando…' : 'Importar Excel' }}
+                </button>
+                <input ref="excelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onExcelSeleccionado" />
+            </template>
         </div>
 
         <!-- Guía inicial (sin selección): cómo emparejar a mano -->
@@ -419,7 +447,7 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                 <div class="flex flex-col border-slate-200 md:border-r">
                     <div class="flex items-center gap-2 bg-[#1F3864] px-4 py-2.5 text-white">
                         <span class="font-heading text-sm font-bold">Malla USIL</span>
-                        <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium">{{ poolUsil.length }} cursos</span>
+                        <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium">{{ poolUsil.length }} {{ plural(poolUsil.length, 'curso', 'cursos') }}</span>
                         <span class="ml-auto rounded bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Destino</span>
                     </div>
                     <div class="border-b border-slate-100 px-3.5 py-2.5">
@@ -455,7 +483,7 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                 <div class="flex flex-col">
                     <div class="flex items-center gap-2 bg-[#1F3864] px-4 py-2.5 text-white">
                         <span class="font-heading text-sm font-bold">Cursos externos</span>
-                        <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium">{{ candidatos.length }} disponibles</span>
+                        <span class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium">{{ candidatos.length }} {{ plural(candidatos.length, 'disponible', 'disponibles') }}</span>
                         <span class="ml-auto rounded bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Origen</span>
                     </div>
                     <div class="border-b border-slate-100 px-3.5 py-2.5">
@@ -491,12 +519,21 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                                     <span class="shrink-0 text-xs font-medium text-slate-400">{{ fila.creditos_origen || '—' }} cr.</span>
                                 </button>
                                 <button v-if="!soloLectura" type="button" @click="quitarFila(fila)" title="Quitar"
-                                        class="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 text-slate-300 hover:text-red-600">✕</button>
+                                        class="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 text-slate-300 hover:text-red-600">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
                             </div>
                         </div>
-                        <p v-if="!filasVisibles.length" class="py-6 text-center text-sm text-slate-400">
-                            {{ filas.length ? 'Sin resultados.' : 'Sin cursos por emparejar.' }}
-                        </p>
+                        <!-- Vacío por búsqueda y vacío de verdad son situaciones distintas y
+                             la salida de cada una tambien lo es: reformular vs. cargar cursos. -->
+                        <div v-if="!filasVisibles.length" class="px-6 py-10 text-center">
+                            <p class="text-sm font-medium text-slate-500">
+                                {{ filas.length ? 'Ningún curso coincide con la búsqueda.' : 'Todavía no hay cursos externos.' }}
+                            </p>
+                            <p class="mt-1 text-xs text-slate-400">
+                                {{ filas.length ? 'Prueba con otro nombre.' : 'Agrégalos a mano o impórtalos desde Excel con la plantilla de malla externa.' }}
+                            </p>
+                        </div>
                         <template v-if="!soloLectura">
                             <!-- Tarjeta editable en línea: se agrega el curso sin salir de la bandeja -->
                             <div v-if="agregando" class="border-b border-l-[3px] border-l-[#2E75B6] border-slate-100 bg-blue-50/40 px-3.5 py-2.5">
@@ -511,9 +548,6 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                                     <input v-else ref="nuevoInput" v-model="nuevoNombre" type="text" placeholder="Nombre del curso externo…"
                                            @keydown.enter.prevent="confirmarNuevo" @keydown.esc="cancelarNuevo"
                                            class="min-w-0 flex-1 rounded-md border-slate-300 py-1.5 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                                    <input v-model="nuevoCreditos" type="number" step="0.5" min="0" placeholder="Créd."
-                                           @keydown.enter.prevent="confirmarNuevo" @keydown.esc="cancelarNuevo"
-                                           class="w-20 shrink-0 rounded-md border-slate-300 py-1.5 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                                 </div>
                                 <div class="mt-2 flex items-center gap-2">
                                     <button type="button" @click="confirmarNuevo" :disabled="!puedeAgregarNuevo"
@@ -559,14 +593,16 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                             <span v-if="usilDeFila(fila)?.codigo" class="font-mono">{{ usilDeFila(fila)?.codigo }} · </span>{{ usilDeFila(fila)?.creditos || '—' }} cr.
                         </p>
                     </div>
-                    <button type="button" @click="desemparejar(fila)" class="shrink-0 text-slate-300 hover:text-red-600" title="Quitar equivalencia">✕</button>
+                    <button type="button" @click="desemparejar(fila)" class="shrink-0 text-slate-300 hover:text-red-600" title="Quitar equivalencia">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Resumen -->
         <div class="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm">
-            <span class="whitespace-nowrap font-medium text-slate-700">{{ resumen.emparejados }} de {{ resumen.total }} emparejados</span>
+            <span class="whitespace-nowrap font-medium text-slate-700">{{ resumen.emparejados }} de {{ resumen.total }} {{ plural(resumen.total, 'emparejado', 'emparejados') }}</span>
             <div class="h-[7px] max-w-[220px] flex-1 overflow-hidden rounded-full bg-slate-200">
                 <div class="h-full rounded-full bg-[#2E75B6] transition-all" :style="{ width: progresoPct + '%' }"></div>
             </div>

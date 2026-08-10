@@ -23,7 +23,11 @@ const texto = ref(labelDe(props.modelValue));
 const abierto = ref(false);
 const activo = ref(-1);
 
-watch(() => props.modelValue, (v) => { if (!abierto.value) texto.value = labelDe(v); });
+// Con la lista abierta no se pisa lo que el usuario está escribiendo, pero un vaciado
+// desde fuera (el padre resetea tras dar de alta) sí tiene que limpiar el campo: si no,
+// conserva el texto anterior y «puedes añadir varios seguidos» obliga a borrar a mano.
+// Vaciar tecleando también pasa por aquí y es inocuo: labelDe('') ya es ''.
+watch(() => props.modelValue, (v) => { if (!abierto.value || v === '' || v == null) texto.value = labelDe(v); });
 watch(opciones, () => { if (!abierto.value) texto.value = labelDe(props.modelValue); });
 
 const filtradas = computed(() => {
@@ -70,7 +74,9 @@ const limpiar = () => { texto.value = ''; emit('update:modelValue', ''); abierto
                :disabled="disabled" :placeholder="placeholder" autocomplete="off"
                class="w-full rounded-lg border-slate-300 pr-8 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] disabled:cursor-not-allowed disabled:bg-slate-50" />
         <button v-if="texto && !disabled" type="button" @mousedown.prevent="limpiar"
-                class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-300 hover:text-slate-500">✕</button>
+                class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-300 hover:text-slate-500">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </button>
 
         <div v-if="abierto && (filtradas.length || mostrarCrear || (texto.trim() && !allowFree))"
              class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg">

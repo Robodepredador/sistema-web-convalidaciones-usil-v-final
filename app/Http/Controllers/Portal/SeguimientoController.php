@@ -57,11 +57,7 @@ class SeguimientoController extends Controller
                 'estado' => $s->estado,
                 'cursos' => $s->detalles->where('excluido', false)->count(),
                 'creditos' => (float) $s->detalles->where('excluido', false)->sum('creditos_reconocidos'),
-                // Null mientras no esté confirmada: la vista muestra entonces por
-                // qué todavía no hay documento, en vez de un botón que daría 403.
-                'pdf_url' => $s->convalidacion?->estado === Convalidacion::CONFIRMADA
-                    ? route('portal.preconvalidacion', $s->id)
-                    : null,
+                'pdf_url' => route('portal.preconvalidacion', $s->id),
             ])->values(),
         ]);
     }

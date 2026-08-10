@@ -8,7 +8,7 @@ defineProps({ mapeos: Array });
     <div>
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold text-[#1F3864]">Equivalencias por malla</h1>
+                <h1 class="text-2xl font-semibold text-[#1F3864]">Mapeo de equivalencias</h1>
                 <p class="mt-1 max-w-3xl text-sm text-slate-500">
                     El criterio que declaras entre la malla de una institución de origen y un plan de estudios USIL.
                     Aparece como primera sugerencia al evaluar, junto al histórico de lo ya convalidado.

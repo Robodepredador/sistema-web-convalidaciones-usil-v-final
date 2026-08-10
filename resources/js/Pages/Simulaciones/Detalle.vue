@@ -1,5 +1,6 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 const props = defineProps({ simulacion: Object, detalles: Array, creditos_total: Number });
@@ -62,6 +63,7 @@ const verRestantes = ref(false);
 
 <template>
     <div class="max-w-5xl">
+        <VolverA href="/simulaciones" texto="Simulaciones" />
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-2xl font-semibold text-[#1F3864]">{{ simulacion.estudiante }}</h1>
@@ -211,7 +213,6 @@ const verRestantes = ref(false);
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                 Descargar Excel
             </button>
-            <Link href="/simulaciones" class="ml-auto text-sm text-slate-500 hover:text-slate-700 hover:underline">Volver a Simulaciones</Link>
         </div>
 
         <p class="mt-3 text-xs text-slate-400">

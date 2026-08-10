@@ -3,6 +3,7 @@ import { useForm, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
 import ConfirmDialog from '../../Components/ConfirmDialog.vue';
+import VolverA from '../../Components/VolverA.vue';
 
 const props = defineProps({
     postulante: Object, instituciones: Array, carreras: Array, estados: Array,
@@ -361,11 +362,8 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
         <!-- Encabezado -->
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <Link href="/postulantes" class="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-400 hover:text-[#2E75B6]">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                    Postulantes
-                </Link>
-                <h1 class="mt-1 text-2xl font-semibold text-[#1F3864]">
+                <VolverA href="/postulantes" texto="Postulantes" />
+                <h1 class="text-2xl font-semibold text-[#1F3864]">
                     {{ !editando ? 'Nuevo postulante' : (esRevisor ? 'Revisar expediente' : 'Editar postulante') }}
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">

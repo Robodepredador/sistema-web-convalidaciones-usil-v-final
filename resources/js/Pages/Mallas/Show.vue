@@ -1,5 +1,6 @@
 <script setup>
 import { Link, router, useForm } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { computed, reactive, ref } from 'vue';
 
 const props = defineProps({
@@ -218,11 +219,8 @@ const tarjetas = computed(() => [
         <!-- Cabecera -->
         <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <Link href="/mallas" class="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-400 hover:text-[#2E75B6]">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                    Mallas Curriculares
-                </Link>
-                <div class="mt-1 flex flex-wrap items-center gap-3">
+                <VolverA href="/mallas" texto="Mallas curriculares" />
+                <div class="flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-semibold text-[#1F3864]">{{ malla.carrera }}</h1>
                     <span :class="malla.activa ? 'bg-green-50 text-green-700 ring-green-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
                           class="rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ malla.activa ? 'Activa' : 'Inactiva' }}</span>

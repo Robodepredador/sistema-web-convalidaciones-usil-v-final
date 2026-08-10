@@ -46,9 +46,6 @@ class Permiso extends Model
         // Mallas oficiales de las instituciones de origen. Permiso propio (y no
         // 'evaluacion.ver') para poder retirárselo a un rol sin quitarle Simulaciones.
         'mallas_externas.gestionar' => ['Catálogos', 'Registrar mallas oficiales de instituciones externas'],
-        // Reportes
-        'reportes.ver' => ['Reportes', 'Ver reportes e indicadores'],
-        'reportes.exportar' => ['Reportes', 'Exportar reportes'],
         // Administración
         'usuarios.gestionar' => ['Administración', 'Gestionar usuarios, roles y alcance'],
         'configuracion.gestionar' => ['Administración', 'Configurar parámetros del sistema'],
@@ -64,7 +61,7 @@ class Permiso extends Model
         ],
         // Ejecutivo Comercial de Admisión: revisa, aprueba u observa; puede corregir datos.
         Role::EJECUTIVO => [
-            'dashboard.ver', 'solicitudes.ver', 'solicitudes.editar', 'solicitudes.validar', 'reportes.ver',
+            'dashboard.ver', 'solicitudes.ver', 'solicitudes.editar', 'solicitudes.validar',
         ],
         // Evalúa simulaciones de sus carreras; los postulantes los gestiona Admisión.
         // Con 'mallas_externas.gestionar' desde 2026-08-07: el mapeo de equivalencias
@@ -75,25 +72,23 @@ class Permiso extends Model
         Role::COORDINADOR => [
             'dashboard.ver', 'evaluacion.ver', 'evaluacion.editar',
             'evaluacion.proponer', 'catalogos.gestionar', 'mallas_externas.gestionar',
-            'reportes.ver',
         ],
         Role::DIRECTOR => [
             'dashboard.ver', 'solicitudes.ver', 'solicitudes.asignar', 'evaluacion.ver',
             'evaluacion.editar', 'evaluacion.proponer', 'evaluacion.aprobar', 'evaluacion.observar',
-            'evaluacion.reasignar', 'catalogos.gestionar', 'mallas_externas.gestionar', 'reportes.ver',
+            'evaluacion.reasignar', 'catalogos.gestionar', 'mallas_externas.gestionar',
         ],
         Role::DECANO => [
             'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'evaluacion.editar',
             'evaluacion.proponer', 'evaluacion.aprobar', 'convalidacion.ver',
             'convalidacion.confirmar', 'convalidacion.anular', 'mallas_externas.gestionar',
-            'reportes.ver', 'reportes.exportar',
         ],
         Role::AUDITOR => [
             'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'convalidacion.ver',
-            'auditoria.ver', 'reportes.ver', 'reportes.exportar',
+            'auditoria.ver',
         ],
         Role::CONSULTA => [
-            'dashboard.ver', 'reportes.ver',
+            'dashboard.ver',
         ],
     ];
 }

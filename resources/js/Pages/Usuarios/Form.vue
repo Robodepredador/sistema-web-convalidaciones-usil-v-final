@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { computed } from 'vue';
 
 const props = defineProps({ usuario: Object, roles: Array, carreras: Array, facultades: { type: Array, default: () => [] } });
@@ -27,6 +28,7 @@ const enviar = () => {
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/usuarios" texto="Usuarios" />
         <h1 class="mb-6 text-2xl font-semibold text-[#1F3864]">
             {{ editando ? 'Editar usuario' : 'Nuevo usuario' }}
         </h1>

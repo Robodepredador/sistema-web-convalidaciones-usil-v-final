@@ -2,6 +2,7 @@
 import { useForm, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
+import VolverA from '../../Components/VolverA.vue';
 
 const props = defineProps({ carreras: Array });
 const carrerasOpts = computed(() => props.carreras.map((c) => ({ value: c.id, label: c.nombre })));
@@ -29,6 +30,7 @@ const enviar = () => form.post('/mallas');
 
 <template>
     <div class="max-w-4xl">
+        <VolverA href="/mallas" texto="Mallas curriculares" />
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-2xl font-semibold text-[#1F3864]">Nueva malla curricular</h1>
             <Link href="/mallas/importar"

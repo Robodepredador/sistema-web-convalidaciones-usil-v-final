@@ -1,5 +1,6 @@
 <script setup>
 import { router, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { reactive, ref, computed } from 'vue';
 
 const props = defineProps({
@@ -137,6 +138,7 @@ const guardarMallaOficial = () => {
 <template>
     <div class="max-w-6xl">
         <!-- Encabezado -->
+        <VolverA href="/equivalencias" texto="Mallas externas" />
         <div class="mb-5">
             <h1 class="text-2xl font-semibold text-[#1F3864]">Registrar Malla Externa</h1>
             <p class="mt-1 text-sm text-slate-500">Sube la malla oficial en PDF y extrae su catálogo de cursos con IA.</p>

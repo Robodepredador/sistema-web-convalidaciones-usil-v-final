@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 defineProps({ carreras: Array });
 
 const form = useForm({ carrera_id: '', anio: new Date().getFullYear(), version: '', archivo: null });
@@ -9,6 +10,7 @@ const enviar = () => form.post('/mallas/importar/previsualizar', { forceFormData
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/mallas" texto="Mallas curriculares" />
         <h1 class="mb-2 text-2xl font-semibold text-[#1F3864]">Importar malla desde Excel</h1>
         <p class="mb-6 text-sm text-slate-500">
             Sube el plan de estudios en formato USIL (una hoja con columnas

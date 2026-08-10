@@ -24,7 +24,6 @@ use App\Http\Controllers\Portal\PasswordController as PortalPasswordController;
 use App\Http\Controllers\Portal\PreconvalidacionController as PortalPreconvalidacionController;
 use App\Http\Controllers\Portal\SeguimientoController as PortalSeguimientoController;
 use App\Http\Controllers\PostulanteController;
-use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\SimulacionController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -273,26 +272,10 @@ Route::middleware('auth')->group(function () {
         // CU-06 / RF-46: Convalidación — lectura (permiso convalidacion.ver)
         Route::middleware('permission:convalidacion.ver')->group(function () {
             Route::get('convalidaciones', [ConvalidacionController::class, 'index'])->name('convalidaciones.index');
-            Route::get('convalidaciones/{convalidacion}/memorandum', [ConvalidacionController::class, 'memorandumPdf'])->name('convalidaciones.memorandum');
             // Descarga de la preconvalidación (outputs de la simulación) desde el módulo Convalidaciones.
             Route::get('convalidaciones/preconvalidacion/{simulacion}/pdf', [SimulacionController::class, 'generarPdf'])->name('convalidaciones.preconvalidacion.pdf')->whereNumber('simulacion');
             Route::get('convalidaciones/preconvalidacion/{simulacion}/excel', [SimulacionController::class, 'exportarExcel'])->name('convalidaciones.preconvalidacion.excel')->whereNumber('simulacion');
         }); // fin convalidacion.ver
-        // Confirmar y anular exigen su permiso específico
-        Route::middleware('permission:convalidacion.confirmar')->group(function () {
-            Route::post('simulaciones/{simulacion}/confirmar', [ConvalidacionController::class, 'confirmar'])->name('convalidaciones.confirmar');
-        });
-        Route::middleware('permission:convalidacion.anular')->group(function () {
-            Route::post('convalidaciones/{convalidacion}/anular', [ConvalidacionController::class, 'anular'])->name('convalidaciones.anular');
-        });
-
-        // CU-08 / RF-36/37: Reportes (permiso reportes.ver) y exportación (reportes.exportar)
-        Route::middleware('permission:reportes.ver')->group(function () {
-            Route::get('reportes', [ReporteController::class, 'index'])->name('reportes.index');
-        });
-        Route::middleware('permission:reportes.exportar')->group(function () {
-            Route::get('reportes/exportar', [ReporteController::class, 'exportar'])->name('reportes.exportar');
-        }); // fin reportes
 
         // CU-11 / CU-12 / RF-43..45: el asistente de sugerencias por curso está
         // DESACTIVADO junto con el catálogo de equivalencias (era su única UI).

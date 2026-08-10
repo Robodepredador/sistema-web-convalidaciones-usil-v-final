@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({ institucion: Object, tipos: Array });
@@ -226,12 +227,10 @@ const enviar = () => {
 <template>
     <div class="mx-auto max-w-5xl" @click="cerrarMenu">
         <!-- Encabezado -->
-        <div class="mb-6 flex items-start justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-[#1F3864]">Institución</h1>
-                <p class="mt-1 text-sm text-slate-500">Actualiza los datos generales y mantén sus carreras de procedencia.</p>
-            </div>
-            <Link href="/instituciones" class="text-sm text-slate-500 hover:text-[#2E75B6]">← Volver</Link>
+        <VolverA href="/instituciones" texto="Instituciones externas" />
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-[#1F3864]">Institución</h1>
+            <p class="mt-1 text-sm text-slate-500">Actualiza los datos generales y mantén sus carreras de procedencia.</p>
         </div>
 
         <div v-if="borradorRestaurado"

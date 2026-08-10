@@ -813,14 +813,39 @@ class SimulacionController extends Controller
         ]);
     }
 
-    /** Descargar la preconvalidación en Excel. */
+    /** Descargar la preconvalidación en Excel usando la plantilla. */
     public function exportarExcel(Simulacion $simulacion)
     {
         $this->autorizarLectura($simulacion);
+        
+        $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno']);
+        $convalidados = $simulacion->detalles->filter(fn ($d) => $d->curso_usil_id && !$d->excluido);
 
-        return Excel::download(
-            new PreconvalidacionExport($simulacion),
-            $this->nombreArchivo($simulacion, 'xlsx')
-        );
+        $templatePath = storage_path('app/plantillas/formato_simulacion.xltx');
+        if (!file_exists($templatePath)) {
+            abort(500, 'La plantilla de Excel no se encuentra en el servidor.');
+        }
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($templatePath);
+        $sheet = $spreadsheet->getSheetByName('PRECONVA') ?: $spreadsheet->getActiveSheet();
+
+        $row = 2;
+        foreach ($convalidados as $detalle) {
+            $sheet->setCellValue('A' . $row, $detalle->cursoUsil?->nombre);
+            $sheet->setCellValue('B' . $row, $detalle->curso_origen_nombre);
+            $row++;
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = $this->nombreArchivo($simulacion, 'xlsx');
+        $tempPath = storage_path('app/temp/' . $fileName);
+        
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+        
+        $writer->save($tempPath);
+        
+        return response()->download($tempPath)->deleteFileAfterSend(true);
     }
 }

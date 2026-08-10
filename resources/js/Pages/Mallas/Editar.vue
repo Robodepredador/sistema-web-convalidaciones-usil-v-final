@@ -1,5 +1,6 @@
 <script setup>
 import { useForm, Link } from '@inertiajs/vue3';
+import VolverA from '../../Components/VolverA.vue';
 
 const props = defineProps({ malla: Object });
 
@@ -16,6 +17,7 @@ const enviar = () => form.put(`/mallas/${props.malla.id}`);
 
 <template>
     <div class="max-w-2xl">
+        <VolverA href="/mallas" texto="Mallas curriculares" />
         <div class="mb-6">
             <h1 class="text-2xl font-semibold text-[#1F3864]">Editar malla curricular</h1>
             <p class="mt-1 text-sm text-slate-500">{{ malla.carrera }}</p>

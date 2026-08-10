@@ -2,6 +2,7 @@
 import { Link, router } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import Autocomplete from '../../Components/Autocomplete.vue';
+import VolverA from '../../Components/VolverA.vue';
 
 const props = defineProps({
     filas: Object,
@@ -54,8 +55,8 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
         <!-- Encabezado -->
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-                <Link href="/simulaciones" class="text-xs font-medium uppercase tracking-wide text-slate-400 hover:text-[#2E75B6]">← Simulaciones</Link>
-                <h1 class="mt-2 text-2xl font-semibold text-[#1F3864]">Histórico de equivalencias</h1>
+                <VolverA href="/simulaciones" texto="Simulaciones" />
+                <h1 class="text-2xl font-semibold text-[#1F3864]">Histórico de equivalencias</h1>
                 <p class="mt-1 max-w-3xl text-sm text-slate-500">
                     Qué curso externo se convalidó con qué curso USIL en expedientes anteriores, y cuántas veces.
                     Es material de referencia para decidir: el sistema no propone nada.
