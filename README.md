@@ -15,9 +15,9 @@ El detalle de lo entregado por sprint está más abajo, en las tablas de trazabi
 - **Auth:** sesión (Inertia) con tabla `usuarios` y hashing bcrypt en `password_hash`.
 
 ## Contenido entregado
-- `database/migrations/` — 18 migraciones (esquema completo en 3FN, FKs, índices, soft deletes).
+- `database/migrations/` — 71 migraciones (esquema completo en 3FN, FKs, índices, soft deletes).
   Incluye la corrección del defecto **TIESTAMP → TIMESTAMP** en `auditoria_log`.
-- `app/Models/` — 17 modelos Eloquent con relaciones.
+- `app/Models/` — 27 modelos Eloquent con relaciones.
 - `app/Http/Controllers/Auth/` — `LoginController` (RF-38/41/42) y `PasswordController`.
 - `app/Http/Middleware/EnsureRole.php` — control de acceso por rol (RF-39).
 - `app/Models/Concerns/FiltraPorCarrera.php` + `app/Policies/CarreraPolicy.php` — permisos por carrera (RF-40).
@@ -71,7 +71,7 @@ git checkout -b fix/descripcion-corta
 git push -u origin fix/descripcion-corta   # luego abrir el PR en GitHub
 ```
 
-Antes de abrir el PR: `./vendor/bin/pint` (estilo) y `php artisan test` (81 pruebas) en verde.
+Antes de abrir el PR: `./vendor/bin/pint` (estilo) y `php artisan test` (189 pruebas) en verde.
 CI (`.github/workflows/ci.yml`) vuelve a correr ambos, más `composer audit` y `npm audit`.
 
 ## Despliegue

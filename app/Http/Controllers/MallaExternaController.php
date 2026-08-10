@@ -98,7 +98,10 @@ class MallaExternaController extends Controller
         try {
             $extraccion = $this->ia->extraerMallaOficial($contenido, $nombre);
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'No se pudo procesar el documento: '.$e->getMessage()], 502);
+            Log::error('No se pudo extraer la malla oficial con IA', ['archivo' => $nombre, 'excepcion' => $e]);
+
+            return response()->json(['message' => 'No se pudo procesar el documento. '
+                .'Compruebe que el PDF se abre correctamente y vuelva a intentarlo.'], 502);
         }
 
         return response()->json($extraccion);

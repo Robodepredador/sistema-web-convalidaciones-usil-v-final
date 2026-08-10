@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Inertia\Response;
 
@@ -78,7 +79,16 @@ class MallaImportController extends Controller
         try {
             $parsed = $lector->parse($request->file('archivo')->getRealPath(), $carrera->nombre, $carrera->codigo);
         } catch (\Throwable $e) {
-            return back()->with('error', 'No se pudo leer el archivo: '.$e->getMessage());
+            // El detalle al log: las excepciones de PhpSpreadsheet citan rutas
+            // absolutas del servidor, y esto lo ve cualquiera que suba un Excel.
+            Log::error('No se pudo leer el Excel de la malla', [
+                'archivo' => $request->file('archivo')->getClientOriginalName(),
+                'carrera' => $carrera->id,
+                'excepcion' => $e,
+            ]);
+
+            return back()->with('error', 'No se pudo leer el archivo. Compruebe que es un Excel válido '
+                .'con las columnas Ciclo · Curso · CR · TH · Pre-requisito.');
         }
 
         if ($parsed['resumen']['cursos'] === 0) {

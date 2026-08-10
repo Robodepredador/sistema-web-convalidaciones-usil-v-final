@@ -21,7 +21,7 @@ php -v && php -m && mysql --version && apache2 -v
 | MySQL | 8.0, motor InnoDB | `mysql --version` |
 | Apache | 2.4 con `mod_rewrite` | `apache2ctl -M \| grep rewrite` |
 | Certificado TLS | válido para el dominio | — |
-| Cuenta MySQL | permisos `CREATE`, `ALTER`, `INDEX`, `DROP` sobre su base | las 60 migraciones los necesitan |
+| Cuenta MySQL | permisos `CREATE`, `ALTER`, `INDEX`, `DROP` sobre su base | las 71 migraciones los necesitan |
 
 `php.ini` — la carga masiva acepta Excel de hasta 10 MB:
 

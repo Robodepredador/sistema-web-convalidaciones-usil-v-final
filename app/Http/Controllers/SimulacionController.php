@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -734,7 +735,11 @@ class SimulacionController extends Controller
             }
         }
 
-        return "{$prefijo}: {$e->getMessage()}";
+        // El mensaje crudo puede traer rutas del servidor o fragmentos de la
+        // respuesta del proveedor: va al log, no a la pantalla del evaluador.
+        Log::error($prefijo, ['excepcion' => $e]);
+
+        return "{$prefijo}. Vuelve a intentarlo; si persiste, avisa a soporte con la hora del intento.";
     }
 
     /** Nombre de archivo con apellidos y nombres del postulante. */

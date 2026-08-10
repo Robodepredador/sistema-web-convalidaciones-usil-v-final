@@ -12,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
@@ -86,16 +87,35 @@ class ImportarMallaExcel implements ShouldQueue
 
                 $procesados++;
             } catch (Throwable $e) {
-                $errores[] = ['linea' => $linea, 'mensaje' => $e->getMessage()];
+                // Lo que se muestra es el motivo que produce validarFila(), que
+                // está escrito para leerse. Cualquier otra excepción (un error de
+                // la base, por ejemplo) va al log y en pantalla queda un mensaje
+                // genérico: su texto cita nombres de columna y rutas del servidor.
+                if ($e instanceof \RuntimeException) {
+                    $errores[] = ['linea' => $linea, 'mensaje' => $e->getMessage()];
+                } else {
+                    Log::error("Fallo al importar la línea {$linea}", ['carga' => $carga->id, 'excepcion' => $e]);
+                    $errores[] = ['linea' => $linea, 'mensaje' => 'No se pudo registrar esta línea.'];
+                }
             }
 
             $carga->update(['procesados' => $procesados, 'errores' => count($errores)]);
         }
 
+        $completado = ! (count($errores) === $filas->count() && $filas->count() > 0);
+
         $carga->update([
-            'estado' => count($errores) === $filas->count() && $filas->count() > 0 ? 'fallido' : 'completado',
+            'estado' => $completado ? 'completado' : 'fallido',
             'detalle_errores' => $errores,
         ]);
+
+        // El Excel subido se borra al terminar bien: ya está volcado en la malla
+        // y nadie vuelve a abrirlo. Sin esto, storage/app/private/cargas crecía
+        // sin límite con cada importación. Si la carga falló se conserva, que es
+        // cuando alguien puede querer mirarlo.
+        if ($completado && Storage::exists($carga->archivo)) {
+            Storage::delete($carga->archivo);
+        }
 
         AuditoriaService::registrar('crear', 'mallas_curriculares', $malla->id, null, [
             'carga' => $carga->id, 'procesados' => $procesados, 'errores' => count($errores),
@@ -122,9 +142,14 @@ class ImportarMallaExcel implements ShouldQueue
 
     public function failed(Throwable $e): void
     {
+        Log::error('La carga masiva de la malla falló por completo', [
+            'carga' => $this->cargaId, 'malla' => $this->mallaId, 'excepcion' => $e,
+        ]);
+
         CargaMasiva::where('id', $this->cargaId)->update([
             'estado' => 'fallido',
-            'detalle_errores' => [['linea' => 0, 'mensaje' => $e->getMessage()]],
+            'detalle_errores' => [['linea' => 0, 'mensaje' => 'No se pudo procesar el archivo. '
+                .'Revise que sea un Excel válido; el detalle técnico quedó en el log del servidor.']],
         ]);
     }
 }

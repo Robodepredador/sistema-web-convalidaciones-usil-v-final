@@ -18,7 +18,7 @@ app/  database/  resources/  routes/  config/   Código de la aplicación
 public/                                         Raíz web (único directorio publicado)
 vendor/                                         Dependencias PHP ya instaladas
 public/build/                                   Frontend ya compilado
-tests/                                          184 pruebas automatizadas
+tests/                                          189 pruebas automatizadas
 deploy/RUNBOOK.md                               Procedimiento de despliegue
 deploy/.env.production.example                  Plantilla de variables
 .github/workflows/ci.yml                        Estilo + pruebas + build + auditoría de dependencias
