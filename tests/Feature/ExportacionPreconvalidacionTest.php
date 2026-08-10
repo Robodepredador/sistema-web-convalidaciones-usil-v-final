@@ -18,21 +18,23 @@ use App\Models\UnidadNegocio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Tests\TestCase;
 
 /**
- * La descarga de la preconvalidación en Excel.
+ * La descarga de la preconvalidación en Excel, sobre la plantilla institucional.
  *
- * No existía ninguna prueba sobre esta ruta, y por eso pasó inadvertido que una
- * versión a medio terminar la había atado a una plantilla `.xltx` excluida del
- * control de versiones: la suite seguía verde y cualquier instalación nueva
- * respondía 500. Lo detectó el ensayo de instalación desde un clon limpio.
+ * No existía ninguna prueba sobre esta ruta, y por eso pasó inadvertido que la
+ * plantilla `.xltx` de la que depende estaba excluida del control de versiones:
+ * la suite seguía verde y cualquier instalación nueva respondía 500. Lo detectó
+ * el ensayo de instalación desde un clon limpio; la plantilla ya se versiona.
  *
- * Estas pruebas cubren el hueco: se descarga desde las tres rutas que la ofrecen
- * y el archivo sale con contenido, sin depender de nada que no viaje en el
- * repositorio.
+ * Se comprueban las tres rutas que ofrecen la descarga y, sobre el archivo
+ * generado, que la hoja `PRECONVA` lleve de verdad los cursos: es la entrada del
+ * `VLOOKUP` con el que la hoja `Export` resuelve los códigos del ERP, así que si
+ * sale vacía el archivo es inservible aunque abra sin errores.
  */
 class ExportacionPreconvalidacionTest extends TestCase
 {
@@ -128,6 +130,29 @@ class ExportacionPreconvalidacionTest extends TestCase
 
         $this->assertStringStartsWith('PK', $contenido, "El archivo de {$ruta} no es un .xlsx válido.");
         $this->assertGreaterThan(1024, strlen($contenido), 'El archivo salió sospechosamente vacío.');
+    }
+
+    /** La hoja PRECONVA sale con los cursos convalidados, y solo con esos. */
+    public function test_la_hoja_preconva_lleva_los_cursos_convalidados(): void
+    {
+        $r = $this->actingAs($this->ctx['user'])
+            ->get("/simulaciones/{$this->ctx['sim']->id}/excel")
+            ->assertOk();
+
+        $ruta = $r->baseResponse->getFile()->getPathname();
+        $libro = IOFactory::createReader('Xlsx')->load($ruta);
+
+        $this->assertContains('PRECONVA', $libro->getSheetNames(), 'Se perdió la hoja de la plantilla.');
+        $this->assertContains('Export', $libro->getSheetNames(), 'Se perdió la hoja que resuelve los códigos del ERP.');
+
+        $hoja = $libro->getSheetByName('PRECONVA');
+        $this->assertSame('Curso USIL', $hoja->getCell('A1')->getValue(), 'Se pisaron los encabezados.');
+        $this->assertSame('Cálculo', $hoja->getCell('A2')->getValue());
+        $this->assertSame('Matemática I', $hoja->getCell('B2')->getValue());
+
+        // El curso no convalidable no entra: la hoja alimenta el ERP.
+        $this->assertNull($hoja->getCell('A3')->getValue(),
+            'Se escribió un curso que no se convalida.');
     }
 
     /** El alcance manda también aquí: no se descarga el expediente de otra carrera. */

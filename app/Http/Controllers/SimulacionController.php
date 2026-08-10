@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\PreconvalidacionExport;
 use App\Models\Carrera;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
@@ -27,6 +26,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * CU-04/05: Simulación de convalidación (manual y con IA).
@@ -828,25 +829,88 @@ class SimulacionController extends Controller
     }
 
     /**
-     * Descargar la preconvalidación en Excel: tres hojas (preconvalidación con
-     * formato institucional, cursos no convalidados con su motivo, y formato ERP).
+     * Descargar la preconvalidación en Excel, sobre la plantilla institucional
+     * `storage/app/plantillas/formato_simulacion.xltx`.
      *
-     * Hubo a medias una versión que rellenaba una plantilla `.xltx`. Se retiró en
-     * la auditoría del 10/08/2026 por dos motivos: la plantilla estaba excluida
-     * del control de versiones, así que en cualquier instalación nueva esto
-     * respondía 500; y solo escribía dos columnas con los nombres de los cursos,
-     * perdiendo créditos, notas, los descartes con su motivo y la hoja de ERP.
+     * La plantilla trae dos hojas y solo se rellena una:
      *
-     * La plantilla se conserva en `storage/app/plantillas/` por si se retoma ese
-     * formato: lo que faltaba era terminarlo, no la idea.
+     *   - `PRECONVA` (A: Curso USIL · B: Curso Convalidado) es la ENTRADA. Son
+     *     dos columnas a propósito: no es un formato incompleto.
+     *   - `Export` lleva la malla USIL con sus códigos de ERP y resuelve el curso
+     *     de origen con `=VLOOKUP(D, BASE, 2, 0)`, donde `BASE` es
+     *     `PRECONVA!$A$1:$B$155`. Escribiendo PRECONVA, el ERP se completa solo.
+     *
+     * Eso limita el listado a 154 cursos: por encima, las filas se escriben pero
+     * quedan fuera de `BASE` y el VLOOKUP no las encuentra. Una preconvalidación
+     * real ronda los 20-40, así que no se corta el archivo por ello; si algún día
+     * se acerca al límite, hay que ampliar el rango en la plantilla.
      */
     public function exportarExcel(Simulacion $simulacion)
     {
         $this->autorizarLectura($simulacion);
 
-        return Excel::download(
-            new PreconvalidacionExport($simulacion),
-            $this->nombreArchivo($simulacion, 'xlsx')
-        );
+        $plantilla = storage_path('app/plantillas/formato_simulacion.xltx');
+        abort_unless(is_file($plantilla), 500,
+            'Falta la plantilla de Excel (storage/app/plantillas/formato_simulacion.xltx).');
+
+        $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno']);
+
+        $libro = IOFactory::load($plantilla);
+        $hoja = $libro->getSheetByName('PRECONVA') ?: $libro->getActiveSheet();
+
+        $fila = 2;   // la 1 son los encabezados de la plantilla
+        foreach ($simulacion->detalles as $detalle) {
+            if (! $detalle->curso_usil_id || $detalle->excluido) {
+                continue;
+            }
+            $hoja->setCellValue('A'.$fila, $detalle->cursoUsil?->nombre);
+            $hoja->setCellValue('B'.$fila, $detalle->nombre_origen);
+            $fila++;
+        }
+
+        // Nombre irrepetible: dos descargas simultáneas del mismo expediente
+        // escribían el mismo archivo y una se llevaba el contenido de la otra.
+        $directorio = storage_path('app/temp');
+        if (! is_dir($directorio)) {
+            mkdir($directorio, 0775, true);
+        }
+        $this->limpiarTemporales($directorio);
+        $temporal = $directorio.'/'.Str::uuid()->toString().'.xlsx';
+
+        try {
+            (new Xlsx($libro))->save($temporal);
+        } catch (\Throwable $e) {
+            // `deleteFileAfterSend` solo limpia si el envío llega a ocurrir.
+            if (is_file($temporal)) {
+                unlink($temporal);
+            }
+            throw $e;
+        }
+
+        return response()
+            ->download($temporal, $this->nombreArchivo($simulacion, 'xlsx'))
+            ->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Barre los Excel temporales de más de una hora.
+     *
+     * `deleteFileAfterSend` solo borra si el envío llega a completarse: una
+     * descarga que el usuario cancela, o un error a media respuesta, deja el
+     * archivo ahí. Sin esto el directorio crece sin límite y nadie lo mira hasta
+     * que el disco se llena.
+     *
+     * ponytail: barrido oportunista al descargar, sin tarea programada. Si algún
+     * día el volumen lo pide, esto se mueve a un comando y al cron.
+     */
+    private function limpiarTemporales(string $directorio): void
+    {
+        $limite = now()->subHour()->getTimestamp();
+
+        foreach (glob($directorio.'/*.xlsx') ?: [] as $archivo) {
+            if (@filemtime($archivo) < $limite) {
+                @unlink($archivo);
+            }
+        }
     }
 }
