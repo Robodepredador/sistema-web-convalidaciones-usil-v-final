@@ -24,7 +24,7 @@ class Postulante extends Model implements Authenticatable
         'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'genero', 'nacionalidad',
         'email', 'password_hash', 'acceso_habilitado', 'debe_cambiar_password', 'ultimo_acceso', 'telefono',
         'institucion_origen_id', 'carrera_externa_id', 'carrera_destino_id', 'ciclo_postulacion',
-        'estado', 'estado_equivalencias', 'equivalencias_revisado_por', 'equivalencias_revisado_en',
+        'estado',
         'observaciones', 'consentimiento_datos_en', 'usuario_id',
         'revision_estado', 'revision_provisional', 'revision_observaciones', 'revisado_por', 'revisado_en',
     ];
@@ -38,7 +38,6 @@ class Postulante extends Model implements Authenticatable
         'revision_provisional' => 'boolean',
         'consentimiento_datos_en' => 'datetime',
         'ultimo_acceso' => 'datetime',
-        'equivalencias_revisado_en' => 'datetime',
         'revisado_en' => 'datetime',
     ];
 
