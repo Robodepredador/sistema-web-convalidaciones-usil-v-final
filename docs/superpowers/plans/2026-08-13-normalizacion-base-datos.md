@@ -214,7 +214,7 @@ return new class extends Migration
     {
         Schema::table('postulantes', function (Blueprint $table) {
             $table->enum('estado_equivalencias', ['pendiente', 'en_revision', 'aprobada'])
-                ->default('pendiente')->after('revision_estado');
+                ->default('pendiente')->after('revisado_en');
             $table->foreignId('equivalencias_revisado_por')->nullable()
                 ->after('estado_equivalencias')->constrained('usuarios')->nullOnDelete();
             $table->timestamp('equivalencias_revisado_en')->nullable()->after('equivalencias_revisado_por');
