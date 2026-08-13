@@ -123,6 +123,9 @@ class NoConvalidablesPorCarreraTest extends TestCase
      */
     public function test_levantar_una_regla_no_arrastra_a_las_de_nombre_parecido(): void
     {
+        // Como en setUp(): esta clave debe quedarse fuera de las que siembra
+        // 2026_08_05_000004_mueve_no_convalidables_del_codigo_a_la_bd, o chocará
+        // con uq_no_convalidable_clave_carrera en cada base fresca.
         CursoNoConvalidable::create([
             'carrera_id' => null, 'palabra_clave' => 'Geología General',
             'clave_normalizada' => 'geologia general', 'motivo' => 'Ciencia básica', 'activo' => true,

@@ -152,8 +152,12 @@ class IntegridadEsquemaTest extends TestCase
 
         MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
 
-        $this->expectException(QueryException::class);
-        MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
+        try {
+            MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
+            $this->fail('Debió lanzar QueryException por violar uq_malla_externa_carrera_anio_version.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_malla_externa_carrera_anio_version', $e->getMessage());
+        }
     }
 
     /** Y la misma regla institucional no puede cargarse dos veces.
@@ -164,8 +168,12 @@ class IntegridadEsquemaTest extends TestCase
         $regla = ['carrera_id' => null, 'palabra_clave' => 'Zoología', 'clave_normalizada' => 'zoologia', 'motivo' => 'Ciencia básica'];
         CursoNoConvalidable::create($regla);
 
-        $this->expectException(QueryException::class);
-        CursoNoConvalidable::create($regla);
+        try {
+            CursoNoConvalidable::create($regla);
+            $this->fail('Debió lanzar QueryException por violar uq_no_convalidable_clave_carrera.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_no_convalidable_clave_carrera', $e->getMessage());
+        }
     }
 
     /**
