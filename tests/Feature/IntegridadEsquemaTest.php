@@ -13,6 +13,7 @@ use App\Models\Simulacion;
 use App\Models\TipoInstitucion;
 use App\Models\UnidadNegocio;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -106,6 +107,33 @@ class IntegridadEsquemaTest extends TestCase
             $this->assertSame($postulante->tipo_documento, $recargada->tipo_documento,
                 'El tipo de documento de la simulación debe coincidir con el de su postulante.');
         }
+    }
+
+    /** El email es la credencial del portal: dos postulantes con el mismo correo
+     *  vuelven ambiguo el inicio de sesión. Debe rechazarlo la base, no el formulario. */
+    public function test_dos_postulantes_no_pueden_compartir_email(): void
+    {
+        $base = [
+            'tipo_documento' => 'DNI', 'nombres' => 'Ana', 'apellido_paterno' => 'Pérez',
+            'codigo' => 'P-0001', 'numero_documento' => '10000001', 'email' => 'repetido@ex.com',
+        ];
+        Postulante::create($base);
+
+        $this->expectException(QueryException::class);
+        Postulante::create(array_merge($base, [
+            'codigo' => 'P-0002', 'numero_documento' => '10000002',
+        ]));
+    }
+
+    /** Pero varios postulantes SIN correo deben seguir siendo válidos:
+     *  en un índice único de MySQL cada NULL cuenta como distinto. */
+    public function test_varios_postulantes_pueden_no_tener_email(): void
+    {
+        $base = ['tipo_documento' => 'DNI', 'nombres' => 'Sin', 'apellido_paterno' => 'Correo', 'email' => null];
+        Postulante::create($base + ['codigo' => 'P-0003', 'numero_documento' => '10000003']);
+        Postulante::create($base + ['codigo' => 'P-0004', 'numero_documento' => '10000004']);
+
+        $this->assertSame(2, Postulante::whereNull('email')->count());
     }
 
     /**
