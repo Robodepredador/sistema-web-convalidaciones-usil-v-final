@@ -7,21 +7,9 @@ const props = defineProps({ ia: Object, modelos: Object, noConvalidables: Array 
 // --- Pestañas ---
 const TABS = [
     { id: 'ia', label: 'Motor de IA', icon: '✨' },
-    { id: 'cursos', label: 'Cursos no convalidables', icon: '🚫' },
 ];
 const tab = ref('ia');
 
-// --- Lista de materias no convalidables (origen) ---
-const nuevaMateria = useForm({ palabra_clave: '', motivo: '' });
-const agregarMateria = () => nuevaMateria.post('/configuracion/no-convalidables', {
-    preserveScroll: true,
-    onSuccess: () => nuevaMateria.reset(),
-});
-const alternarMateria = (m) => router.patch(`/configuracion/no-convalidables/${m.id}`, { activo: !m.activo }, { preserveScroll: true });
-const eliminarMateria = (m) => {
-    if (confirm(`¿Eliminar "${m.palabra_clave}" de la lista?`))
-        router.patch(`/configuracion/no-convalidables/${m.id}`, { eliminar: true }, { preserveScroll: true });
-};
 
 const form = useForm({
     proveedor: props.ia.proveedor ?? 'gemini',
@@ -202,50 +190,7 @@ const probar = async () => {
             </div>
         </form>
 
-        <!-- ===================== Cursos no convalidables ===================== -->
-        <section v-show="tab === 'cursos'" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-400">Cursos no convalidables (origen)</h2>
-            <p class="mb-4 text-sm text-slate-500">
-                Materias de las instituciones de procedencia que <strong>nunca se convalidan</strong>. Al extraer cursos, estos se descartan automáticamente
-                (Inglés, Física, Química, Prácticas, etc.). Escribe una palabra o frase clave que aparezca en el nombre del curso.
-            </p>
 
-            <form @submit.prevent="agregarMateria" class="mb-4 flex flex-wrap items-end gap-2">
-                <div class="flex-1 min-w-[200px]">
-                    <label class="mb-1 block text-xs font-medium text-slate-500">Palabra/frase clave</label>
-                    <input v-model="nuevaMateria.palabra_clave" type="text" placeholder="Ej.: Química, Física, Investigación Operativa"
-                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                </div>
-                <div class="flex-1 min-w-[160px]">
-                    <label class="mb-1 block text-xs font-medium text-slate-500">Motivo (opcional)</label>
-                    <input v-model="nuevaMateria.motivo" type="text" placeholder="Ej.: Ciencia básica"
-                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                </div>
-                <button type="submit" :disabled="nuevaMateria.processing || !nuevaMateria.palabra_clave"
-                        class="rounded-md bg-[#2E75B6] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3864] disabled:opacity-50">Agregar</button>
-            </form>
-
-            <div class="overflow-hidden rounded-lg border border-slate-200">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                        <tr><th class="px-4 py-2 font-semibold">Materia</th><th class="px-4 py-2 font-semibold">Motivo</th><th class="w-24 px-4 py-2 text-center font-semibold">Activo</th><th class="w-20 px-4 py-2"></th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr v-for="m in noConvalidables" :key="m.id" :class="m.activo ? '' : 'opacity-50'" class="hover:bg-slate-50/70">
-                            <td class="px-4 py-2 font-medium text-slate-700">{{ m.palabra_clave }}</td>
-                            <td class="px-4 py-2 text-slate-500">{{ m.motivo || '—' }}</td>
-                            <td class="px-4 py-2 text-center">
-                                <input type="checkbox" :checked="m.activo" @change="alternarMateria(m)" class="rounded border-slate-300 text-[#2E75B6]" />
-                            </td>
-                            <td class="px-4 py-2 text-right">
-                                <button @click="eliminarMateria(m)" class="text-xs font-medium text-red-600 hover:underline">Eliminar</button>
-                            </td>
-                        </tr>
-                        <tr v-if="!noConvalidables?.length"><td colspan="4" class="px-4 py-6 text-center text-slate-400">Sin materias en la lista.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
 
     </div>
 </template>

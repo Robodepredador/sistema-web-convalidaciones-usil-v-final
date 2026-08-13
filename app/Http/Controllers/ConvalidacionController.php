@@ -52,6 +52,7 @@ class ConvalidacionController extends Controller
                 'creditos' => (float) $s->detalles->sum('creditos_reconocidos'),
                 'pdf_preconv' => route('convalidaciones.preconvalidacion.pdf', $s->id),
                 'excel_preconv' => route('convalidaciones.preconvalidacion.excel', $s->id),
+                'excel_oficial_preconv' => route('convalidaciones.preconvalidacion.excel-oficial', $s->id),
                 'cursos' => $s->detalles->map(fn ($d) => [
                     'origen' => $d->curso_origen_nombre,
                     'usil' => $d->cursoUsil?->nombre,

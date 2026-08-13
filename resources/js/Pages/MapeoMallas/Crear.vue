@@ -172,6 +172,27 @@ const confirmar = async () => {
     }
 };
 
+const marcarNoConvalidable = async () => {
+    const externo = externoSeleccionado.value;
+    if (!externo) return;
+
+    const motivo = prompt(`¿Motivo por el cual "${externo.nombre}" no es convalidable en esta carrera? (opcional)`);
+    if (motivo === null) return; // cancelado
+
+    error.value = '';
+    try {
+        await window.axios.post('/mapeo-mallas/no-convalidable', {
+            carrera_usil_id: carreraUsilId.value,
+            curso_externo_id: externo.id,
+            motivo: motivo,
+        });
+        alert(`Se guardó "${externo.nombre}" en la base de conocimiento de cursos no convalidables.`);
+        externoSeleccionado.value = null;
+    } catch (e) {
+        error.value = e.response?.data?.message || 'No se pudo marcar como no convalidable.';
+    }
+};
+
 const quitar = async (par) => {
     error.value = '';
     try {
@@ -382,6 +403,9 @@ watch(() => [pares.value.length, buscarUsil.value, buscarExterno.value,
                     </div>
                     <div class="flex items-center gap-2">
                         <button type="button" @click="cancelarSeleccion" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100">Cancelar</button>
+                        <button v-if="externoSeleccionado && !usilSeleccionado" type="button" @click="marcarNoConvalidable" class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-100">
+                            Marcar como no convalidable
+                        </button>
                         <button type="button" @click="confirmar" :disabled="!puedeConfirmar"
                                 class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
                             Confirmar equivalencia

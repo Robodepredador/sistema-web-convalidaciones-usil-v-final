@@ -285,8 +285,9 @@ function validarPaso(n) {
         // Contacto (subdivisión del mismo paso).
         if (!form.email.trim()) errores.email = 'El correo es obligatorio.';
         else if (!RE_EMAIL.test(form.email.trim())) errores.email = 'Correo no válido.';
-        if (!form.telefono.trim()) errores.telefono = 'Ingresa el teléfono.';
-        else if (!RE_TELEFONO.test(form.telefono.trim())) errores.telefono = 'Teléfono no válido (6 a 20 caracteres: dígitos, espacios y + ( ) -).';
+        if (form.telefono.trim() && !RE_TELEFONO.test(form.telefono.trim())) {
+            errores.telefono = 'Teléfono no válido (6 a 20 caracteres: dígitos, espacios y + ( ) -).';
+        }
     }
     if (n === 2) {
         if (!form.institucion_origen_id) errores.institucion_origen_id = 'Selecciona la institución de origen.';
@@ -592,7 +593,7 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
                         <p v-if="err('email')" class="mt-1 text-xs text-red-600">{{ err('email') }}</p>
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono</label>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono (opcional)</label>
                         <input v-model="form.telefono" type="tel" inputmode="tel" maxlength="20" placeholder="+51 999 888 777" :class="inputCls" />
                         <p v-if="err('telefono')" class="mt-1 text-xs text-red-600">{{ err('telefono') }}</p>
                     </div>
@@ -649,7 +650,7 @@ const inputCls = 'w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75
                         <p v-else class="mt-1 text-xs text-slate-400">Ciclo vigente ({{ cicloActual }}) según la fecha. Puedes cambiarlo.</p>
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="mb-1 block text-sm font-medium text-slate-700">Observaciones</label>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Observaciones (opcional)</label>
                         <textarea v-model="form.observaciones" rows="2" :class="inputCls"></textarea>
                     </div>
                 </div>

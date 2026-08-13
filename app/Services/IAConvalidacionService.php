@@ -60,19 +60,19 @@ class IAConvalidacionService
     /**
      * @return array{estudiante:array,institucion:array,aprobados:array,desaprobados:array}
      */
-    public function extraerCursos(string $contenido, string $nombreArchivo): array
+    public function extraerCursos(string $contenido, string $nombreArchivo, $notaMinima = 11, $escala = '0-20'): array
     {
         if (! $this->disponible()) {
             throw new \RuntimeException('IA no configurada: define la API key en .env.');
         }
 
-        $sistema = <<<'SYS'
+        $sistema = <<<SYS
 Eres un asistente experto en lectura de récords y certificados académicos de universidades de
 Perú e Hispanoamérica. Extrae los datos del estudiante, de la institución y TODOS los cursos del
 documento, clasificándolos en APROBADOS o DESAPROBADOS según la nota o estado que aparezca.
 Reglas:
-- Aprobado: nota >= 11 (escala 0-20), nota >= 3.0 (0-5), letra A/B/C, o estado aprobado/AP/pasado.
-- Desaprobado: nota < 11 (0-20), nota < 3.0 (0-5), letra D/F, estado desaprobado/reprobado/jalado/NSP.
+- Aprobado: nota >= {$notaMinima} (en la escala {$escala}), letra A/B/C, o estado aprobado/AP/pasado.
+- Desaprobado: nota < {$notaMinima} (en la escala {$escala}), letra D/F, estado desaprobado/reprobado/jalado/NSP.
 - Si no puedes determinar el estado, NO incluyas el curso.
 - Captura el nombre EXACTO del curso, la nota, el ciclo/semestre y los créditos. Deja vacío lo que no veas.
 Responde SOLO con JSON válido, sin markdown, con la forma:

@@ -31,9 +31,9 @@ class LoginController extends Controller
             ['label' => 'Superusuario', 'email' => 'admin.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Asesor de Admisión', 'email' => 'asesor.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Ejecutivo Comercial de Admisión', 'email' => 'ejecutivo.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Coordinador de Carrera', 'email' => 'coord.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Director de Carrera', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Decano', 'email' => 'decano.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Coordinador — Fac. Ingeniería e IA', 'email' => 'coord.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Director — Fac. Ingeniería e IA', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Decano — Fac. Ingeniería e IA', 'email' => 'decano.demo@usil.edu.pe', 'password' => 'Demo#1234'],
         ] : [];
 
         return inertia('Auth/Login', ['usuariosDemo' => $usuariosDemo]);

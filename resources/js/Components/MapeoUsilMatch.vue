@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Autocomplete from './Autocomplete.vue';
+import ConfirmDialog from './ConfirmDialog.vue';
 
 const props = defineProps({
     poolUsil: { type: Array, required: true },
@@ -150,6 +151,25 @@ const confirmarMatch = () => {
     seleccionOrigen.value = null;
 };
 const cancelarSeleccion = () => { seleccionUsil.value = null; seleccionOrigen.value = null; };
+
+const marcandoNoConvalidable = ref(false);
+const motivoNoConvalidable = ref('');
+
+const abrirModalNoConvalidable = () => {
+    if (!seleccionOrigen.value) return;
+    motivoNoConvalidable.value = '';
+    marcandoNoConvalidable.value = true;
+};
+
+const confirmarNoConvalidable = () => {
+    if (!seleccionOrigen.value) return;
+    seleccionOrigen.value.clasificacion = 'no_convalidable';
+    seleccionOrigen.value.motivo = motivoNoConvalidable.value.trim() || null;
+    seleccionOrigen.value.curso_usil_id = '';
+    seleccionOrigen.value = null;
+    seleccionUsil.value = null;
+    marcandoNoConvalidable.value = false;
+};
 
 // Se muestran los más comparables; el resto vive en la pantalla del histórico.
 const antecedentesVisibles = computed(() => props.antecedentes.slice(0, 4));
@@ -314,13 +334,19 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                  no una sugerencia, y desde aquí sirve tanto si la bandeja está vacía
                  como si ya tiene cursos. -->
             <template v-if="!soloLectura">
-                <button type="button" @click="abrirSelectorExcel" :disabled="importandoExcel"
-                        class="ml-auto inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                        title="Importar cursos desde un archivo Excel con la plantilla de malla externa">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
-                    {{ importandoExcel ? 'Importando…' : 'Importar Excel' }}
-                </button>
-                <input ref="excelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onExcelSeleccionado" />
+                <div class="ml-auto flex items-center gap-2">
+                    <a href="/mallas-externas/plantilla" target="_blank"
+                       class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        <span aria-hidden="true">📥</span> Plantilla
+                    </a>
+                    <button type="button" @click="abrirSelectorExcel" :disabled="importandoExcel"
+                            class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                            title="Importar cursos desde un archivo Excel con la plantilla de malla externa">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                        {{ importandoExcel ? 'Importando…' : 'Importar Excel' }}
+                    </button>
+                    <input ref="excelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onExcelSeleccionado" />
+                </div>
             </template>
         </div>
 
@@ -355,6 +381,10 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
                 <!-- Acciones -->
                 <div class="flex items-center gap-2">
                     <button type="button" @click="cancelarSeleccion" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100">Cancelar</button>
+                    <button v-if="seleccionOrigen && !seleccionUsil" type="button" @click="abrirModalNoConvalidable" 
+                            class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-100">
+                        Marcar como no convalidable
+                    </button>
                     <button type="button" @click="confirmarMatch" :disabled="!puedeConfirmarMatch"
                             class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
                         Confirmar equivalencia
@@ -577,26 +607,68 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
             <p v-if="!paresConfirmados.length" class="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-400">
                 Aún no hay equivalencias. Elige un curso de cada lado y pulsa «Confirmar equivalencia»; aparecerán aquí.
             </p>
-            <div v-else class="space-y-1.5">
-                <div v-for="fila in paresConfirmados" :key="claveOrigen(fila)"
-                     class="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm">
-                    <!-- Origen -->
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium text-slate-700">{{ fila.curso_origen_nombre }}</p>
-                        <p class="text-xs text-slate-400">{{ fila.creditos_origen || '—' }} cr.</p>
-                    </div>
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#059669"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-                    <!-- Destino USIL -->
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium text-slate-800">{{ usilDeFila(fila)?.curso }}</p>
-                        <p class="text-xs text-slate-400">
-                            <span v-if="usilDeFila(fila)?.codigo" class="font-mono">{{ usilDeFila(fila)?.codigo }} · </span>{{ usilDeFila(fila)?.creditos || '—' }} cr.
-                        </p>
-                    </div>
-                    <button type="button" @click="desemparejar(fila)" class="shrink-0 text-slate-300 hover:text-red-600" title="Quitar equivalencia">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
+            <div v-else class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
+                    <thead>
+                        <tr class="bg-[#1F3864] text-white">
+                            <th scope="col" class="w-[45%] px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider border-r border-[#2E75B6]/30">
+                                Curso USIL (Destino)
+                            </th>
+                            <th scope="col" class="w-[10%] px-2 py-3.5 text-center text-white/70">
+                                <svg class="inline-block h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+                            </th>
+                            <th scope="col" class="w-[40%] px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider border-l border-[#2E75B6]/30">
+                                Curso Externo (Origen)
+                            </th>
+                            <th scope="col" class="w-[5%] px-3 py-3.5"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-blue-100 bg-white">
+                        <tr v-for="(fila, index) in paresConfirmados" :key="claveOrigen(fila)"
+                            class="group transition-colors"
+                            :class="index % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-[#F2F6FA] hover:bg-[#E5EEF6]'">
+                            
+                            <!-- Destino USIL -->
+                            <td class="px-4 py-3 align-middle border-r border-slate-100">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-semibold text-slate-800 transition-colors">{{ usilDeFila(fila)?.curso }}</span>
+                                    <span v-if="usilDeFila(fila)?.codigo" class="inline-flex items-center rounded bg-slate-200/60 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 font-mono">
+                                        {{ usilDeFila(fila)?.codigo }}
+                                    </span>
+                                    <span class="text-[11px] text-slate-500 font-medium whitespace-nowrap">
+                                        {{ usilDeFila(fila)?.creditos || '—' }} cr.
+                                    </span>
+                                </div>
+                            </td>
+                            
+                            <!-- Ícono conector -->
+                            <td class="px-2 py-3 text-center align-middle">
+                                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/50">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+                                </span>
+                            </td>
+
+                            <!-- Origen -->
+                            <td class="px-4 py-3 align-middle border-l border-slate-100">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-medium text-slate-700">{{ fila.curso_origen_nombre }}</span>
+                                    <span class="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                                        {{ fila.creditos_origen || '—' }} cr.
+                                    </span>
+                                </div>
+                            </td>
+                            
+                            <!-- Acción -->
+                            <td class="px-3 py-3 align-middle text-right whitespace-nowrap">
+                                <button type="button" @click="desemparejar(fila)" 
+                                        class="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1" 
+                                        title="Quitar equivalencia">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -611,5 +683,17 @@ watch(() => [paresConfirmados.value.length, buscarUsil.value, buscarOrigen.value
             </span>
             <span class="ml-auto font-semibold text-[#1F3864]">{{ resumen.creditos.toFixed(1) }} créditos convalidables</span>
         </div>
+        
+        <ConfirmDialog :open="marcandoNoConvalidable"
+                       titulo="¿Marcar como no convalidable?"
+                       mensaje="El curso quedará descartado en este expediente. Opcionalmente puedes agregar el motivo."
+                       texto-confirmar="Marcar" tono="aviso"
+                       @cancelar="marcandoNoConvalidable = false" @confirmar="confirmarNoConvalidable">
+            <p class="mb-3 font-medium text-slate-700">{{ seleccionOrigen?.curso_origen_nombre }}</p>
+            <label class="mb-1 block text-xs font-medium text-slate-500" for="motivo-descarte">Motivo (opcional)</label>
+            <textarea id="motivo-descarte" v-model="motivoNoConvalidable" rows="3" maxlength="300"
+                      class="w-full rounded-md border-slate-300 text-sm"
+                      placeholder="Ej.: el sílabo no cubre las competencias..."></textarea>
+        </ConfirmDialog>
     </div>
 </template>

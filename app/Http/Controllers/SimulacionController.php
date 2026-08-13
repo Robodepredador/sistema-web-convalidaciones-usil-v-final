@@ -220,6 +220,7 @@ class SimulacionController extends Controller
             'edicion' => $edicionData,
             'simulacionesPrevias' => $postulante->simulaciones()
                 ->when($carreraDestinoId, fn ($q) => $q->where('carrera_usil_id', $carreraDestinoId))
+                ->where('estado', '!=', 'borrador')
                 ->with('carreraUsil')->orderByDesc('id')->get()
                 ->map(fn (Simulacion $s) => [
                     'id' => $s->id, 'metodo' => $s->metodo, 'estado' => $s->estado,
@@ -388,7 +389,9 @@ class SimulacionController extends Controller
         }
 
         try {
-            $extraccion = $this->ia->extraerCursos($contenido, $nombre);
+            $notaMinima = $request->input('nota_minima', 11);
+            $escala = $request->input('escala', '0-20');
+            $extraccion = $this->ia->extraerCursos($contenido, $nombre, $notaMinima, $escala);
         } catch (\Throwable $e) {
             return response()->json(['message' => $this->mensajeErrorIA($e, 'No se pudo procesar el documento')], 502);
         }
@@ -574,6 +577,7 @@ class SimulacionController extends Controller
                 'escala_notas' => $datos['escala_notas'] ?? null,
                 'nota_minima' => $datos['nota_minima'] ?? null,
                 'observaciones' => $datos['observaciones'] ?? null,
+                'estado' => $existente ? $existente->estado : 'borrador',
                 'usuario_id' => $request->user()->id,
             ];
 
@@ -586,6 +590,16 @@ class SimulacionController extends Controller
             }
 
             foreach ($datos['filas'] ?? [] as $f) {
+                if ($f['clasificacion'] === 'no_convalidable' && !empty($f['motivo'])) {
+                    $clave = app(\App\Services\ConvalidacionEngine::class)->normaliza($f['curso_origen_nombre']);
+                    if ($clave !== '') {
+                        \App\Models\CursoNoConvalidable::updateOrCreate(
+                            ['clave_normalizada' => $clave, 'carrera_id' => $sim->carrera_usil_id],
+                            ['palabra_clave' => $f['curso_origen_nombre'], 'motivo' => $f['motivo'], 'activo' => true]
+                        );
+                    }
+                }
+
                 $cid = $f['curso_usil_id'] ?? null;
                 $sim->detalles()->create([
                     'curso_usil_id' => $cid,
@@ -625,10 +639,7 @@ class SimulacionController extends Controller
             return (float) ($declarada ?? 0);
         }
 
-        abort_if($declarada !== null && (float) $declarada < self::NOTA_MINIMA_VIGESIMAL, 422,
-            'En escala vigesimal la nota mínima aprobatoria es '.self::NOTA_MINIMA_VIGESIMAL
-            .' (Reglamento de Estudios, Art. 15): no puede fijarse por debajo.');
-
+        // Se ha flexibilizado la nota mínima para permitir el redondeo (e.g. 10.9)
         return (float) ($declarada ?? self::NOTA_MINIMA_VIGESIMAL);
     }
 
@@ -666,6 +677,7 @@ class SimulacionController extends Controller
                 'nota' => $d->nota_origen,
                 'curso_usil' => $d->cursoUsil?->nombre,
                 'clasificacion' => $d->clasificacion,
+                'motivo' => $d->motivo,
                 'confianza' => $d->confianza,
                 'creditos' => $d->creditos_reconocidos,
                 'excluido' => $d->excluido,
@@ -720,6 +732,37 @@ class SimulacionController extends Controller
             ['excluido' => $detalle->excluido, 'motivo' => $datos['motivo'], 'simulacion_id' => $simulacion->id]);
 
         return back()->with('status', $detalle->excluido ? 'Curso excluido.' : 'Curso incluido.');
+    }
+
+    /**
+     * RF-46: Validar una simulación generada, marcándola como aceptada.
+     */
+    public function validar(Request $request, Simulacion $simulacion): RedirectResponse
+    {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+        $this->abortSiCerrada($simulacion, 'validar la simulación');
+
+        $simulacion->update(['estado' => 'aceptada']);
+
+        AuditoriaService::registrar('editar', 'simulaciones', $simulacion->id,
+            ['estado' => 'aceptada'],
+            ['estado' => $simulacion->getOriginal('estado')]);
+
+        return back()->with('status', 'Simulación validada.');
+    }
+
+    /**
+     * Guarda la simulación como borrador (pasa de temporal a la lista de trabajo).
+     */
+    public function guardarBorrador(Request $request, Simulacion $simulacion): RedirectResponse
+    {
+        AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
+        
+        if ($simulacion->estado === 'borrador') {
+            $simulacion->update(['estado' => 'generada']);
+        }
+
+        return back()->with('status', 'Simulación guardada en el historial de trabajo.');
     }
 
     /** Traduce errores de la IA a un mensaje claro (saturación, clave, etc.). */
@@ -860,17 +903,41 @@ class SimulacionController extends Controller
 
         $simulacion->load(['detalles.cursoUsil', 'detalles.cursoExterno']);
 
-        $libro = IOFactory::load($plantilla);
-        $hoja = $libro->getSheetByName('PRECONVA') ?: $libro->getActiveSheet();
-
-        $fila = 2;   // la 1 son los encabezados de la plantilla
+        $mapaEquivalencias = [];
         foreach ($simulacion->detalles as $detalle) {
             if (! $detalle->curso_usil_id || $detalle->excluido) {
                 continue;
             }
-            $hoja->setCellValue('A'.$fila, $detalle->cursoUsil?->nombre);
-            $hoja->setCellValue('B'.$fila, $detalle->nombre_origen);
+            $clave = mb_strtolower(trim($detalle->cursoUsil?->nombre ?? ''));
+            $mapaEquivalencias[$clave] = $detalle->nombre_origen;
+        }
+
+        $libro = IOFactory::load($plantilla);
+        $hojaExport = $libro->getSheetByName('Export') ?: $libro->getActiveSheet();
+
+        // Escribir directamente en la columna E de 'Export' para evitar los #N/D
+        $fila = 2;
+        while (true) {
+            $cursoUsil = $hojaExport->getCell('D'.$fila)->getValue();
+            if (empty($cursoUsil)) {
+                break; // fin de la lista de cursos en la malla de la plantilla
+            }
+
+            $claveBusqueda = mb_strtolower(trim($cursoUsil));
+
+            if (isset($mapaEquivalencias[$claveBusqueda])) {
+                $hojaExport->setCellValue('E'.$fila, $mapaEquivalencias[$claveBusqueda]);
+            } else {
+                // Eliminar la fórmula y dejar en blanco para que no salga #N/D
+                $hojaExport->setCellValue('E'.$fila, '');
+            }
             $fila++;
+        }
+
+        // Eliminar la hoja PRECONVA ya que ahora mapeamos directo
+        $indicePreconva = $libro->getIndex($libro->getSheetByName('PRECONVA'));
+        if ($indicePreconva !== null) {
+            $libro->removeSheetByIndex($indicePreconva);
         }
 
         // Nombre irrepetible: dos descargas simultáneas del mismo expediente
@@ -894,6 +961,90 @@ class SimulacionController extends Controller
 
         return response()
             ->download($temporal, $this->nombreArchivo($simulacion, 'xlsx'))
+            ->deleteFileAfterSend(true);
+    }
+
+    public function exportarExcelOficial(Simulacion $simulacion)
+    {
+        $plantilla = storage_path('app/plantillas/plantilla_preconvalidacion_oficial.xlsx');
+        abort_unless(is_file($plantilla), 500,
+            'Falta la plantilla de Excel Oficial (storage/app/plantillas/plantilla_preconvalidacion_oficial.xlsx).');
+
+        $simulacion->load([
+            'postulante.carreraDestino.facultad',
+            'postulante.institucionOrigen',
+            'postulante.carreraExterna',
+            'detalles.cursoUsil.ciclo',
+            'detalles.cursoExterno'
+        ]);
+
+        $postulante = $simulacion->postulante;
+        $libro = IOFactory::load($plantilla);
+
+        // Hoja 1: Preconvalidación
+        $hojaPreconva = $libro->getSheetByName('Preconvalidación') ?: $libro->getSheet(0);
+
+        if ($postulante->carreraDestino && $postulante->carreraDestino->facultad) {
+            $hojaPreconva->setCellValue('A1', $postulante->carreraDestino->facultad->nombre);
+        }
+        if ($postulante->carreraDestino) {
+            $hojaPreconva->setCellValue('A2', 'Carrera Profesional: ' . $postulante->carreraDestino->nombre);
+        }
+
+        $nombreCompleto = trim($postulante->nombres . ' ' . $postulante->apellido_paterno . ' ' . $postulante->apellido_materno);
+        $hojaPreconva->setCellValue('C4', $nombreCompleto);
+        $hojaPreconva->setCellValue('C5', $postulante->codigo ?? '');
+        $hojaPreconva->setCellValue('C6', $postulante->ciclo_postulacion ?? '');
+        $hojaPreconva->setCellValue('C7', $postulante->institucionOrigen?->nombre ?? '');
+        $hojaPreconva->setCellValue('C8', $postulante->carreraExterna?->nombre ?? '');
+        $hojaPreconva->setCellValue('C9', $simulacion->created_at ? $simulacion->created_at->format('d/m/Y') : date('d/m/Y'));
+
+        // Cursos convalidados
+        $filaPreconva = 11;
+        foreach ($simulacion->detalles as $detalle) {
+            if ($detalle->curso_usil_id && !$detalle->excluido) {
+                $hojaPreconva->setCellValue('A'.$filaPreconva, $detalle->cursoUsil?->ciclo?->numero ?? '');
+                $hojaPreconva->setCellValue('B'.$filaPreconva, $detalle->cursoUsil?->nombre ?? '');
+                $hojaPreconva->setCellValue('C'.$filaPreconva, mb_strtoupper($detalle->nombre_origen ?? ''));
+                $hojaPreconva->setCellValue('D'.$filaPreconva, $detalle->cursoUsil?->creditos ?? '');
+                $filaPreconva++;
+            }
+        }
+
+        // Hoja 2: Cursos no convalidados
+        $hojaNoConva = $libro->getSheetByName('Cursos no convalidados') ?: $libro->getSheet(1);
+        $filaNoConva = 3;
+        foreach ($simulacion->detalles as $detalle) {
+            if (!$detalle->curso_usil_id || $detalle->excluido) {
+                $hojaNoConva->setCellValue('A'.$filaNoConva, mb_strtoupper($detalle->nombre_origen ?? ''));
+                $hojaNoConva->setCellValue('B'.$filaNoConva, $detalle->nota_origen ?? '');
+                $hojaNoConva->setCellValue('C'.$filaNoConva, $detalle->creditos_origen ?? '');
+                $hojaNoConva->setCellValue('D'.$filaNoConva, 'No convalidable');
+                $filaNoConva++;
+            }
+        }
+
+        $directorio = storage_path('app/temp');
+        if (! is_dir($directorio)) {
+            mkdir($directorio, 0775, true);
+        }
+        $this->limpiarTemporales($directorio);
+        $temporal = $directorio.'/'.Str::uuid()->toString().'.xlsx';
+
+        try {
+            (new Xlsx($libro))->save($temporal);
+        } catch (\Throwable $e) {
+            if (is_file($temporal)) {
+                unlink($temporal);
+            }
+            throw $e;
+        }
+
+        $nom = Str::slug($postulante->nombres.'_'.$postulante->apellido_paterno);
+        $nombreFinal = "Preconvalidacion_Oficial_{$simulacion->id}_{$nom}.xlsx";
+
+        return response()
+            ->download($temporal, $nombreFinal)
             ->deleteFileAfterSend(true);
     }
 

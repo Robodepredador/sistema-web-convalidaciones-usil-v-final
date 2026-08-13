@@ -33,14 +33,20 @@ const enviar = () => form.post('/mallas');
         <VolverA href="/mallas" texto="Mallas curriculares" />
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-2xl font-semibold text-[#1F3864]">Nueva malla curricular</h1>
-            <Link href="/mallas/importar"
-                  class="inline-flex items-center gap-2 rounded-md border border-[#1F3864] px-4 py-2 text-sm font-medium text-[#1F3864] hover:bg-slate-50">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                </svg>
-                Importar desde Excel
-            </Link>
+            <div class="flex gap-2">
+                <a href="/mallas/plantilla" target="_blank"
+                   class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <span aria-hidden="true">📥</span> Descargar plantilla
+                </a>
+                <Link href="/mallas/importar"
+                      class="inline-flex items-center gap-2 rounded-md border border-[#1F3864] px-4 py-2 text-sm font-medium text-[#1F3864] hover:bg-slate-50">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Importar desde Excel
+                </Link>
+            </div>
         </div>
         <p class="-mt-4 mb-6 text-sm text-slate-500">
             Llena los datos manualmente, o

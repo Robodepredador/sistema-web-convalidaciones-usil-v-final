@@ -44,7 +44,6 @@ class Role extends Model
         return ! in_array($this->nombre, self::SIN_ACCESO, true);
     }
 
-    /** Alcance de datos de cada rol: global | carrera | facultad. */
     public const ALCANCE = [
         self::SUPERUSUARIO => 'global',
         self::ASESOR => 'global',

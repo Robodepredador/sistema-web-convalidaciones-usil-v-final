@@ -43,7 +43,29 @@ const descargarArchivo = (url) => {
     a.remove();
 };
 const descargarPdf = () => descargarArchivo(`/simulaciones/${props.simulacion.id}/pdf`);
+
+const validando = ref(false);
+
+const abrirValidar = () => {
+    validando.value = true;
+};
+
+const confirmarValidar = () => {
+    validando.value = false;
+    router.patch(`/simulaciones/${props.simulacion.id}/validar`, {}, { preserveScroll: true });
+};
+
+const guardandoBorrador = ref(false);
+const guardarBorrador = () => {
+    guardandoBorrador.value = true;
+    router.patch(`/simulaciones/${props.simulacion.id}/guardar-borrador`, {}, {
+        preserveScroll: true,
+        onFinish: () => { guardandoBorrador.value = false; }
+    });
+};
+
 const descargarExcel = () => descargarArchivo(`/simulaciones/${props.simulacion.id}/excel`);
+const descargarExcelOficial = () => descargarArchivo(`/simulaciones/${props.simulacion.id}/excel-oficial`);
 
 // La tabla principal lista los cursos con equivalencia USIL.
 const filasConvalidadas = computed(() => props.detalles.filter((d) => d.curso_usil));
@@ -119,11 +141,23 @@ const verRestantes = ref(false);
 
         <div class="mb-2 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Cursos a convalidar</h2>
-            <Link v-if="!simulacion.convalidada" :href="`/simulaciones/${simulacion.id}/editar`"
-                  class="inline-flex items-center gap-1.5 rounded-md border border-[#2E75B6] px-3 py-1.5 text-xs font-medium text-[#2E75B6] hover:bg-blue-50">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
-                Editar mapeo
-            </Link>
+            <div class="flex gap-2">
+                <button v-if="simulacion.estado === 'borrador'" @click="guardarBorrador" :disabled="guardandoBorrador"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
+                    {{ guardandoBorrador ? 'Guardando...' : 'Guardar borrador' }}
+                </button>
+                <button v-if="['borrador', 'generada'].includes(simulacion.estado)" @click="abrirValidar"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                    Validar Simulación
+                </button>
+                <Link v-if="!simulacion.convalidada" :href="`/simulaciones/${simulacion.id}/editar`"
+                      class="inline-flex items-center gap-1.5 rounded-md border border-[#2E75B6] px-3 py-1.5 text-xs font-medium text-[#2E75B6] hover:bg-blue-50">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                    Editar mapeo
+                </Link>
+            </div>
         </div>
 
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -192,7 +226,10 @@ const verRestantes = ref(false);
                 <tbody class="divide-y divide-slate-100">
                     <tr v-for="d in filasRestantes" :key="d.id">
                         <td class="px-4 py-2 text-slate-700">{{ d.curso_externo }}</td>
-                        <td class="px-4 py-2 text-slate-500">{{ d.nota || '—' }}</td>
+                        <td class="px-4 py-2 text-slate-500">
+                            {{ d.nota || (d.motivo ? '' : '—') }}
+                            <div v-if="d.motivo" :class="d.nota ? 'mt-1 text-xs text-slate-400' : 'text-slate-500'">{{ d.motivo }}</div>
+                        </td>
                         <td class="px-4 py-2">
                             <span class="rounded-full px-2 py-0.5 text-xs"
                                   :class="d.clasificacion === 'convalidable' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'">
@@ -208,6 +245,12 @@ const verRestantes = ref(false);
             <button @click="descargarPdf" class="inline-flex items-center gap-2 rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                 Descargar PDF
+            </button>
+            <button @click="descargarExcelOficial" class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Descargar Excel Oficial
             </button>
             <button @click="descargarExcel" class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
@@ -233,6 +276,13 @@ const verRestantes = ref(false);
                       class="w-full rounded-md border-slate-300 text-sm"
                       placeholder="Ej.: el sílabo no cubre las competencias del curso USIL."></textarea>
             <p v-if="errorMotivo" class="mt-1 text-xs text-red-600">{{ errorMotivo }}</p>
+        </ConfirmDialog>
+        
+        <ConfirmDialog :open="validando"
+                       titulo="Validar Simulación"
+                       mensaje="¿Estás seguro de que deseas validar (aceptar) esta simulación?"
+                       texto-confirmar="Aceptar" tono="exito"
+                       @cancelar="validando = false" @confirmar="confirmarValidar">
         </ConfirmDialog>
     </div>
 </template>

@@ -40,49 +40,10 @@ class ConfiguracionController extends Controller
                 'gemini' => ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'],
                 'openai' => ['gpt-4o', 'gpt-4o-mini'],
             ],
-            // Solo las institucionales: las de cada carrera se administran desde
-            // su malla, con el alcance por rol de esa pantalla.
-            'noConvalidables' => CursoNoConvalidable::whereNull('carrera_id')
-                ->orderBy('palabra_clave')
-                ->get(['id', 'palabra_clave', 'motivo', 'activo']),
         ]);
     }
 
-    /** Agrega una materia a la lista de no convalidables (origen). */
-    public function agregarNoConvalidable(Request $request): RedirectResponse
-    {
-        $datos = $request->validate([
-            'palabra_clave' => ['required', 'string', 'max:120'],
-            'motivo' => ['nullable', 'string', 'max:150'],
-        ]);
 
-        CursoNoConvalidable::updateOrCreate(
-            ['clave_normalizada' => app(ConvalidacionEngine::class)->normaliza($datos['palabra_clave']),
-                'carrera_id' => null],
-            ['palabra_clave' => $datos['palabra_clave'], 'motivo' => $datos['motivo'] ?? null, 'activo' => true],
-        );
-
-        return back()->with('status', 'Materia agregada a la lista de no convalidables.');
-    }
-
-    /** Activa/desactiva o elimina una materia de la lista. */
-    public function actualizarNoConvalidable(Request $request, CursoNoConvalidable $noConvalidable): RedirectResponse
-    {
-        // Esta pantalla es la de la política institucional; las reglas de una
-        // carrera se editan desde su malla, donde rige el alcance por rol.
-        abort_unless($noConvalidable->carrera_id === null, 403,
-            'Esa regla pertenece a una carrera: edítela desde su plan de estudios.');
-
-        if ($request->boolean('eliminar')) {
-            $noConvalidable->delete();
-
-            return back()->with('status', 'Materia eliminada de la lista.');
-        }
-
-        $noConvalidable->update(['activo' => $request->boolean('activo')]);
-
-        return back()->with('status', 'Lista de no convalidables actualizada.');
-    }
 
     public function update(Request $request): RedirectResponse
     {

@@ -335,21 +335,22 @@ const ejecutarExtraccion = async () => {
     procesando.value = true; mensaje.value = null;
     try {
         let data;
+        const fd = new FormData();
         if (documentoId.value && !archivo.value) {
-            ({ data } = await window.axios.post('/simulaciones/extraer-ia', {
-                documento_id: documentoId.value,
-                carrera_externa_id: props.postulante.carrera_externa_id,
-                carrera_usil_id: props.postulante.carrera_destino_id,
-            }));
+            fd.append('documento_id', documentoId.value);
         } else {
-            const fd = new FormData();
             fd.append('documento', archivo.value);
-            // De quién es el récord: el servidor comprueba su consentimiento antes de enviarlo a la IA.
-            fd.append('postulante_id', props.postulante.id);
-            if (props.postulante.carrera_destino_id) fd.append('carrera_usil_id', props.postulante.carrera_destino_id);
-            if (props.postulante.carrera_externa_id) fd.append('carrera_externa_id', props.postulante.carrera_externa_id);
-            ({ data } = await window.axios.post('/simulaciones/extraer-ia', fd, { headers: { 'Content-Type': 'multipart/form-data' } }));
         }
+        // De quién es el récord: el servidor comprueba su consentimiento antes de enviarlo a la IA.
+        fd.append('postulante_id', props.postulante.id);
+        if (props.postulante.carrera_destino_id) fd.append('carrera_usil_id', props.postulante.carrera_destino_id);
+        if (props.postulante.carrera_externa_id) fd.append('carrera_externa_id', props.postulante.carrera_externa_id);
+        
+        fd.append('nota_minima', notaMinima.value);
+        fd.append('escala', escala.value);
+        
+        ({ data } = await window.axios.post('/simulaciones/extraer-ia', fd, { headers: { 'Content-Type': 'multipart/form-data' } }));
+        
         extraccion.value = data;
         documentoPath.value = data.documento_path ?? null;
         if (data.institucion?.universidad) universidadOrigen.value = data.institucion.universidad;
@@ -425,14 +426,7 @@ const anteriorIA = () => { pasoIA.value = Math.max(1, pasoIA.value - 1); };
 watch(metodo, (m) => { if (m === 'ia') { pasoIA.value = 1; mensaje.value = null; } });
 
 // ---------------------------------------------------------------- guardar
-const guardadoId = ref(null);   // id de la preconvalidación guardada (habilita descargas)
-const modalGuardado = ref(false);   // el resumen se muestra como popup al terminar
-const cerrarModalGuardado = () => { modalGuardado.value = false; };
 
-// Esc cierra el popup (mismo gesto que el clic en el fondo).
-const onEsc = (e) => { if (e.key === 'Escape' && modalGuardado.value) cerrarModalGuardado(); };
-onMounted(() => window.addEventListener('keydown', onEsc));
-onBeforeUnmount(() => window.removeEventListener('keydown', onEsc));
 
 // Convierte créditos (que la IA puede devolver como "3,000", "3.0", "4") a número o null.
 const aNumero = (v) => {
@@ -475,11 +469,10 @@ const guardar = () => {
         : window.axios.post('/simulaciones', payload);
     peticion
         .then(({ data }) => {
-            guardadoId.value = data.id;
-            modalGuardado.value = true;
-            mensaje.value = { tipo: 'ok', texto: `Simulación #${data.id} ${editando ? 'actualizada' : 'guardada'}.` };
+            router.get(`/simulaciones/${data.id}`);
         })
         .catch((e) => {
+            procesando.value = false;
             const errs = e.response?.data?.errors;
             mensaje.value = { tipo: 'error', texto: errs ? Object.values(errs)[0][0] : (e.response?.data?.message || 'No se pudo guardar. Revisa los datos.') };
         })
@@ -653,7 +646,7 @@ const eliminarSimulacion = (s) => {
                 <button @click="guardar" :disabled="!tieneMalla || procesando || guardadoId"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-semibold text-white hover:bg-[#2E75B6] disabled:opacity-50">
                     <svg v-if="guardadoId" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                    {{ guardadoId ? 'Simulación guardada' : (procesando ? 'Guardando…' : 'Guardar simulación') }}</button>
+                    {{ guardadoId ? 'Simulación guardada' : (procesando ? 'Guardando…' : 'Continuar') }}</button>
                 <Link href="/simulaciones" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Cancelar</Link>
             </div>
         </template>
@@ -728,9 +721,22 @@ const eliminarSimulacion = (s) => {
                     <h2 class="text-lg font-semibold text-[#1F3864]">Etapa 3 · Extracción de cursos (OCR + IA)</h2>
                     <p class="mb-4 text-sm text-slate-500">Expediente <strong>{{ expediente }}</strong> · Documento: {{ docSeleccionado?.nombre || archivo?.name }}</p>
 
+                    <div class="mb-4 flex flex-wrap items-end gap-3">
+                        <div><label class="mb-1 block text-xs font-medium text-slate-500">Escala de Notas</label>
+                            <select v-model="escala" class="rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                <option value="0-20">0 - 20</option>
+                                <option value="0-100">0 - 100</option>
+                                <option value="0-5">0 - 5</option>
+                            </select></div>
+                        <div><label class="mb-1 block text-xs font-medium text-slate-500">Nota mínima aprobatoria</label>
+                            <input v-model="notaMinima" type="number" step="0.1" :min="0"
+                                   class="w-28 rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                        </div>
+                    </div>
+
                     <button @click="ejecutarExtraccion" :disabled="!ia?.disponible || procesando"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>
+                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0 3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>
                         {{ procesando ? 'Procesando con IA…' : (extraccion ? 'Re-ejecutar extracción' : 'Ejecutar extracción con IA') }}
                     </button>
 
@@ -756,17 +762,8 @@ const eliminarSimulacion = (s) => {
                 <!-- Etapa 4 · Aprobados -->
                 <div v-else-if="pasoIA === 4">
                     <h2 class="text-lg font-semibold text-[#1F3864]">Etapa 4 · Validación de aprobados</h2>
-                    <p class="mb-4 text-sm text-slate-500">Ajusta la escala y la nota mínima. Los cursos que no cumplen quedan fuera del mapeo.</p>
+                    <p class="mb-4 text-sm text-slate-500">Revisa los cursos que han cumplido la nota mínima (configurada en la etapa anterior).</p>
                     <div class="mb-4 flex flex-wrap items-end gap-3">
-                        <div><label class="mb-1 block text-xs font-medium text-slate-500">Escala</label>
-                            <select v-model="escala" class="rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]"><option value="0-20">0 - 20</option><option value="0-100">0 - 100</option><option value="0-5">0 - 5</option></select></div>
-                        <div><label class="mb-1 block text-xs font-medium text-slate-500">Nota mínima</label>
-                            <!-- En escala vigesimal el piso es 11 (Reglamento de Estudios, Art. 15); el servidor lo rechaza igual. -->
-                            <input v-model="notaMinima" type="number" step="0.1" :min="escala === '0-20' ? 11 : 0"
-                                   class="w-28 rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                            <p v-if="escala === '0-20' && Number(notaMinima) < 11" class="mt-1 text-xs text-red-600">
-                                Mínimo 11 en escala vigesimal.
-                            </p></div>
                         <div class="flex gap-3 text-sm">
                             <span class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">Cumplen: <strong>{{ aprobadosValidados.length }}</strong></span>
                             <span class="rounded-lg bg-slate-100 px-3 py-2 text-slate-500">Fuera: <strong>{{ aprobadosFuera.length }}</strong></span>
@@ -793,7 +790,7 @@ const eliminarSimulacion = (s) => {
                     <p class="mb-3 text-sm text-slate-500">Cada curso aprobado se empareja con un curso USIL (incluye electivos). Regla 1‑a‑1: cada curso USIL solo puede usarse una vez.</p>
 
                     <MapeoUsilMatch :pool-usil="poolUsil" :filas="filas" :no-convalidar="noConvalidar" :procesando="procesando"
-                                     :ia="ia" solo-lectura
+                                     :ia="ia"
                                      @sugerir-ia="sugerir('ia')" @sugerir-similitud="sugerir('similitud')" />
 
                     <p v-if="duplicados.length" class="mt-2 inline-flex items-center gap-1.5 text-xs text-red-600">
@@ -908,7 +905,7 @@ const eliminarSimulacion = (s) => {
                         <button @click="guardar" :disabled="!tieneMalla || procesando || guardadoId"
                                 class="inline-flex items-center gap-1.5 rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-semibold text-white hover:bg-[#2E75B6] disabled:opacity-50">
                             <svg v-if="guardadoId" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                            {{ guardadoId ? 'Simulación guardada' : (procesando ? 'Guardando…' : 'Guardar simulación') }}
+                            {{ guardadoId ? 'Simulación guardada' : (procesando ? 'Guardando…' : 'Continuar') }}
                         </button>
                     </div>
                 </div>
@@ -934,70 +931,7 @@ const eliminarSimulacion = (s) => {
             </div>
         </div>
 
-        <!-- Popup de cierre: resumen de la preconvalidación guardada.
-             Las descargas (PDF/Excel) se hacen en Convalidaciones. -->
-        <Transition enter-from-class="opacity-0" leave-to-class="opacity-0"
-                    enter-active-class="transition duration-150" leave-active-class="transition duration-150">
-            <div v-if="modalGuardado" class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                 role="dialog" aria-modal="true" aria-labelledby="titulo-guardado">
-                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="cerrarModalGuardado"></div>
-                <div class="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
-                    <button type="button" @click="cerrarModalGuardado" title="Cerrar"
-                            class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
 
-                    <div class="border-b border-emerald-100 bg-emerald-50 px-6 py-5">
-                        <div class="flex items-start gap-3 pr-8">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                            </span>
-                            <div class="min-w-0">
-                                <p id="titulo-guardado" class="font-heading text-base font-bold text-emerald-900">Simulación #{{ guardadoId }} guardada</p>
-                                <p class="mt-0.5 text-sm text-emerald-700">{{ postulante.nombre }} · {{ postulante.carrera_destino }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="px-6 py-5">
-                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            <div class="rounded-xl border border-slate-200 p-3 text-center">
-                                <p class="text-2xl font-bold text-[#1F3864]">{{ resumen.total }}</p><p class="text-xs text-slate-500">Cursos evaluados</p>
-                            </div>
-                            <div class="rounded-xl border border-slate-200 p-3 text-center">
-                                <p class="text-2xl font-bold text-emerald-600">{{ resumen.convalidados }}</p><p class="text-xs text-slate-500">Convalidados</p>
-                            </div>
-                            <div class="rounded-xl border border-slate-200 p-3 text-center">
-                                <p class="text-2xl font-bold text-[#2E75B6]">{{ resumen.creditos.toFixed(1) }}</p><p class="text-xs text-slate-500">Créditos reconocidos</p>
-                            </div>
-                            <div class="rounded-xl p-3 text-center" :class="sinAsignar ? 'border border-amber-300 bg-amber-50' : 'border border-slate-200'">
-                                <p class="text-2xl font-bold" :class="sinAsignar ? 'text-amber-600' : 'text-slate-400'">{{ sinAsignar }}</p><p class="text-xs text-slate-500">Sin asignar</p>
-                            </div>
-                        </div>
-
-                        <p v-if="sinAsignar" class="mt-3 text-sm text-amber-800">
-                            Quedaron <strong>{{ sinAsignar }}</strong> curso(s) aprobado(s) sin equivalencia USIL; no suman créditos.
-                            Puedes cerrar este aviso y seguir asignándolos.
-                        </p>
-                        <p v-else class="mt-3 text-sm text-slate-500">
-                            Todos los cursos aprobados quedaron resueltos.
-                        </p>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-                        <Link :href="`/simulaciones/${guardadoId}`" class="rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">
-                            Ver la preconvalidación
-                        </Link>
-                        <Link v-if="veConvalidaciones" href="/convalidaciones" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-white/60">
-                            Ir a Convalidaciones
-                        </Link>
-                        <button type="button" @click="cerrarModalGuardado" class="ml-auto text-sm text-slate-500 hover:text-slate-700 hover:underline">
-                            Seguir editando
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Transition>
 
         <ConfirmDialog :open="!!marcando"
                        titulo="¿Marcar como no convalidable?"

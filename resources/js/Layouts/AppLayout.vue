@@ -50,10 +50,10 @@ const nav = computed(() => {
 
     if (puede('catalogos.gestionar')) items.push({ label: 'Instituciones Externas', href: '/instituciones', icon: ICON.building });
     if (puede('mallas_externas.gestionar')) items.push({ label: 'Mallas Externas', href: '/equivalencias', icon: ICON.globe });
-    if (puede('evaluacion.editar')) items.push({ label: 'Mapeo de equivalencias', href: '/mapeo-mallas', icon: ICON.arrows });
+    if (puede('evaluacion.editar')) items.push({ label: 'Equivalencias', href: '/mapeo-mallas', icon: ICON.arrows });
     if (puede('solicitudes.ver')) items.push({ label: 'Postulantes', href: '/postulantes', icon: ICON.postulante });
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
-    if (puede('convalidacion.ver')) items.push({ label: 'Convalidaciones', href: '/convalidaciones', icon: ICON.check });
+    if (puede('convalidacion.ver')) items.push({ label: 'Pre-Convalidaciones Oficiales', href: '/convalidaciones', icon: ICON.check });
     if (puede('usuarios.gestionar')) items.push({ label: 'Usuarios', href: '/usuarios', icon: ICON.users });
     if (puede('configuracion.gestionar')) items.push({ label: 'Configuración', href: '/configuracion', icon: ICON.cog });
     return items;

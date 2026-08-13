@@ -49,10 +49,14 @@ class LectorMallaExcel
         for ($r = $hdrRow + 1; $r < count($filas); $r++) {
             $fila = $filas[$r];
             $cicloRaw = trim((string) ($fila[$cols['ciclo']] ?? ''));
-            $nombre = trim((string) ($fila[$cols['curso']] ?? ''));
-            $crRaw = trim((string) ($fila[$cols['cr']] ?? ''));
-            $thRaw = $cols['th'] !== null ? trim((string) ($fila[$cols['th']] ?? '')) : '';
-            $preRaw = $cols['pre'] !== null ? trim((string) ($fila[$cols['pre']] ?? '')) : '';
+            $codigo = $cols['codigo'] !== null ? trim((string) ($fila[$cols['codigo']] ?? '')) : '';
+            $nombre = trim((string) ($fila[$cols['nombre']] ?? ''));
+            $crRaw = trim((string) ($fila[$cols['creditos']] ?? ''));
+            
+            $thRaw = $cols['horas_teoria'] !== null ? trim((string) ($fila[$cols['horas_teoria']] ?? '')) : '';
+            $tpRaw = $cols['horas_practica'] !== null ? trim((string) ($fila[$cols['horas_practica']] ?? '')) : '';
+            $caracter = $cols['caracter'] !== null ? trim((string) ($fila[$cols['caracter']] ?? '')) : '';
+            $mencionCol = $cols['mencion'] !== null ? trim((string) ($fila[$cols['mencion']] ?? '')) : '';
 
             // Fila totalmente vacía.
             if ($cicloRaw === '' && $nombre === '' && $crRaw === '') {
@@ -63,15 +67,7 @@ class LectorMallaExcel
                 || str_contains($this->engine->normaliza($cicloRaw), 'total')) {
                 continue;
             }
-            // Encabezado de mención: texto (no número) en la columna de ciclo, sin curso ni créditos.
-            if ($cicloRaw !== '' && ! is_numeric($cicloRaw) && $nombre === '' && $crRaw === '') {
-                $mIdx++;
-                $mencionActual = $cicloRaw;
-                $menciones[$mencionActual] = ['nombre' => $mencionActual, 'indice' => $mIdx, 'cursos' => []];
-                $contadorMencion[$mIdx] = 0;
 
-                continue;
-            }
             // A partir de aquí, una fila válida requiere ciclo numérico y nombre de curso.
             if (! is_numeric($cicloRaw) || $nombre === '') {
                 continue;
@@ -82,19 +78,33 @@ class LectorMallaExcel
             }
 
             $creditos = is_numeric($crRaw) ? (float) $crRaw : null;
-            $horas = is_numeric($thRaw) ? (float) $thRaw : null;
-            $esElectivo = (bool) preg_match('/^electivo/i', $nombre);
+            $horas_teoria = is_numeric($thRaw) ? (float) $thRaw : null;
+            $esElectivo = stripos($caracter, 'electivo') !== false || stripos($nombre, 'electivo') !== false;
 
-            if ($mencionActual !== null) {
-                $indice = $menciones[$mencionActual]['indice'];
+            // Si no hay codigo, generarlo
+            $codigoFinal = $codigo;
+
+            if ($mencionCol !== '') {
+                if (!isset($menciones[$mencionCol])) {
+                    $mIdx++;
+                    $menciones[$mencionCol] = ['nombre' => $mencionCol, 'indice' => $mIdx, 'cursos' => []];
+                    $contadorMencion[$mIdx] = 0;
+                }
+                
+                $indice = $menciones[$mencionCol]['indice'];
                 $n = ++$contadorMencion[$indice];
-                $menciones[$mencionActual]['cursos'][] = [
-                    'codigo' => sprintf('%s-M%d-%02d', $prefijo, $indice, $n),
+                
+                if ($codigoFinal === '') {
+                    $codigoFinal = sprintf('%s-M%d-%02d', $prefijo, $indice, $n);
+                }
+
+                $menciones[$mencionCol]['cursos'][] = [
+                    'codigo' => $codigoFinal,
                     'nombre' => $nombre,
                     'ciclo' => $ciclo,
                     'creditos' => $creditos,
-                    'horas' => $horas,
-                    'prerequisito' => $preRaw,
+                    'horas' => $horas_teoria,
+                    'prerequisito' => '',
                     'es_electivo' => $esElectivo,
                     'convalidable' => true,
                 ];
@@ -104,12 +114,17 @@ class LectorMallaExcel
                     $contadorCiclo[$ciclo] = 0;
                 }
                 $n = ++$contadorCiclo[$ciclo];
+                
+                if ($codigoFinal === '') {
+                    $codigoFinal = sprintf('%s-C%d-%02d', $prefijo, $ciclo, $n);
+                }
+
                 $ciclos[$ciclo]['cursos'][] = [
-                    'codigo' => sprintf('%s-C%d-%02d', $prefijo, $ciclo, $n),
+                    'codigo' => $codigoFinal,
                     'nombre' => $nombre,
                     'creditos' => $creditos,
-                    'horas' => $horas,
-                    'prerequisito' => $preRaw,
+                    'horas' => $horas_teoria,
+                    'prerequisito' => '',
                     'es_electivo' => $esElectivo,
                     'convalidable' => true,
                 ];
@@ -181,18 +196,25 @@ class LectorMallaExcel
                 $n = $this->engine->normaliza((string) $val);
                 if ($n === 'ciclo') {
                     $map['ciclo'] = $ci;
-                } elseif ($n === 'curso') {
-                    $map['curso'] = $ci;
-                } elseif ($n === 'cr' || str_contains($n, 'credito')) {
-                    $map['cr'] = $ci;
-                } elseif ($n === 'th' || str_contains($n, 'hora')) {
-                    $map['th'] = $ci;
-                } elseif (str_contains($n, 'pre')) {
-                    $map['pre'] = $ci;
+                } elseif ($n === 'codigo') {
+                    $map['codigo'] = $ci;
+                } elseif ($n === 'nombre' || $n === 'curso') {
+                    $map['nombre'] = $ci;
+                } elseif ($n === 'creditos' || $n === 'cr' || str_contains($n, 'credito')) {
+                    $map['creditos'] = $ci;
+                } elseif ($n === 'horas_teoria' || $n === 'th' || str_contains($n, 'hora')) {
+                    $map['horas_teoria'] = $ci;
+                } elseif ($n === 'horas_practica') {
+                    $map['horas_practica'] = $ci;
+                } elseif ($n === 'caracter') {
+                    $map['caracter'] = $ci;
+                } elseif ($n === 'mencion') {
+                    $map['mencion'] = $ci;
                 }
             }
-            if (isset($map['ciclo'], $map['curso'], $map['cr'])) {
-                return [$r, $map + ['th' => null, 'pre' => null]];
+            // Aceptar si tiene ciclo, nombre/curso y creditos.
+            if (isset($map['ciclo'], $map['nombre'], $map['creditos'])) {
+                return [$r, $map + ['codigo' => null, 'horas_teoria' => null, 'horas_practica' => null, 'caracter' => null, 'mencion' => null]];
             }
         }
 

@@ -96,12 +96,7 @@ const rolBadge = (r) =>
                                     <span :class="u.activo ? 'bg-green-500' : 'bg-slate-400'" class="h-1.5 w-1.5 rounded-full"></span>
                                     {{ u.activo ? 'Activo' : 'Inactivo' }}
                                 </span>
-                                <!-- El perfil conserva permisos pero no habilita el inicio de sesión. -->
-                                <span v-if="u.sin_acceso"
-                                      title="Este perfil no puede iniciar sesión en el sistema."
-                                      class="mt-1 block w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                                    Sin acceso al sistema
-                                </span>
+
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">

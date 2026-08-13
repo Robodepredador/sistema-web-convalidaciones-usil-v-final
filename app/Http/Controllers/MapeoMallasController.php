@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Carrera;
 use App\Models\CursoExterno;
+use App\Models\CursoNoConvalidable;
 use App\Models\EquivalenciaMalla;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -164,6 +166,30 @@ class MapeoMallasController extends Controller
         AuditoriaService::registrar('crear', 'equivalencias_malla', $par->id, null, $par->toArray());
 
         return response()->json(['id' => $par->id]);
+    }
+
+    /** Marca un curso de origen como no convalidable para una carrera USIL */
+    public function marcarNoConvalidable(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'carrera_usil_id' => ['required', 'integer', 'exists:carreras,id'],
+            'curso_externo_id' => ['required', 'integer', 'exists:cursos_externos,id'],
+            'motivo' => ['nullable', 'string', 'max:150'],
+        ]);
+
+        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
+
+        $cursoExterno = CursoExterno::findOrFail($datos['curso_externo_id']);
+        $clave = app(\App\Services\ConvalidacionEngine::class)->normaliza($cursoExterno->nombre);
+
+        if ($clave !== '') {
+            CursoNoConvalidable::updateOrCreate(
+                ['clave_normalizada' => $clave, 'carrera_id' => $datos['carrera_usil_id']],
+                ['palabra_clave' => $cursoExterno->nombre, 'motivo' => $datos['motivo'], 'activo' => true]
+            );
+        }
+
+        return response()->json(['status' => 'success']);
     }
 
     /** Quita un par para poder reasignarlo. */

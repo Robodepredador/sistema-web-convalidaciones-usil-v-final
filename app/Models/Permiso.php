@@ -72,18 +72,15 @@ class Permiso extends Model
         // permiso NO tiene alcance por carrera, de modo que podrá registrar mallas de
         // cualquier institución, no solo de las que le tocan.
         Role::COORDINADOR => [
-            'dashboard.ver', 'evaluacion.ver', 'evaluacion.editar',
-            'evaluacion.proponer', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'dashboard.ver', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'evaluacion.editar', 'evaluacion.ver', 'convalidacion.ver',
         ],
         Role::DIRECTOR => [
-            'dashboard.ver', 'solicitudes.ver', 'solicitudes.asignar', 'evaluacion.ver',
-            'evaluacion.editar', 'evaluacion.proponer', 'evaluacion.aprobar', 'evaluacion.observar',
-            'evaluacion.reasignar', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'dashboard.ver', 'estructura.gestionar', 'catalogos.gestionar',
+            'evaluacion.ver', 'convalidacion.ver', 'evaluacion.editar', 'evaluacion.proponer'
         ],
         Role::DECANO => [
-            'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'evaluacion.editar',
-            'evaluacion.proponer', 'evaluacion.aprobar', 'convalidacion.ver',
-            'mallas_externas.gestionar',
+            'dashboard.ver', 'convalidacion.ver', 'estructura.gestionar',
         ],
         Role::AUDITOR => [
             'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'convalidacion.ver',

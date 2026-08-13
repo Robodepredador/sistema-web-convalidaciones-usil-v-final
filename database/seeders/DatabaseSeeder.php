@@ -30,9 +30,9 @@ class DatabaseSeeder extends Seeder
             TipoInstitucionSeeder::class,   // Universidad / Instituto
             SuneduSeeder::class,            // instituciones de origen licenciadas
             AdminUserSeeder::class,         // administrador inicial (contraseña al azar)
-            DemoUsersSeeder::class,         // cuentas demo — nunca en producción
             EstructuraSeeder::class,        // sedes y modalidades
             UsilPregradoSeeder::class,      // facultades y programas de USIL
+            DemoUsersSeeder::class,         // cuentas demo — nunca en producción
         ]);
     }
 }

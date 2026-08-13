@@ -24,7 +24,11 @@ class UsuarioController extends Controller
 {
     public function index(Request $request)
     {
+        // Excluir usuarios con roles inhabilitados (Auditor, Consulta / Alta Dirección).
+        $rolesExcluidos = Role::whereIn('nombre', Role::SIN_ACCESO)->pluck('id');
+
         $usuarios = User::with('rol')
+            ->whereNotIn('rol_id', $rolesExcluidos)
             ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('email', 'like', "%{$v}%")))
             ->when($request->rol_id, fn ($x, $v) => $x->where('rol_id', $v))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
@@ -38,16 +42,12 @@ class UsuarioController extends Controller
                 'rol' => $u->rol?->nombre,
                 'activo' => $u->activo,
                 'primer_acceso' => $u->primer_acceso,
-                // Auditor y Consulta conservan permisos pero no inician sesión:
-                // sin esto la pantalla los muestra "Activo" sin más y el
-                // administrador no entiende por qué no pueden entrar.
-                'sin_acceso' => $u->rol && ! $u->rol->puedeIniciarSesion(),
             ]);
 
         return inertia('Usuarios/Index', [
             'usuarios' => $usuarios,
-            'activos' => User::where('activo', true)->count(),
-            'roles' => Role::orderBy('nombre')->get(['id', 'nombre']),
+            'activos' => User::where('activo', true)->whereNotIn('rol_id', $rolesExcluidos)->count(),
+            'roles' => Role::whereNotIn('nombre', Role::SIN_ACCESO)->orderBy('nombre')->get(['id', 'nombre']),
             'filtros' => $request->only(['q', 'rol_id', 'estado']),
         ]);
     }
@@ -65,7 +65,8 @@ class UsuarioController extends Controller
     /** Roles con su alcance (para que el formulario muestre el selector correcto). */
     private function rolesConAlcance()
     {
-        return Role::orderBy('nombre')->get(['id', 'nombre'])
+        return Role::whereNotIn('nombre', Role::SIN_ACCESO)
+            ->orderBy('nombre')->get(['id', 'nombre'])
             ->map(fn (Role $r) => ['id' => $r->id, 'nombre' => $r->nombre, 'alcance' => $r->alcance()]);
     }
 

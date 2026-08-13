@@ -8,8 +8,6 @@ const props = defineProps({
     ciclos: Array,
     resumen: Object,
     cursosMalla: Array,
-    // { institucionales: [...], propias: [...] } — materias de ORIGEN que no se convalidan.
-    noConvalidables: { type: Object, default: () => ({ institucionales: [], propias: [] }) },
 });
 
 // ----- Panel (drawer): 'view' | 'edit' | 'new' | null -----
@@ -25,43 +23,7 @@ const form = useForm({
 });
 
 // ----- Materias de origen que esta carrera no convalida -----
-// Son reglas de la carrera: no tocan la política institucional ni a las demás
-// carreras. Una regla propia con la misma materia manda sobre la institucional,
-// y desactivada sirve para levantarla (aquí sí se convalida).
-const reglaNueva = reactive({ palabra_clave: '', motivo: '', activo: true });
-const reglaError = ref('');
-const verReglas = ref(false);
 
-const propiaDe = (clave) => props.noConvalidables.propias.find(
-    (r) => r.palabra_clave.toLowerCase() === clave.toLowerCase());
-
-const guardarRegla = () => {
-    if (!reglaNueva.palabra_clave.trim()) {
-        reglaError.value = 'Escribe la materia (por ejemplo: Física).';
-
-        return;
-    }
-    reglaError.value = '';
-    router.post(`/mallas/${props.malla.id}/no-convalidables`, { ...reglaNueva }, {
-        preserveScroll: true,
-        onSuccess: () => { reglaNueva.palabra_clave = ''; reglaNueva.motivo = ''; reglaNueva.activo = true; },
-    });
-};
-
-const alternarRegla = (r) => router.patch(
-    `/mallas/${props.malla.id}/no-convalidables/${r.id}`, { activo: !r.activo }, { preserveScroll: true });
-
-const quitarRegla = (r) => {
-    if (!confirm(`¿Quitar la regla "${r.palabra_clave}"? La carrera volverá a seguir la política institucional.`)) return;
-    router.delete(`/mallas/${props.malla.id}/no-convalidables/${r.id}`, { preserveScroll: true });
-};
-
-// Levantar una institucional = crear la misma materia como regla propia inactiva.
-const levantarInstitucional = (r) => router.post(`/mallas/${props.malla.id}/no-convalidables`,
-    { palabra_clave: r.palabra_clave, motivo: `Excepción de ${props.malla.carrera}`, activo: false },
-    { preserveScroll: true });
-
-const TIPO = { teorico: 'Teórico', practico: 'Práctico', teorico_practico: 'Teórico - Práctico' };
 const tabs = [
     { id: 'info', label: 'Información' },
     { id: 'competencias', label: 'Competencias' },
@@ -261,93 +223,6 @@ const tarjetas = computed(() => [
         <!-- Barra de acciones -->
         <div class="mb-4 flex flex-wrap items-center gap-2">
             <a :href="`/mallas/${malla.id}/exportar`" class="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Exportar</a>
-            <button type="button" @click="verReglas = !verReglas"
-                    class="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
-                Materias que no se convalidan
-                <span v-if="noConvalidables.propias.length" class="ml-1 rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-800">
-                    {{ noConvalidables.propias.length }}
-                </span>
-            </button>
-        </div>
-
-        <!-- Materias de ORIGEN que esta carrera no convalida -->
-        <div v-if="verReglas" class="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Materias de procedencia que no se convalidan en {{ malla.carrera }}
-            </h2>
-            <p class="mb-4 mt-1 text-sm text-slate-500">
-                Se comparan con el nombre del curso que trae el postulante de su universidad. Lo que definas
-                aquí <strong>vale solo para esta carrera</strong>; la política general la administra el
-                administrador del sistema.
-            </p>
-
-            <div class="grid gap-5 lg:grid-cols-2">
-                <!-- Reglas propias -->
-                <div>
-                    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">De esta carrera</h3>
-                    <div class="mb-3 space-y-2">
-                        <div v-for="r in noConvalidables.propias" :key="r.id"
-                             class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                            <div>
-                                <p class="text-sm font-medium text-slate-700">{{ r.palabra_clave }}</p>
-                                <p class="text-xs" :class="r.activo ? 'text-slate-500' : 'text-emerald-700'">
-                                    {{ r.activo ? (r.motivo || 'Sin motivo indicado') : 'Excepción: aquí SÍ se convalida' }}
-                                </p>
-                            </div>
-                            <div class="flex items-center gap-3 text-xs">
-                                <button type="button" @click="alternarRegla(r)" class="font-medium text-[#2E75B6] hover:underline">
-                                    {{ r.activo ? 'Convertir en excepción' : 'Volver a excluir' }}
-                                </button>
-                                <button type="button" @click="quitarRegla(r)" class="font-medium text-red-600 hover:underline">Quitar</button>
-                            </div>
-                        </div>
-                        <p v-if="!noConvalidables.propias.length" class="rounded-lg bg-slate-50 px-3 py-4 text-center text-sm text-slate-400">
-                            Esta carrera sigue solo la política institucional.
-                        </p>
-                    </div>
-
-                    <div class="rounded-lg border border-slate-200 p-3">
-                        <label class="mb-1 block text-xs font-medium text-slate-500">Materia</label>
-                        <input v-model="reglaNueva.palabra_clave" maxlength="120" placeholder="Ej.: Física"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm" />
-                        <label class="mb-1 block text-xs font-medium text-slate-500">Motivo (opcional)</label>
-                        <input v-model="reglaNueva.motivo" maxlength="150" placeholder="Ej.: Ciencia básica no aplicable al plan"
-                               class="mb-2 w-full rounded-md border-slate-300 text-sm" />
-                        <p v-if="reglaError" class="mb-2 text-xs text-red-600">{{ reglaError }}</p>
-                        <button type="button" @click="guardarRegla"
-                                class="rounded-md bg-[#1F3864] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6]">
-                            Agregar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Reglas institucionales -->
-                <div>
-                    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Institucionales</h3>
-                    <div class="max-h-80 space-y-1.5 overflow-y-auto pr-1">
-                        <div v-for="r in noConvalidables.institucionales" :key="r.clave"
-                             class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-1.5"
-                             :class="r.anulada_aqui ? 'opacity-60' : ''">
-                            <div>
-                                <p class="text-sm text-slate-700">
-                                    {{ r.palabra_clave }}
-                                    <span v-if="r.anulada_aqui" class="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                                        aquí sí se convalida
-                                    </span>
-                                </p>
-                                <p v-if="r.motivo" class="text-xs text-slate-400">{{ r.motivo }}</p>
-                            </div>
-                            <button v-if="!r.anulada_aqui" type="button" @click="levantarInstitucional(r)"
-                                    class="text-xs font-medium text-[#2E75B6] hover:underline">
-                                No aplicar aquí
-                            </button>
-                        </div>
-                        <p v-if="!noConvalidables.institucionales.length" class="rounded-lg bg-slate-50 px-3 py-4 text-center text-sm text-slate-400">
-                            Sin política institucional definida.
-                        </p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Buscador + filtros -->

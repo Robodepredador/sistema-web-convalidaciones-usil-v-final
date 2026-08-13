@@ -85,10 +85,12 @@ const eliminar = (m) => {
                 <h1 class="text-2xl font-semibold text-[#1F3864]">Gestión de Mallas Curriculares</h1>
                 <p class="mt-1 text-sm text-slate-500">Administración y seguimiento de los programas académicos.</p>
             </div>
-            <Link href="/mallas/crear"
-                  class="inline-flex items-center gap-2 rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2E75B6]">
-                <span class="text-base leading-none">+</span> Nueva malla curricular
-            </Link>
+            <div>
+                <Link href="/mallas/crear"
+                      class="inline-flex items-center gap-1.5 rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2E75B6]">
+                    <span class="text-base leading-none">+</span> Nueva malla
+                </Link>
+            </div>
         </div>
 
         <!-- Filtros + tarjeta de resumen -->

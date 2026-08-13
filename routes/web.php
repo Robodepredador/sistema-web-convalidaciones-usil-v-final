@@ -71,8 +71,7 @@ Route::middleware('auth')->group(function () {
         Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
         Route::post('configuracion/probar', [ConfiguracionController::class, 'probar'])->name('configuracion.probar');
-        Route::post('configuracion/no-convalidables', [ConfiguracionController::class, 'agregarNoConvalidable'])->name('configuracion.no-convalidables.store');
-        Route::patch('configuracion/no-convalidables/{noConvalidable}', [ConfiguracionController::class, 'actualizarNoConvalidable'])->name('configuracion.no-convalidables.update');
+
     });
 
     Route::middleware('permission:estructura.gestionar')->group(function () {
@@ -136,9 +135,7 @@ Route::middleware('auth')->group(function () {
             // Materias de ORIGEN que esta carrera no convalida. Van aquí y no en
             // Configuración porque son de la carrera: el alcance por rol de
             // MallaController es el que decide quién puede tocarlas.
-            Route::post('mallas/{malla}/no-convalidables', [MallaController::class, 'agregarNoConvalidable'])->name('mallas.no-convalidables.store');
-            Route::patch('mallas/{malla}/no-convalidables/{noConvalidable}', [MallaController::class, 'actualizarNoConvalidable'])->name('mallas.no-convalidables.update');
-            Route::delete('mallas/{malla}/no-convalidables/{noConvalidable}', [MallaController::class, 'eliminarNoConvalidable'])->name('mallas.no-convalidables.destroy');
+
 
             // RF-08..12 / RF-37: importar y exportar cursos de la malla
             Route::get('mallas/{malla}/exportar', [MallaController::class, 'exportarCursos'])->name('mallas.exportar');
@@ -241,6 +238,7 @@ Route::middleware('auth')->group(function () {
             Route::get('documentos/{documento}/ver', [SimulacionController::class, 'verDocumento'])->name('documentos.ver')->whereNumber('documento');
             Route::get('simulaciones/{simulacion}/pdf', [SimulacionController::class, 'generarPdf'])->name('simulaciones.pdf');
             Route::get('simulaciones/{simulacion}/excel', [SimulacionController::class, 'exportarExcel'])->name('simulaciones.excel');
+            Route::get('simulaciones/{simulacion}/excel-oficial', [SimulacionController::class, 'exportarExcelOficial'])->name('simulaciones.excel-oficial');
         }); // fin evaluacion.ver (simulaciones)
 
         // Mapeo de mallas: el criterio del coordinador, declarado antes de que existan
@@ -252,6 +250,7 @@ Route::middleware('auth')->group(function () {
             Route::get('mapeo-mallas/crear', [MapeoMallasController::class, 'crear'])->name('mapeo-mallas.crear');
             Route::get('mapeo-mallas/cursos', [MapeoMallasController::class, 'cursos'])->name('mapeo-mallas.cursos');
             Route::post('mapeo-mallas', [MapeoMallasController::class, 'store'])->name('mapeo-mallas.store');
+            Route::post('mapeo-mallas/no-convalidable', [MapeoMallasController::class, 'marcarNoConvalidable'])->name('mapeo-mallas.no-convalidable');
             Route::delete('mapeo-mallas/{equivalenciaMalla}', [MapeoMallasController::class, 'destroy'])
                 ->name('mapeo-mallas.destroy')->whereNumber('equivalenciaMalla');
         });
@@ -268,6 +267,8 @@ Route::middleware('auth')->group(function () {
             Route::put('simulaciones/{simulacion}', [SimulacionController::class, 'update'])->name('simulaciones.update');
             Route::delete('simulaciones/{simulacion}', [SimulacionController::class, 'destroy'])->name('simulaciones.destroy');
             Route::patch('simulaciones/{simulacion}/detalle/{detalle}', [SimulacionController::class, 'toggleDetalle'])->name('simulaciones.detalle.toggle');
+            Route::patch('simulaciones/{simulacion}/guardar-borrador', [SimulacionController::class, 'guardarBorrador'])->name('simulaciones.guardar-borrador');
+            Route::patch('simulaciones/{simulacion}/validar', [SimulacionController::class, 'validar'])->name('simulaciones.validar');
         }); // fin evaluacion.editar (simulaciones)
 
         // CU-06 / RF-46: Convalidación — lectura (permiso convalidacion.ver)
@@ -276,6 +277,7 @@ Route::middleware('auth')->group(function () {
             // Descarga de la preconvalidación (outputs de la simulación) desde el módulo Convalidaciones.
             Route::get('convalidaciones/preconvalidacion/{simulacion}/pdf', [SimulacionController::class, 'generarPdf'])->name('convalidaciones.preconvalidacion.pdf')->whereNumber('simulacion');
             Route::get('convalidaciones/preconvalidacion/{simulacion}/excel', [SimulacionController::class, 'exportarExcel'])->name('convalidaciones.preconvalidacion.excel')->whereNumber('simulacion');
+            Route::get('convalidaciones/preconvalidacion/{simulacion}/excel-oficial', [SimulacionController::class, 'exportarExcelOficial'])->name('convalidaciones.preconvalidacion.excel-oficial')->whereNumber('simulacion');
         }); // fin convalidacion.ver
 
         // CU-11 / CU-12 / RF-43..45: el asistente de sugerencias por curso está

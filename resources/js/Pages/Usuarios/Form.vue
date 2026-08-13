@@ -74,7 +74,7 @@ const enviar = () => {
             <!-- Alcance por facultad (Decano) -->
             <div v-else-if="alcanceRol === 'facultad'">
                 <label class="mb-1 block text-sm font-medium text-slate-700">Facultades a cargo</label>
-                <p class="mb-2 text-xs text-slate-500">El decano verá todas las carreras de estas facultades.</p>
+                <p class="mb-2 text-xs text-slate-500">El usuario gestionará todas las carreras de estas facultades.</p>
                 <div class="grid max-h-48 grid-cols-1 gap-1 overflow-y-auto rounded-md border border-slate-200 p-3 sm:grid-cols-2">
                     <label v-for="f in facultades" :key="f.id" class="flex items-center gap-2 text-sm text-slate-700">
                         <input type="checkbox" :value="f.id" v-model="form.facultades"
