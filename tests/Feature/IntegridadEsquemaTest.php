@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
+use App\Models\CursoNoConvalidable;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
+use App\Models\MallaExterna;
 use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\Simulacion;
@@ -134,6 +136,36 @@ class IntegridadEsquemaTest extends TestCase
         Postulante::create($base + ['codigo' => 'P-0004', 'numero_documento' => '10000004']);
 
         $this->assertSame(2, Postulante::whereNull('email')->count());
+    }
+
+    /** Sin version NOT NULL, el índice único de mallas externas admitía duplicados
+     *  exactos: dos NULL nunca chocan entre sí. */
+    public function test_no_se_repite_una_malla_externa_de_la_misma_carrera_y_anio(): void
+    {
+        $carrera = CarreraExterna::create([
+            'institucion_id' => InstitucionExterna::create([
+                'tipo_id' => TipoInstitucion::create(['nombre' => 'Universidad'])->id,
+                'nombre' => 'Instituto de Prueba',
+            ])->id,
+            'nombre' => 'Ingeniería de Prueba',
+        ]);
+
+        MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
+
+        $this->expectException(QueryException::class);
+        MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
+    }
+
+    /** Y la misma regla institucional no puede cargarse dos veces.
+     *  Clave fuera de las que siembra 2026_08_05_000004: 'fisica' ya viene
+     *  cargada de fábrica y haría chocar la primera inserción, no la segunda. */
+    public function test_no_se_repite_una_regla_institucional_no_convalidable(): void
+    {
+        $regla = ['carrera_id' => null, 'palabra_clave' => 'Zoología', 'clave_normalizada' => 'zoologia', 'motivo' => 'Ciencia básica'];
+        CursoNoConvalidable::create($regla);
+
+        $this->expectException(QueryException::class);
+        CursoNoConvalidable::create($regla);
     }
 
     /**

@@ -54,10 +54,13 @@ class NoConvalidablesPorCarreraTest extends TestCase
         $coord = $this->usuario(Role::COORDINADOR, 'coord');
         $coord->carrerasPermitidas()->attach($ing->id);
 
-        // Política institucional de partida: Física no se convalida en ninguna parte.
+        // Política institucional de partida: Geología no se convalida en ninguna
+        // parte. No se usa 'fisica': la migración de datos que trae la política al
+        // código ya siembra esa clave como institucional de fábrica en toda base
+        // fresca, y reutilizarla chocaría con uq_no_convalidable_clave_carrera.
         CursoNoConvalidable::create([
-            'carrera_id' => null, 'palabra_clave' => 'Física',
-            'clave_normalizada' => 'fisica', 'motivo' => 'Ciencia básica', 'activo' => true,
+            'carrera_id' => null, 'palabra_clave' => 'Geología',
+            'clave_normalizada' => 'geologia', 'motivo' => 'Ciencia básica', 'activo' => true,
         ]);
         CursoNoConvalidable::limpiarCache();
 
@@ -80,8 +83,8 @@ class NoConvalidablesPorCarreraTest extends TestCase
 
     public function test_la_regla_institucional_rige_en_todas_las_carreras(): void
     {
-        $this->assertTrue($this->engine()->esNoConvalidable('Física General', $this->ctx['ing']->id));
-        $this->assertTrue($this->engine()->esNoConvalidable('Física General', $this->ctx['adm']->id));
+        $this->assertTrue($this->engine()->esNoConvalidable('Geología General', $this->ctx['ing']->id));
+        $this->assertTrue($this->engine()->esNoConvalidable('Geología General', $this->ctx['adm']->id));
     }
 
     public function test_el_coordinador_agrega_una_regla_solo_para_su_carrera(): void
@@ -102,38 +105,38 @@ class NoConvalidablesPorCarreraTest extends TestCase
     {
         $this->actingAs($this->ctx['coord'])
             ->post("/mallas/{$this->ctx['mallaIng']->id}/no-convalidables",
-                ['palabra_clave' => 'Física', 'motivo' => 'Excepción de Ing. Civil', 'activo' => false])
+                ['palabra_clave' => 'Geología', 'motivo' => 'Excepción de Ing. Civil', 'activo' => false])
             ->assertRedirect();
 
         CursoNoConvalidable::limpiarCache();
-        $this->assertFalse($this->engine()->esNoConvalidable('Física I', $this->ctx['ing']->id));
-        $this->assertTrue($this->engine()->esNoConvalidable('Física I', $this->ctx['adm']->id),
+        $this->assertFalse($this->engine()->esNoConvalidable('Geología I', $this->ctx['ing']->id));
+        $this->assertTrue($this->engine()->esNoConvalidable('Geología I', $this->ctx['adm']->id),
             'Levantar la regla en una carrera la levantó en todas.');
     }
 
     /**
      * Cada regla institucional se levanta por separado.
      *
-     * «Física» y «Física General» son dos reglas distintas de la política: dejar
-     * sin efecto una no toca a la otra. Por eso la pantalla de la malla lista
-     * las institucionales una a una, cada cual con su acción.
+     * «Geología» y «Geología General» son dos reglas distintas de la política:
+     * dejar sin efecto una no toca a la otra. Por eso la pantalla de la malla
+     * lista las institucionales una a una, cada cual con su acción.
      */
     public function test_levantar_una_regla_no_arrastra_a_las_de_nombre_parecido(): void
     {
         CursoNoConvalidable::create([
-            'carrera_id' => null, 'palabra_clave' => 'Física General',
-            'clave_normalizada' => 'fisica general', 'motivo' => 'Ciencia básica', 'activo' => true,
+            'carrera_id' => null, 'palabra_clave' => 'Geología General',
+            'clave_normalizada' => 'geologia general', 'motivo' => 'Ciencia básica', 'activo' => true,
         ]);
 
         $this->actingAs($this->ctx['coord'])
             ->post("/mallas/{$this->ctx['mallaIng']->id}/no-convalidables",
-                ['palabra_clave' => 'Física', 'activo' => false])
+                ['palabra_clave' => 'Geología', 'activo' => false])
             ->assertRedirect();
 
         CursoNoConvalidable::limpiarCache();
-        $this->assertFalse($this->engine()->esNoConvalidable('Física I', $this->ctx['ing']->id));
-        $this->assertTrue($this->engine()->esNoConvalidable('Física General', $this->ctx['ing']->id),
-            'Levantar «Física» no debe levantar «Física General»: son dos reglas.');
+        $this->assertFalse($this->engine()->esNoConvalidable('Geología I', $this->ctx['ing']->id));
+        $this->assertTrue($this->engine()->esNoConvalidable('Geología General', $this->ctx['ing']->id),
+            'Levantar «Geología» no debe levantar «Geología General»: son dos reglas.');
     }
 
     public function test_el_coordinador_no_toca_la_malla_de_otra_carrera(): void
@@ -174,10 +177,10 @@ class NoConvalidablesPorCarreraTest extends TestCase
     public function test_quitar_la_regla_propia_restituye_la_institucional(): void
     {
         $this->actingAs($this->ctx['coord'])->post("/mallas/{$this->ctx['mallaIng']->id}/no-convalidables",
-            ['palabra_clave' => 'Física', 'activo' => false])->assertRedirect();
+            ['palabra_clave' => 'Geología', 'activo' => false])->assertRedirect();
 
         CursoNoConvalidable::limpiarCache();
-        $this->assertFalse($this->engine()->esNoConvalidable('Física I', $this->ctx['ing']->id));
+        $this->assertFalse($this->engine()->esNoConvalidable('Geología I', $this->ctx['ing']->id));
 
         $propia = CursoNoConvalidable::where('carrera_id', $this->ctx['ing']->id)->firstOrFail();
         $this->actingAs($this->ctx['coord'])
@@ -185,14 +188,14 @@ class NoConvalidablesPorCarreraTest extends TestCase
             ->assertRedirect();
 
         CursoNoConvalidable::limpiarCache();
-        $this->assertTrue($this->engine()->esNoConvalidable('Física I', $this->ctx['ing']->id));
+        $this->assertTrue($this->engine()->esNoConvalidable('Geología I', $this->ctx['ing']->id));
     }
 
     /** El motivo de la regla viaja al expediente, para que el documento lo explique. */
     public function test_el_motivo_de_la_regla_llega_al_expediente(): void
     {
         $this->assertSame('Ciencia básica',
-            $this->engine()->motivoNoConvalidable('Física General', $this->ctx['ing']->id));
+            $this->engine()->motivoNoConvalidable('Geología General', $this->ctx['ing']->id));
         $this->assertFalse($this->engine()->motivoNoConvalidable('Cálculo I', $this->ctx['ing']->id));
     }
 
