@@ -28,4 +28,22 @@ class IntegridadEsquemaTest extends TestCase
             );
         }
     }
+
+    /**
+     * Un postulante con documento temporal debe poder tener simulación sin que
+     * su tipo de documento mute por el camino. Antes el ENUM de simulaciones no
+     * conocía 'TEMP' y el valor terminaba guardado como 'DNI'.
+     */
+    public function test_simulaciones_acepta_todos_los_tipos_de_documento_del_postulante(): void
+    {
+        $tipos = \Illuminate\Support\Facades\DB::selectOne(
+            "SELECT COLUMN_TYPE t FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'simulaciones' AND COLUMN_NAME = 'tipo_documento'"
+        )->t;
+
+        foreach (['DNI', 'CE', 'PASAPORTE', 'PTP', 'TEMP'] as $tipo) {
+            $this->assertStringContainsString("'{$tipo}'", $tipos,
+                "simulaciones.tipo_documento no admite '{$tipo}', que postulantes sí acepta.");
+        }
+    }
 }
