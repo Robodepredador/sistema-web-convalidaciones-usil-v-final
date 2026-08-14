@@ -93,7 +93,7 @@ const agregarOpcion = async (cursoUsilId) => {
         equivalencias.value.push({
             curso_usil_id: cursoUsilId,
             curso_externo_id: nuevoExterno.id,
-            cursoExterno: nuevoExterno
+            curso_externo: nuevoExterno
         });
         
         if (!cursosExternosDisponibles.value.some(c => c.id === nuevoExterno.id)) {
@@ -108,7 +108,7 @@ const agregarOpcion = async (cursoUsilId) => {
 };
 
 const quitarOpcion = async (eq) => {
-    if (!confirm(`¿Quitar la equivalencia de "${eq.cursoExterno.nombre}"?`)) return;
+    if (!confirm(`¿Quitar la equivalencia de "${eq.curso_externo.nombre}"?`)) return;
     try {
         await axios.delete(`/equivalencias-catalogo/${eq.curso_usil_id}/${eq.curso_externo_id}`);
         equivalencias.value = equivalencias.value.filter(e => !(e.curso_usil_id === eq.curso_usil_id && e.curso_externo_id === eq.curso_externo_id));
@@ -273,8 +273,8 @@ aplicarPreseleccion();
                                     <div v-for="eq in getEquivalenciasDeCurso(c.id)" :key="eq.curso_externo_id" 
                                          class="flex items-center justify-between rounded bg-emerald-50 border border-emerald-100 px-3 py-2">
                                         <div>
-                                            <p class="text-sm font-medium text-emerald-900">{{ eq.cursoExterno.nombre }}</p>
-                                            <p class="text-xs text-emerald-700" v-if="eq.cursoExterno.creditos">{{ eq.cursoExterno.creditos }} cr.</p>
+                                            <p class="text-sm font-medium text-emerald-900">{{ eq.curso_externo.nombre }}</p>
+                                            <p class="text-xs text-emerald-700" v-if="eq.curso_externo.creditos">{{ eq.curso_externo.creditos }} cr.</p>
                                         </div>
                                         <button @click="quitarOpcion(eq)" class="text-emerald-600 hover:text-red-600 ml-3" title="Quitar opción">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
