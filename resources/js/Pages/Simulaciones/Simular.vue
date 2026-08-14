@@ -5,7 +5,7 @@ import VolverA from '../../Components/VolverA.vue';
 
 const props = defineProps({
     postulante: Object,
-    poolUsil: Array,
+    cursosMalla: Array,
     documentos: Array,
     tieneMalla: Boolean,
     edicion: { type: Object, default: null },
@@ -25,7 +25,7 @@ watch(mensaje, (m) => {
 
 // seleccion holds the mapping: curso_usil_id -> curso_externo_id
 const seleccion = reactive({});
-props.poolUsil.forEach(c => {
+props.cursosMalla.forEach(c => {
     seleccion[c.id] = null;
 });
 
@@ -39,7 +39,7 @@ if (props.edicion?.filas?.length) {
 
 const gruposUsil = computed(() => {
     const porCiclo = {};
-    for (const c of props.poolUsil) {
+    for (const c of props.cursosMalla) {
         (porCiclo[c.ciclo ?? 0] ??= []).push(c);
     }
     return Object.keys(porCiclo).map(Number).sort((a, b) => a - b)
@@ -47,7 +47,7 @@ const gruposUsil = computed(() => {
 });
 
 const convalidados = computed(() => {
-    return props.poolUsil.filter(c => seleccion[c.id]);
+    return props.cursosMalla.filter(c => seleccion[c.id]);
 });
 
 const creditosValidados = computed(() => {
@@ -57,7 +57,7 @@ const creditosValidados = computed(() => {
 const guardar = () => {
     if (!props.tieneMalla) return;
     
-    const filas = props.poolUsil.map(c => {
+    const filas = props.cursosMalla.map(c => {
         const extId = seleccion[c.id];
         const externo = extId ? c.opciones?.find(o => o.id === extId) : null;
         
@@ -160,13 +160,13 @@ const eliminarSimulacion = (s) => {
         <div v-else-if="!tieneMalla" class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             La carrera destino no tiene un plan de estudios (malla) cargado. Carga la malla para poder mapear cursos.
         </div>
-        <div v-else-if="!poolUsil.length" class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div v-else-if="!cursosMalla.length" class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             El plan de estudios de <strong>{{ postulante.carrera_destino }}</strong> no tiene cursos cargados, por lo que no hay a qué convalidar. Carga los cursos de la malla en <strong>Estructura → Mallas</strong>.
         </div>
 
-        <template v-if="tieneMalla && poolUsil.length">
+        <template v-if="tieneMalla && cursosMalla.length">
             <div class="mb-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
-                <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-2xl font-bold text-[#1F3864]">{{ poolUsil.length }}</p><p class="text-xs text-slate-500">Cursos USIL</p></div>
+                <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-2xl font-bold text-[#1F3864]">{{ cursosMalla.length }}</p><p class="text-xs text-slate-500">Cursos USIL</p></div>
                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-2xl font-bold text-emerald-600">{{ convalidados.length }}</p><p class="text-xs text-slate-500">Cursos Convalidados</p></div>
                 <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-2xl font-bold text-[#2E75B6]">{{ creditosValidados }}</p><p class="text-xs text-slate-500">Créditos Reconocidos</p></div>
             </div>
