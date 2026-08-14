@@ -209,10 +209,15 @@ return new class extends Migration
      */
     private function resumirConflictos(array $grupos, callable $describir): string
     {
-        $muestra = collect($grupos)->take(20)->map($describir)->implode(' | ');
-        $restantes = count($grupos) - 20;
+        $tope = 20;
+        $muestra = collect($grupos)->take($tope)->map($describir)->implode(' | ');
+        $restantes = count($grupos) - $tope;
 
-        return $restantes > 0 ? "{$muestra} (y {$restantes} grupos mas)" : $muestra;
+        if ($restantes <= 0) {
+            return $muestra;
+        }
+
+        return $muestra.($restantes === 1 ? ' (y 1 grupo más)' : " (y {$restantes} grupos más)");
     }
 
     /** information_schema.STATISTICS es donde MySQL expone si un índice existe. */
