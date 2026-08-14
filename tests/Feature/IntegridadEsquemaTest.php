@@ -176,6 +176,40 @@ class IntegridadEsquemaTest extends TestCase
         }
     }
 
+    /** El catálogo SUNEDU se recarga periódicamente: sin unicidad, cada recarga
+     *  fallida a medias deja instituciones repetidas que el usuario debe distinguir a ojo. */
+    public function test_no_se_repite_una_institucion_externa(): void
+    {
+        $tipo = TipoInstitucion::create(['nombre' => 'Universidad']);
+        $datos = ['tipo_id' => $tipo->id, 'nombre' => 'Universidad Duplicada de Prueba', 'pais' => 'Perú'];
+        InstitucionExterna::create($datos);
+
+        try {
+            InstitucionExterna::create($datos);
+            $this->fail('Debió lanzar QueryException por violar uq_institucion_nombre_pais.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_institucion_nombre_pais', $e->getMessage());
+        }
+    }
+
+    /** Ni una carrera dentro de la misma institución. */
+    public function test_no_se_repite_una_carrera_externa_en_la_misma_institucion(): void
+    {
+        $institucion = InstitucionExterna::create([
+            'tipo_id' => TipoInstitucion::create(['nombre' => 'Instituto'])->id,
+            'nombre' => 'Instituto Duplicado de Prueba', 'pais' => 'Perú',
+        ]);
+        $datos = ['institucion_id' => $institucion->id, 'nombre' => 'Carrera Duplicada de Prueba'];
+        CarreraExterna::create($datos);
+
+        try {
+            CarreraExterna::create($datos);
+            $this->fail('Debió lanzar QueryException por violar uq_carrera_externa_institucion_nombre.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_carrera_externa_institucion_nombre', $e->getMessage());
+        }
+    }
+
     /**
      * Árbol mínimo de dependencias (carrera externa, carrera y malla USIL,
      * usuario) que exigen las FK NOT NULL de simulaciones. Mismo patrón que
