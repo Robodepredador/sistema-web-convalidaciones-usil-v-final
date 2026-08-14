@@ -126,15 +126,29 @@ class RevisionFlujoTest extends TestCase
         $this->assertSame('en_evaluacion', $p->fresh()->estado);
     }
 
-    public function test_ejecutivo_no_puede_eliminar_ni_resetear(): void
+    /**
+     * Antes de la revisión de la Task A1 el Ejecutivo no tenía 'solicitudes.crear'
+     * y estas dos rutas -gateadas por ese mismo permiso, no por uno propio de
+     * "eliminar" o "resetear"- le quedaban vedadas. El hallazgo 4 de esa revisión
+     * se lo dio (el brief ya lo pedía y se había quedado fuera al implementar),
+     * así que ahora las alcanza: sin alcance por carrera (rol global) y sin la
+     * restricción de propiedad que sí aplica al Asesor, puede operar cualquier
+     * postulante. Si "registrar" y "borrar/resetear" deben separarse en permisos
+     * distintos es una decisión de diseño que queda para la Task A2, junto con
+     * el resto del conjunto exacto de Ejecutivo.
+     */
+    public function test_ejecutivo_elimina_y_resetea_con_solicitudes_crear(): void
     {
         $asesor = $this->usuario(Role::ASESOR);
         $ejecutivo = $this->usuario(Role::EJECUTIVO);
-        $p = $this->postulanteDe($asesor);
 
-        // Estas acciones son de registro (solicitudes.crear); el Ejecutivo no las tiene.
-        $this->actingAs($ejecutivo)->delete("/postulantes/{$p->id}")->assertForbidden();
-        $this->actingAs($ejecutivo)->patch("/postulantes/{$p->id}/reset-acceso")->assertForbidden();
+        $this->actingAs($ejecutivo)
+            ->patch('/postulantes/'.$this->postulanteDe($asesor)->id.'/reset-acceso')
+            ->assertRedirect();
+
+        $this->actingAs($ejecutivo)
+            ->delete('/postulantes/'.$this->postulanteDe($asesor)->id)
+            ->assertRedirect();
     }
 
     public function test_filtro_por_revision(): void

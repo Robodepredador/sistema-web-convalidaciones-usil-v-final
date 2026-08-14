@@ -1,5 +1,4 @@
 FAILED  Tests\Unit\LectorMallaExcelTest > separa ciclos menciones y genera codigos                                   
-FAILED  Tests\Feature\AuditoriaE2ETest > importar malla de una carrera ajena                                         
 FAILED  Tests\Feature\ExportacionPreconvalidacionTest > la hoja preconva lleva los cursos convalidados               
 FAILED  Tests\Feature\NoConvalidablesPorCarreraTest > el coordinador agrega una regla solo para su carrera           
 FAILED  Tests\Feature\NoConvalidablesPorCarreraTest > el coordinador levanta una regla institucional en su carrer…   
@@ -10,4 +9,4 @@ FAILED  Tests\Feature\NoConvalidablesPorCarreraTest > configuracion no edita una
 FAILED  Tests\Feature\NoConvalidablesPorCarreraTest > quitar la regla propia restituye la institucional              
 FAILED  Tests\Feature\NotaMinimaTest > no se puede bajar la nota minima del piso normativo                           
 FAILED  Tests\Feature\SimulacionTest > genera detalle automatico                                                     
-Tests:    12 failed, 186 passed (713 assertions)
+Tests:    11 failed, 188 passed (718 assertions)

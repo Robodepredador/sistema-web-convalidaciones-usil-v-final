@@ -47,6 +47,10 @@ class Permiso extends Model
         'mallas_externas.gestionar' => ['Catálogos', 'Registrar mallas oficiales de instituciones externas'],
         // Catálogo de equivalencias: qué curso externo vale por qué curso USIL,
         // registrado una vez por el Especialista, sin importar el expediente.
+        // Reservado para la pantalla del especialista (Task B3): todavía sin
+        // consumidor, a propósito -a diferencia de 'auditoria.ver' más abajo,
+        // que se retiró por lo mismo, este permiso llega antes que su pantalla,
+        // no después de perderla-.
         'equivalencias.gestionar' => ['Equivalencias', 'Registrar el catálogo de equivalencias por curso'],
         // Administración
         'usuarios.gestionar' => ['Administración', 'Gestionar usuarios, roles y alcance'],
@@ -79,9 +83,12 @@ class Permiso extends Model
         ],
         // Ejecutivo Comercial de Admisión: revisa, aprueba u observa el expediente
         // de Admisión; puede corregir datos. Ajeno a la cadena de aprobación
-        // académica que esta tarea retira.
+        // académica que esta tarea retira. Conserva 'solicitudes.validar' pese a
+        // que el brief la retiraba: gatea POST /postulantes/{id}/revisar, una
+        // ruta viva, y esa decisión queda para la Task A2 junto con el resto del
+        // flujo de revisión de Admisión.
         Role::EJECUTIVO => [
-            'dashboard.ver', 'solicitudes.ver', 'solicitudes.editar', 'solicitudes.validar',
+            'dashboard.ver', 'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar', 'solicitudes.validar',
         ],
     ];
 }

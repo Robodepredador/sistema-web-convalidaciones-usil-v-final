@@ -136,7 +136,6 @@ Route::middleware('auth')->group(function () {
             // Configuración porque son de la carrera: el alcance por rol de
             // MallaController es el que decide quién puede tocarlas.
 
-
             // RF-08..12 / RF-37: importar y exportar cursos de la malla
             Route::get('mallas/{malla}/exportar', [MallaController::class, 'exportarCursos'])->name('mallas.exportar');
             Route::post('mallas/{malla}/importar-cursos', [MallaController::class, 'importarCursos'])->name('mallas.cursos.importar');
@@ -255,8 +254,8 @@ Route::middleware('auth')->group(function () {
                 ->name('mapeo-mallas.destroy')->whereNumber('equivalenciaMalla');
         });
 
-        // CU-04 / CU-05: Simulación — creación y edición (permisos evaluacion.editar / evaluacion.proponer)
-        Route::middleware('permission:evaluacion.editar,evaluacion.proponer')->group(function () {
+        // CU-04 / CU-05: Simulación — creación y edición (permiso evaluacion.editar)
+        Route::middleware('permission:evaluacion.editar')->group(function () {
             Route::get('simulaciones/simular/{postulante}', [SimulacionController::class, 'crear'])->name('simulaciones.crear');
             // Endpoints AJAX del motor de convalidación
             Route::post('simulaciones/sugerir-similitud', [SimulacionController::class, 'sugerirSimilitud'])->name('simulaciones.sugerir-similitud');

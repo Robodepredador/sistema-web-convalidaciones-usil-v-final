@@ -70,12 +70,19 @@ class AuditoriaE2ETest extends TestCase
         $coord = $this->usuario(Role::ADMINISTRATIVO, 'coord');
         $coord->carrerasPermitidas()->attach($carrIng->id);
 
+        // Especialista con el mismo alcance SOLO a Ingeniería: es quien tiene
+        // 'catalogos.gestionar' desde la Task A1, así que las sondas de alcance
+        // sobre mallas/catálogos necesitan este actor y no el administrativo.
+        $especialista = $this->usuario(Role::ESPECIALISTA, 'especialista');
+        $especialista->carrerasPermitidas()->attach($carrIng->id);
+
         $this->c += [
             'admin' => $admin,
             'asesorA' => $this->usuario(Role::ASESOR, 'asesora'),
             'asesorB' => $this->usuario(Role::ASESOR, 'asesorb'),
             'ejecutivo' => $this->usuario(Role::EJECUTIVO, 'ejecutivo'),
             'coord' => $coord,
+            'especialista' => $especialista,
             'facIng' => $facIng, 'facNeg' => $facNeg,
             'carrIng' => $carrIng, 'carrNeg' => $carrNeg,
             'inst' => $inst, 'carExt' => $carExt,
@@ -346,8 +353,13 @@ class AuditoriaE2ETest extends TestCase
     /**
      * La carga masiva de mallas no comprobaba el alcance en ninguno de sus
      * métodos: `carrera_id` viaja en el cuerpo de la petición, y como registrar
-     * una malla activa desactiva las demás de esa carrera, un coordinador podía
+     * una malla activa desactiva las demás de esa carrera, un usuario podía
      * tumbar el plan de estudios vigente de una carrera ajena.
+     *
+     * Actor: Especialista, no Administrativo. Desde la Task A1 es quien tiene
+     * 'catalogos.gestionar' -el permiso que gatea esta ruta-; con el rol
+     * equivocado las dos peticiones dan 403 por falta de permiso antes de
+     * llegar al control de alcance, y la sonda deja de medir lo que dice medir.
      */
     public function test_importar_malla_de_una_carrera_ajena(): void
     {
@@ -360,7 +372,7 @@ class AuditoriaE2ETest extends TestCase
             ]],
         ];
 
-        $this->actingAs($this->c['coord'])
+        $this->actingAs($this->c['especialista'])
             ->postJson('/mallas/importar/guardar', $cuerpo($this->c['carrNeg']))
             ->assertForbidden('FUGA: se registró una malla en una carrera fuera del alcance.');
 
@@ -368,7 +380,7 @@ class AuditoriaE2ETest extends TestCase
             ->where('anio', 2027)->count());
 
         // Control positivo: en su carrera sí puede.
-        $this->actingAs($this->c['coord'])
+        $this->actingAs($this->c['especialista'])
             ->post('/mallas/importar/guardar', $cuerpo($this->c['carrIng']))
             ->assertRedirect();
         $this->assertSame(1, MallaCurricular::where('carrera_id', $this->c['carrIng']->id)
@@ -431,6 +443,46 @@ class AuditoriaE2ETest extends TestCase
 
         $this->actingAs($this->c['asesorA'])->get("/postulantes/{$ajeno->id}/preconvalidacion/{$sim->id}/pdf")
             ->assertForbidden('FUGA: el asesor A descargó el PDF de un postulante ajeno.');
+    }
+
+    // ==================================================================
+    // D. SONDA: EL BUSCADOR ROMPE EL FILTRO DE ALCANCE (OR sin agrupar)
+    // ==================================================================
+
+    /**
+     * El buscador del historial no puede saltarse el filtro de alcance.
+     *
+     * La sonda original buscaba por número de memorándum y el actor era el
+     * Decano (alcance por facultad); ese rol salió con la Task A1, así que el
+     * actor pasa a ser el Administrativo (alcance por carrera, RF-40) sobre la
+     * misma pantalla. Retirado el módulo de Convalidación, la pantalla lista
+     * preconvalidaciones y se busca por apellido o documento — pero el riesgo
+     * es el mismo: un `OR` sin agrupar dentro del `when($q)` anularía el
+     * `whereIn` del alcance.
+     */
+    public function test_buscador_del_historial_evade_el_alcance(): void
+    {
+        $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '40000001'),
+            $this->c['carrNeg'], 'ADM');
+
+        // Sin buscador el administrativo de Ingeniería no ve la de Negocios (correcto).
+        $sin = $this->actingAs($this->c['coord'])->get('/convalidaciones');
+        $this->assertCount(0, $sin->viewData('page')['props']['simulaciones']['data']);
+
+        // Con el buscador por apellido y por documento, tampoco debe verla.
+        foreach (['Pérez', '40000001'] as $termino) {
+            $con = $this->actingAs($this->c['coord'])->get('/convalidaciones?q='.urlencode($termino));
+            $this->assertCount(0, $con->viewData('page')['props']['simulaciones']['data'],
+                "FUGA: buscar «{$termino}» saltó el filtro de alcance por carrera.");
+        }
+
+        // Control positivo: el buscador sigue encontrando lo que SÍ le corresponde.
+        $this->simulacion($this->postulante($this->c['asesorA'], $this->c['carrIng'], '40000009'),
+            $this->c['carrIng'], 'ISW');
+
+        $ok = $this->actingAs($this->c['coord'])->get('/convalidaciones?q=40000009');
+        $this->assertCount(1, $ok->viewData('page')['props']['simulaciones']['data'],
+            'El buscador no debe quedar inutilizado: la de su carrera sí debe encontrarse.');
     }
 
     // ==================================================================
