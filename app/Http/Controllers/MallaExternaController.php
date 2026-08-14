@@ -6,6 +6,7 @@ use App\Exports\MallaExternaPlantillaExport;
 use App\Imports\MallaCursosImport;
 use App\Models\CursoExterno;
 use App\Models\MallaExterna;
+use App\Services\ConvalidacionEngine;
 use App\Services\IAConvalidacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -144,15 +145,38 @@ class MallaExternaController extends Controller
                 'pdf_path' => $path,
             ]);
 
+            $engine = new ConvalidacionEngine;
+            $nombresInsertar = [];
+
+            // Traer los ya existentes
+            $nombresExtraidos = [];
+            foreach ($cursosExtraidos as $c) {
+                if (! empty($c['nombre'])) {
+                    $nombresExtraidos[] = $engine->normaliza($c['nombre']);
+                }
+            }
+            $existentes = CursoExterno::where('carrera_externa_id', $request->carrera_externa_id)
+                ->whereIn('nombre_normalizado', $nombresExtraidos)
+                ->pluck('id', 'nombre_normalizado')
+                ->all();
+
             $cursosNuevos = [];
             foreach ($cursosExtraidos as $c) {
                 if (! empty($c['nombre'])) {
+                    $normalizado = $engine->normaliza($c['nombre']);
+                    if (isset($existentes[$normalizado]) || isset($nombresInsertar[$normalizado])) {
+                        // Si ya existe en la base o en este mismo lote, se reutiliza (no se duplica)
+                        continue;
+                    }
+                    $nombresInsertar[$normalizado] = true;
                     $cursosNuevos[] = [
+                        'carrera_externa_id' => $request->carrera_externa_id,
                         'malla_externa_id' => $malla->id,
                         // mb_* como en previsualizarExcel(): substr() parte por
                         // bytes y dejaba UTF-8 roto en un nombre con tildes.
                         'codigo' => mb_substr($c['codigo'] ?? '', 0, 30),
                         'nombre' => mb_substr($c['nombre'], 0, 200),
+                        'nombre_normalizado' => $normalizado,
                         'creditos' => is_numeric($c['creditos'] ?? null) ? $c['creditos'] : null,
                         'created_at' => now(),
                         'updated_at' => now(),

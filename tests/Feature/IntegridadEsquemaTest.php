@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
+use App\Models\CursoExterno;
 use App\Models\CursoNoConvalidable;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
@@ -311,6 +312,32 @@ class IntegridadEsquemaTest extends TestCase
         ]);
 
         $this->assertSame('educacion musical', $regla->fresh()->clave_normalizada);
+    }
+
+    /**
+     * El mismo curso externo vale igual venga de la malla 2019 o de la 2023:
+     * la versión es procedencia, no identidad. Registrarlo dos veces obligaría
+     * al especialista a repetir la evaluación de sílabos por cada versión.
+     */
+    public function test_un_curso_externo_no_se_repite_en_la_misma_carrera(): void
+    {
+        $carrera = CarreraExterna::create([
+            'institucion_id' => InstitucionExterna::create([
+                'tipo_id' => TipoInstitucion::create(['nombre' => 'Instituto'])->id,
+                'nombre' => 'Instituto de Prueba', 'pais' => 'Perú',
+            ])->id,
+            'nombre' => 'Desarrollo de Prueba',
+        ]);
+
+        CursoExterno::create(['carrera_externa_id' => $carrera->id, 'nombre' => 'Algoritmia Básica']);
+
+        try {
+            // Mismo curso escrito distinto: acentos y mayúsculas no lo hacen otro.
+            CursoExterno::create(['carrera_externa_id' => $carrera->id, 'nombre' => 'ALGORITMIA BASICA']);
+            $this->fail('Debió rechazar el curso externo repetido en la misma carrera.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_curso_externo_carrera_nombre', $e->getMessage());
+        }
     }
 
     /**

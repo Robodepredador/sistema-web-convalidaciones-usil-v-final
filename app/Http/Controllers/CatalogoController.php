@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CarreraExterna;
 use App\Models\CursoExterno;
 use App\Services\AuditoriaService;
+use App\Services\ConvalidacionEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,13 +54,14 @@ class CatalogoController extends Controller
             'creditos' => ['nullable', 'numeric', 'min:0', 'max:99'],
         ]);
 
-        // Los cursos ahora cuelgan de la malla externa; se agregan a la malla activa de la carrera.
-        $malla = $carreraExterna->mallas()->where('activa', true)->latest()->first();
-        abort_if(! $malla, 422, 'La carrera de origen no tiene una malla oficial activa. Registra su malla en Equivalencias.');
-
-        $curso = $malla->cursos()->firstOrCreate(
-            ['nombre' => trim($datos['nombre'])],
-            ['codigo' => $datos['codigo'] ?? null, 'creditos' => $datos['creditos'] ?? null]
+        $normalizado = (new ConvalidacionEngine)->normaliza($datos['nombre']);
+        $curso = $carreraExterna->cursos()->firstOrCreate(
+            ['nombre_normalizado' => $normalizado],
+            [
+                'nombre' => trim($datos['nombre']),
+                'codigo' => $datos['codigo'] ?? null,
+                'creditos' => $datos['creditos'] ?? null,
+            ]
         );
 
         AuditoriaService::registrar('crear', 'cursos_externos', $curso->id, null, $datos);
