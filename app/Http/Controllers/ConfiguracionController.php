@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracion;
-use App\Models\CursoNoConvalidable;
 use App\Services\AuditoriaService;
-use App\Services\ConvalidacionEngine;
 use App\Services\IAConvalidacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,8 +40,6 @@ class ConfiguracionController extends Controller
             ],
         ]);
     }
-
-
 
     public function update(Request $request): RedirectResponse
     {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Carrera;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
+use App\Models\Equivalencia;
 use App\Models\MallaCurricular;
 use App\Models\Postulante;
 use App\Models\PostulanteDestino;
@@ -154,7 +155,7 @@ class SimulacionController extends Controller
 
         // Las opciones pre-autorizadas por el especialista.
         $equivalencias = $carreraDestinoId && $postulante->carrera_externa_id
-            ? \App\Models\Equivalencia::with('cursoExterno:id,nombre,creditos')
+            ? Equivalencia::with('cursoExterno:id,nombre,creditos')
                 ->where('carrera_externa_id', $postulante->carrera_externa_id)
                 ->whereHas('cursoUsil.ciclo.malla', fn ($q) => $q->where('carrera_id', $carreraDestinoId))
                 ->get()
@@ -240,8 +241,7 @@ class SimulacionController extends Controller
         AlcanceService::autorizarCarrera($request->user(), $carreraId);
 
         $pool = $this->engine->poolCursosUsil($carreraId);
-        // Con la carrera destino se aplican también sus reglas propias de no convalidables.
-        $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool, 0.55, $carreraId);
+        $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool);
 
         return response()->json(['mapa' => $mapa]);
     }
@@ -322,8 +322,6 @@ class SimulacionController extends Controller
             // De quién es el récord que se sube al vuelo: sin saberlo no se puede
             // comprobar su consentimiento de tratamiento de datos.
             'postulante_id' => ['nullable', 'integer', 'exists:postulantes,id'],
-            // Carrera destino: decide qué reglas de no convalidables aplican.
-            'carrera_usil_id' => ['nullable', 'integer', 'exists:carreras,id'],
         ]);
 
         // La extracción con IA de un PDF puede tardar más que el límite por defecto.
@@ -409,28 +407,15 @@ class SimulacionController extends Controller
             'ciclo' => $c['ciclo'] ?? '',
         ];
 
-        // Separa por clasificación (no convalidables entre los aprobados). Cada
-        // descarte viaja con el motivo de la regla que lo produjo: así el Excel
-        // dice por qué, en vez de un «No convalidable» a secas.
-        $carreraDestinoId = $request->integer('carrera_usil_id') ?: null;
-        $aprobados = [];
-        $noConv = [];
-        foreach ($extraccion['aprobados'] as $c) {
-            $fila = $normalizar($c);
-            $motivo = $this->engine->motivoNoConvalidable($fila['nombre'], $carreraDestinoId);
-            if ($motivo !== false) {
-                $noConv[] = $fila + ['motivo' => $motivo ?: 'Política de convalidación'];
-            } else {
-                $aprobados[] = $fila;
-            }
-        }
+        // Todo curso aprobado llega al especialista para que decida el mapeo: ya
+        // no hay una política aparte que lo descarte de antemano por su nombre.
+        $aprobados = array_map($normalizar, $extraccion['aprobados']);
         $desaprobados = array_map($normalizar, $extraccion['desaprobados']);
 
         return response()->json([
             'estudiante' => $extraccion['estudiante'],
             'institucion' => $extraccion['institucion'],
             'aprobados' => $aprobados,
-            'no_convalidables' => $noConv,
             'desaprobados' => $desaprobados,
             'documento_path' => $rutaTrazabilidad,
             'documento_nombre' => $nombre,
@@ -523,7 +508,7 @@ class SimulacionController extends Controller
         $poolIds = array_flip(array_column($this->engine->poolCursosUsil((int) $datos['carrera_usil_id']), 'id'));
 
         // Las equivalencias autorizadas
-        $equivalencias = \App\Models\Equivalencia::where('carrera_externa_id', $postulante->carrera_externa_id)
+        $equivalencias = Equivalencia::where('carrera_externa_id', $postulante->carrera_externa_id)
             ->whereHas('cursoUsil.ciclo.malla', fn ($q) => $q->where('carrera_id', $datos['carrera_usil_id']))
             ->get()
             ->groupBy('curso_usil_id');
@@ -533,17 +518,17 @@ class SimulacionController extends Controller
         $usados = [];
         foreach ($datos['filas'] ?? [] as $i => $f) {
             $cid = $f['curso_usil_id'];
-            
+
             abort_if(! isset($poolIds[$cid]), 422, 'Un curso USIL asignado no pertenece al plan de estudios de la carrera destino.');
             abort_if(isset($usados[$cid]), 422, 'Un curso USIL está asignado más de una vez (regla 1 a 1).');
             $usados[$cid] = true;
-            
+
             $extId = $f['curso_externo_id'] ?? null;
             if ($extId) {
                 // Verificar que está autorizado por el especialista
                 $autorizados = $equivalencias->get($cid)?->pluck('curso_externo_id')->toArray() ?? [];
-                abort_unless(in_array((int)$extId, $autorizados, true), 422, "El curso externo seleccionado no está autorizado para este curso USIL.");
-                
+                abort_unless(in_array((int) $extId, $autorizados, true), 422, 'El curso externo seleccionado no está autorizado para este curso USIL.');
+
                 $datos['filas'][$i]['clasificacion'] = 'convalidable';
 
                 $nota = $this->notaNumerica($f['nota_origen'] ?? null);
@@ -590,16 +575,6 @@ class SimulacionController extends Controller
             }
 
             foreach ($datos['filas'] ?? [] as $f) {
-                if ($f['clasificacion'] === 'no_convalidable' && !empty($f['motivo'])) {
-                    $clave = app(\App\Services\ConvalidacionEngine::class)->normaliza($f['curso_origen_nombre']);
-                    if ($clave !== '') {
-                        \App\Models\CursoNoConvalidable::updateOrCreate(
-                            ['clave_normalizada' => $clave, 'carrera_id' => $sim->carrera_usil_id],
-                            ['palabra_clave' => $f['curso_origen_nombre'], 'motivo' => $f['motivo'], 'activo' => true]
-                        );
-                    }
-                }
-
                 $cid = $f['curso_usil_id'];
                 $sim->detalles()->create([
                     'curso_usil_id' => $cid,
@@ -756,7 +731,7 @@ class SimulacionController extends Controller
     public function guardarBorrador(Request $request, Simulacion $simulacion): RedirectResponse
     {
         AlcanceService::autorizarCarrera($request->user(), $simulacion->carrera_usil_id);
-        
+
         if ($simulacion->estado === 'borrador') {
             $simulacion->update(['estado' => 'generada']);
         }
@@ -974,7 +949,7 @@ class SimulacionController extends Controller
             'postulante.institucionOrigen',
             'postulante.carreraExterna',
             'detalles.cursoUsil.ciclo',
-            'detalles.cursoExterno'
+            'detalles.cursoExterno',
         ]);
 
         $postulante = $simulacion->postulante;
@@ -987,10 +962,10 @@ class SimulacionController extends Controller
             $hojaPreconva->setCellValue('A1', $postulante->carreraDestino->facultad->nombre);
         }
         if ($postulante->carreraDestino) {
-            $hojaPreconva->setCellValue('A2', 'Carrera Profesional: ' . $postulante->carreraDestino->nombre);
+            $hojaPreconva->setCellValue('A2', 'Carrera Profesional: '.$postulante->carreraDestino->nombre);
         }
 
-        $nombreCompleto = trim($postulante->nombres . ' ' . $postulante->apellido_paterno . ' ' . $postulante->apellido_materno);
+        $nombreCompleto = trim($postulante->nombres.' '.$postulante->apellido_paterno.' '.$postulante->apellido_materno);
         $hojaPreconva->setCellValue('C4', $nombreCompleto);
         $hojaPreconva->setCellValue('C5', $postulante->codigo ?? '');
         $hojaPreconva->setCellValue('C6', $postulante->ciclo_postulacion ?? '');
@@ -1001,7 +976,7 @@ class SimulacionController extends Controller
         // Cursos convalidados
         $filaPreconva = 11;
         foreach ($simulacion->detalles as $detalle) {
-            if ($detalle->curso_usil_id && !$detalle->excluido) {
+            if ($detalle->curso_usil_id && ! $detalle->excluido) {
                 $hojaPreconva->setCellValue('A'.$filaPreconva, $detalle->cursoUsil?->ciclo?->numero ?? '');
                 $hojaPreconva->setCellValue('B'.$filaPreconva, $detalle->cursoUsil?->nombre ?? '');
                 $hojaPreconva->setCellValue('C'.$filaPreconva, mb_strtoupper($detalle->nombre_origen ?? ''));
@@ -1014,7 +989,7 @@ class SimulacionController extends Controller
         $hojaNoConva = $libro->getSheetByName('Cursos no convalidados') ?: $libro->getSheet(1);
         $filaNoConva = 3;
         foreach ($simulacion->detalles as $detalle) {
-            if (!$detalle->curso_usil_id || $detalle->excluido) {
+            if (! $detalle->curso_usil_id || $detalle->excluido) {
                 $hojaNoConva->setCellValue('A'.$filaNoConva, mb_strtoupper($detalle->nombre_origen ?? ''));
                 $hojaNoConva->setCellValue('B'.$filaNoConva, $detalle->nota_origen ?? '');
                 $hojaNoConva->setCellValue('C'.$filaNoConva, $detalle->creditos_origen ?? '');

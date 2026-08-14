@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\CursoNoConvalidable;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -68,7 +68,10 @@ return new class extends Migration
                 ->update(['palabra_clave' => $etiqueta]);
         }
 
-        CursoNoConvalidable::limpiarCache();
+        // Clave literal (antes CursoNoConvalidable::limpiarCache(), Task A4 retiró
+        // ese modelo): esta migración no puede depender de una clase que para
+        // cuando se ejecute podría no existir, en un migrate:fresh desde cero.
+        Cache::forget('cursos_no_convalidables.reglas');
     }
 
     public function down(): void
@@ -81,6 +84,6 @@ return new class extends Migration
                 ->update(['palabra_clave' => $clave]);
         }
 
-        CursoNoConvalidable::limpiarCache();
+        Cache::forget('cursos_no_convalidables.reglas');
     }
 };

@@ -133,7 +133,6 @@ class MallaImportController extends Controller
             'ciclos.*.cursos.*.horas' => ['nullable', 'numeric', 'min:0', 'max:40'],
             'ciclos.*.cursos.*.prerequisito' => ['nullable', 'string', 'max:255'],
             'ciclos.*.cursos.*.es_electivo' => ['boolean'],
-            'ciclos.*.cursos.*.convalidable' => ['boolean'],
 
             'menciones' => ['array'],
             'menciones.*.nombre' => ['required', 'string', 'max:150'],
@@ -145,7 +144,6 @@ class MallaImportController extends Controller
             'menciones.*.cursos.*.horas' => ['nullable', 'numeric', 'min:0', 'max:40'],
             'menciones.*.cursos.*.prerequisito' => ['nullable', 'string', 'max:255'],
             'menciones.*.cursos.*.es_electivo' => ['boolean'],
-            'menciones.*.cursos.*.convalidable' => ['boolean'],
         ], [
             'version.unique' => 'Ya existe una malla para esa carrera, año y versión (RN-01 / RN-03).',
         ]);
@@ -215,7 +213,6 @@ class MallaImportController extends Controller
             // El archivo trae TH (horas totales); se guarda en horas_teoria, igual que la ficha existente.
             'horas_teoria' => $cu['horas'] ?? null,
             'es_electivo' => (bool) ($cu['es_electivo'] ?? false),
-            'convalidable' => (bool) ($cu['convalidable'] ?? true),
             'mencion' => $mencion,
             'prerequisito_texto' => ($pre === '' || $pre === '—') ? null : $pre,
         ]);

@@ -18,11 +18,9 @@ const tab = ref('info');
 
 const form = useForm({
     codigo: '', nombre: '', creditos: '', horas_teoria: '', horas_practica: '',
-    es_electivo: false, convalidable: true, mencion: '', prerequisito_id: '', silabo_texto: '',
+    es_electivo: false, mencion: '', prerequisito_id: '', silabo_texto: '',
     tipo_curso: '', area: '', competencias: '', resultados_aprendizaje: '',
 });
-
-// ----- Materias de origen que esta carrera no convalida -----
 
 const tabs = [
     { id: 'info', label: 'Información' },
@@ -47,7 +45,7 @@ const editarCurso = () => {
     Object.assign(form, {
         codigo: c.codigo, nombre: c.nombre, creditos: c.creditos,
         horas_teoria: c.horas_teoria ?? '', horas_practica: c.horas_practica ?? '',
-        es_electivo: c.es_electivo, convalidable: c.convalidable ?? true, mencion: c.mencion ?? '', prerequisito_id: c.prerequisito_id ?? '', silabo_texto: c.silabo_texto ?? '',
+        es_electivo: c.es_electivo, mencion: c.mencion ?? '', prerequisito_id: c.prerequisito_id ?? '', silabo_texto: c.silabo_texto ?? '',
         tipo_curso: c.tipo_curso ?? '', area: c.area ?? '',
         competencias: (c.competencias ?? []).join(', '), resultados_aprendizaje: c.resultados_aprendizaje ?? '',
     });
@@ -296,8 +294,6 @@ const tarjetas = computed(() => [
                                     <span class="text-xs font-medium text-slate-500">{{ curso.creditos }} créd.</span>
                                     <span :class="curso.es_electivo ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'"
                                           class="rounded-full px-2 py-0.5 text-[11px] font-medium">{{ curso.es_electivo ? 'Electivo' : 'Obligatorio' }}</span>
-                                    <span v-if="curso.convalidable === false"
-                                          class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700" title="Este curso no se ofrece como destino de convalidación">No convalidable</span>
                                     <span v-if="curso.mencion"
                                           class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600" :title="`Mención: ${curso.mencion}`">Mención</span>
                                 </div>
@@ -467,12 +463,6 @@ const tarjetas = computed(() => [
                         </div>
                         <label class="flex items-center gap-2 text-sm text-slate-700">
                             <input v-model="form.es_electivo" type="checkbox" class="rounded border-slate-300 text-[#2E75B6]" /> Curso electivo
-                        </label>
-                        <label class="flex items-start gap-2 text-sm text-slate-700">
-                            <input v-model="form.convalidable" type="checkbox" class="mt-0.5 rounded border-slate-300 text-[#2E75B6]" />
-                            <span>Convalidable
-                                <span class="block text-xs text-slate-400">Desmárcalo para que este curso NO se ofrezca como destino de convalidación (p. ej. Inglés, Proyecto para computación).</span>
-                            </span>
                         </label>
                         <div class="flex gap-2 border-t border-slate-200 pt-3">
                             <button type="submit" :disabled="form.processing"

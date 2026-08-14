@@ -249,7 +249,6 @@ Route::middleware('auth')->group(function () {
             Route::get('equivalencias-catalogo/crear', [MapeoMallasController::class, 'crear'])->name('equivalencias-catalogo.crear');
             Route::get('equivalencias-catalogo/cursos', [MapeoMallasController::class, 'cursos'])->name('equivalencias-catalogo.cursos');
             Route::post('equivalencias-catalogo', [MapeoMallasController::class, 'store'])->name('equivalencias-catalogo.store');
-            Route::post('equivalencias-catalogo/no-convalidable', [MapeoMallasController::class, 'marcarNoConvalidable'])->name('equivalencias-catalogo.no-convalidable');
             Route::delete('equivalencias-catalogo/{cursoUsil}/{cursoExterno}', [MapeoMallasController::class, 'destroy'])
                 ->name('equivalencias-catalogo.destroy')->whereNumber(['cursoUsil', 'cursoExterno']);
         });

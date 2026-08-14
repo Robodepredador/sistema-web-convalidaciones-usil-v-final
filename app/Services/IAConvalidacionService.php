@@ -179,8 +179,7 @@ SYS;
             if ($origen === '') {
                 continue;
             }
-            if ($this->engine->esNoConvalidable($origen) || $usil === $noConv
-                || ! isset($labelsSet[$usil]) || isset($usados[$usil])) {
+            if ($usil === $noConv || ! isset($labelsSet[$usil]) || isset($usados[$usil])) {
                 $out[$origen] = $noConv;
             } else {
                 $out[$origen] = $usil;

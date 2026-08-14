@@ -137,7 +137,6 @@ const registrar = () => form.post('/mallas/importar/guardar');
                                 <th class="px-3 py-2 font-semibold">Créd.</th>
                                 <th class="px-3 py-2 font-semibold">Horas</th>
                                 <th class="px-3 py-2 font-semibold">Pre-requisito</th>
-                                <th class="px-3 py-2 text-center font-semibold">Conval.</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -154,7 +153,6 @@ const registrar = () => form.post('/mallas/importar/guardar');
                                 <td class="px-3 py-1.5"><input v-model="curso.creditos" type="number" step="0.5" class="w-16 rounded-md border-slate-300 text-center text-sm" /></td>
                                 <td class="px-3 py-1.5"><input v-model="curso.horas" type="number" step="0.5" class="w-16 rounded-md border-slate-300 text-center text-sm" /></td>
                                 <td class="px-3 py-1.5"><input v-model="curso.prerequisito" class="w-full min-w-[170px] rounded-md border-slate-300 text-sm" /></td>
-                                <td class="px-3 py-1.5 text-center"><input v-model="curso.convalidable" type="checkbox" class="rounded border-slate-300 text-[#2E75B6]" /></td>
                                 <td class="px-2 py-1.5">
                                     <button type="button" @click="quitarCurso(ciclo.cursos, cj)" class="text-slate-400 hover:text-red-600" title="Quitar">✕</button>
                                 </td>

@@ -10,13 +10,11 @@ use App\Jobs\ImportarMallaExcel;
 use App\Models\CargaMasiva;
 use App\Models\Carrera;
 use App\Models\Ciclo;
-use App\Models\CursoNoConvalidable;
 use App\Models\CursoUsil;
 use App\Models\Facultad;
 use App\Models\MallaCurricular;
 use App\Models\UnidadNegocio;
 use App\Services\AuditoriaService;
-use App\Services\ConvalidacionEngine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -258,7 +256,6 @@ class MallaController extends Controller
                     'horas_teoria' => $cu->horas_teoria,
                     'horas_practica' => $cu->horas_practica,
                     'es_electivo' => $cu->es_electivo,
-                    'convalidable' => $cu->convalidable,
                     'mencion' => $cu->mencion,
                     'prerequisito_id' => $cu->prerequisito_id,
                     'prerequisito' => $cu->prerequisito?->nombre ?? $cu->prerequisito_texto,
@@ -288,8 +285,6 @@ class MallaController extends Controller
             'cursosMalla' => $cursos->map(fn ($cu) => ['id' => $cu->id, 'nombre' => $cu->codigo.' — '.$cu->nombre])->values(),
         ]);
     }
-
-
 
     public function agregarCiclo(Request $request, MallaCurricular $malla): RedirectResponse
     {
@@ -410,7 +405,6 @@ class MallaController extends Controller
             'horas_teoria' => ['nullable', 'numeric', 'min:0', 'max:30'],
             'horas_practica' => ['nullable', 'numeric', 'min:0', 'max:30'],
             'es_electivo' => ['boolean'],
-            'convalidable' => ['boolean'],
             'mencion' => ['nullable', 'string', 'max:150'],
             'tipo_curso' => ['nullable', 'in:teorico,practico,teorico_practico'],
             'area' => ['nullable', 'string', 'max:100'],

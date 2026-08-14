@@ -2,7 +2,7 @@
 import { useForm, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-const props = defineProps({ ia: Object, modelos: Object, noConvalidables: Array });
+const props = defineProps({ ia: Object, modelos: Object });
 
 // --- Pestañas ---
 const TABS = [
@@ -61,7 +61,7 @@ const probar = async () => {
             <h1 class="flex items-center gap-2 text-2xl font-semibold text-[#1F3864]">
                 <span>⚙️</span> Configuración
             </h1>
-            <p class="mt-1 text-sm text-slate-500">Ajustes del sistema: motor de IA y cursos no convalidables.</p>
+            <p class="mt-1 text-sm text-slate-500">Ajustes del sistema: motor de IA.</p>
         </div>
 
         <!-- Pestañas -->

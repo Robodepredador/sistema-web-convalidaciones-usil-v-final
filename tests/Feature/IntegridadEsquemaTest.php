@@ -6,7 +6,6 @@ use App\Models\Carrera;
 use App\Models\CarreraExterna;
 use App\Models\Ciclo;
 use App\Models\CursoExterno;
-use App\Models\CursoNoConvalidable;
 use App\Models\CursoUsil;
 use App\Models\Equivalencia;
 use App\Models\Facultad;
@@ -166,22 +165,6 @@ class IntegridadEsquemaTest extends TestCase
         }
     }
 
-    /** Y la misma regla institucional no puede cargarse dos veces.
-     *  Clave fuera de las que siembra 2026_08_05_000004: 'fisica' ya viene
-     *  cargada de fábrica y haría chocar la primera inserción, no la segunda. */
-    public function test_no_se_repite_una_regla_institucional_no_convalidable(): void
-    {
-        $regla = ['carrera_id' => null, 'palabra_clave' => 'Zoología', 'clave_normalizada' => 'zoologia', 'motivo' => 'Ciencia básica'];
-        CursoNoConvalidable::create($regla);
-
-        try {
-            CursoNoConvalidable::create($regla);
-            $this->fail('Debió lanzar QueryException por violar uq_no_convalidable_clave_carrera.');
-        } catch (QueryException $e) {
-            $this->assertStringContainsString('uq_no_convalidable_clave_carrera', $e->getMessage());
-        }
-    }
-
     /** El catálogo SUNEDU se recarga periódicamente: sin unicidad, cada recarga
      *  fallida a medias deja instituciones repetidas que el usuario debe distinguir a ojo. */
     public function test_no_se_repite_una_institucion_externa(): void
@@ -295,26 +278,6 @@ class IntegridadEsquemaTest extends TestCase
             $this->assertNotEmpty($indices,
                 "{$tabla}.{$columna} tiene una FK y se quedó sin índice que la respalde.");
         }
-    }
-
-    /**
-     * La clave normalizada es un derivado de la palabra clave: el modelo la
-     * recalcula siempre, aunque alguien intente pasarla desde fuera.
-     *
-     * 'Educación Musical' y no 'Educación Física': esta última ya la siembra
-     * 2026_08_05_000004_mueve_no_convalidables_del_codigo_a_la_bd como
-     * institucional de fábrica y chocaría con uq_no_convalidable_clave_carrera.
-     */
-    public function test_la_clave_normalizada_no_se_puede_escribir_a_mano(): void
-    {
-        $regla = CursoNoConvalidable::create([
-            'carrera_id' => null,
-            'palabra_clave' => 'Educación Musical',
-            'clave_normalizada' => 'valor-inventado',
-            'motivo' => 'Prueba',
-        ]);
-
-        $this->assertSame('educacion musical', $regla->fresh()->clave_normalizada);
     }
 
     /**

@@ -2,10 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Carrera;
-use App\Models\CarreraExterna;
 use App\Models\CursoExterno;
-use App\Models\CursoNoConvalidable;
 use App\Models\CursoUsil;
 use App\Models\Equivalencia;
 use App\Models\Facultad;
@@ -112,12 +109,12 @@ class MapeoMallasController extends Controller
         abort_if(! $mallaUsil, 422, 'La carrera destino no tiene un plan de estudios (malla) cargado.');
 
         $cursoUsil = CursoUsil::where('id', $datos['curso_usil_id'])
-            ->whereHas('ciclo', fn($q) => $q->where('malla_id', $mallaUsil->id))
+            ->whereHas('ciclo', fn ($q) => $q->where('malla_id', $mallaUsil->id))
             ->first();
         abort_if(! $cursoUsil, 422, 'Ese curso USIL no pertenece al plan de estudios de la carrera destino.');
 
         $nombreNormalizado = $this->engine->normaliza($datos['nombre_externo']);
-        
+
         $cursoExterno = CursoExterno::where('carrera_externa_id', $datos['carrera_externa_id'])
             ->where('nombre_normalizado', $nombreNormalizado)
             ->first();
@@ -165,28 +162,5 @@ class MapeoMallasController extends Controller
         AuditoriaService::registrar('eliminar', 'equivalencias', null, $anterior, null);
 
         return response()->json(['ok' => true]);
-    }
-
-    public function marcarNoConvalidable(Request $request): JsonResponse
-    {
-        $datos = $request->validate([
-            'carrera_usil_id' => ['required', 'integer', 'exists:carreras,id'],
-            'curso_externo_id' => ['required', 'integer', 'exists:cursos_externos,id'],
-            'motivo' => ['nullable', 'string', 'max:150'],
-        ]);
-
-        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
-
-        $cursoExterno = CursoExterno::findOrFail($datos['curso_externo_id']);
-        $clave = $this->engine->normaliza($cursoExterno->nombre);
-
-        if ($clave !== '') {
-            CursoNoConvalidable::updateOrCreate(
-                ['clave_normalizada' => $clave, 'carrera_id' => $datos['carrera_usil_id']],
-                ['palabra_clave' => $cursoExterno->nombre, 'motivo' => $datos['motivo'], 'activo' => true]
-            );
-        }
-
-        return response()->json(['status' => 'success']);
     }
 }

@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Schema;
  * 0001_01_01 del esqueleto de Laravel a propósito: tienen que crearse ANTES que
  * las del dominio.
  *
- * No es cosmético. Con CACHE_STORE=database, la migración que siembra los cursos
- * no convalidables invalida la caché de CursoNoConvalidable al escribir, y si la
- * tabla `cache` todavía no existe la instalación entera se cae con
- * «Base table or view not found: 1146 Table 'cache' doesn't exist».
+ * No es cosmético. Con CACHE_STORE=database, la migración
+ * 2026_08_05_000004_mueve_no_convalidables_del_codigo_a_la_bd invalida una
+ * caché al escribir, y si la tabla `cache` todavía no existe la instalación
+ * entera se cae con «Base table or view not found: 1146 Table 'cache' doesn't
+ * exist».
  */
 return new class extends Migration
 {

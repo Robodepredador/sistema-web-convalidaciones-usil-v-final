@@ -52,7 +52,7 @@ class LectorMallaExcel
             $codigo = $cols['codigo'] !== null ? trim((string) ($fila[$cols['codigo']] ?? '')) : '';
             $nombre = trim((string) ($fila[$cols['nombre']] ?? ''));
             $crRaw = trim((string) ($fila[$cols['creditos']] ?? ''));
-            
+
             $thRaw = $cols['horas_teoria'] !== null ? trim((string) ($fila[$cols['horas_teoria']] ?? '')) : '';
             $tpRaw = $cols['horas_practica'] !== null ? trim((string) ($fila[$cols['horas_practica']] ?? '')) : '';
             $caracter = $cols['caracter'] !== null ? trim((string) ($fila[$cols['caracter']] ?? '')) : '';
@@ -85,15 +85,15 @@ class LectorMallaExcel
             $codigoFinal = $codigo;
 
             if ($mencionCol !== '') {
-                if (!isset($menciones[$mencionCol])) {
+                if (! isset($menciones[$mencionCol])) {
                     $mIdx++;
                     $menciones[$mencionCol] = ['nombre' => $mencionCol, 'indice' => $mIdx, 'cursos' => []];
                     $contadorMencion[$mIdx] = 0;
                 }
-                
+
                 $indice = $menciones[$mencionCol]['indice'];
                 $n = ++$contadorMencion[$indice];
-                
+
                 if ($codigoFinal === '') {
                     $codigoFinal = sprintf('%s-M%d-%02d', $prefijo, $indice, $n);
                 }
@@ -106,7 +106,6 @@ class LectorMallaExcel
                     'horas' => $horas_teoria,
                     'prerequisito' => '',
                     'es_electivo' => $esElectivo,
-                    'convalidable' => true,
                 ];
             } else {
                 if (! isset($ciclos[$ciclo])) {
@@ -114,7 +113,7 @@ class LectorMallaExcel
                     $contadorCiclo[$ciclo] = 0;
                 }
                 $n = ++$contadorCiclo[$ciclo];
-                
+
                 if ($codigoFinal === '') {
                     $codigoFinal = sprintf('%s-C%d-%02d', $prefijo, $ciclo, $n);
                 }
@@ -126,7 +125,6 @@ class LectorMallaExcel
                     'horas' => $horas_teoria,
                     'prerequisito' => '',
                     'es_electivo' => $esElectivo,
-                    'convalidable' => true,
                 ];
             }
         }

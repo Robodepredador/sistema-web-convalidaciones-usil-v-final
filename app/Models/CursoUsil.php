@@ -15,14 +15,13 @@ class CursoUsil extends Model
 
     protected $fillable = [
         'ciclo_id', 'codigo', 'nombre', 'creditos', 'horas_teoria',
-        'horas_practica', 'es_electivo', 'convalidable', 'mencion',
+        'horas_practica', 'es_electivo', 'mencion',
         'prerequisito_id', 'prerequisito_texto', 'silabo_texto',
         'tipo_curso', 'area', 'competencias', 'resultados_aprendizaje',
     ];
 
     protected $casts = [
         'es_electivo' => 'boolean',
-        'convalidable' => 'boolean',
         'creditos' => 'decimal:1',
         'competencias' => 'array',
     ];

@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\CursoNoConvalidable;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -87,7 +87,10 @@ return new class extends Migration
         }
 
         // La lista se cachea para siempre y esta inserción no pasa por el modelo.
-        CursoNoConvalidable::limpiarCache();
+        // Clave literal (antes CursoNoConvalidable::limpiarCache(), Task A4 retiró
+        // ese modelo): esta migración no puede depender de una clase que para
+        // cuando se ejecute podría no existir, en un migrate:fresh desde cero.
+        Cache::forget('cursos_no_convalidables.reglas');
     }
 
     public function down(): void
@@ -99,6 +102,6 @@ return new class extends Migration
             ->whereNull('carrera_id')
             ->delete();
 
-        CursoNoConvalidable::limpiarCache();
+        Cache::forget('cursos_no_convalidables.reglas');
     }
 };

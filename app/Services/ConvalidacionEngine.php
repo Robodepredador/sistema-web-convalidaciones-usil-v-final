@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Carrera;
-use App\Models\CursoNoConvalidable;
 use App\Models\MallaCurricular;
 
 /**
@@ -11,8 +10,8 @@ use App\Models\MallaCurricular;
  *
  * Reutiliza el plan de estudios que ya vive en la base de datos
  * (mallas_curriculares → ciclos → cursos_usil) para construir el pool de
- * cursos USIL destino, aplica las reglas de cursos no convalidables y
- * propone un mapeo 1‑a‑1 por similitud, sin depender de ningún servicio externo.
+ * cursos USIL destino y proponer un mapeo 1‑a‑1 por similitud, sin depender de
+ * ningún servicio externo.
  *
  * La sugerencia semántica con IA vive en {@see IAConvalidacionService}.
  */
@@ -175,47 +174,6 @@ class ConvalidacionEngine
     }
 
     /**
-     * ¿El curso de origen es de una categoría que no se convalida?
-     *
-     * La política vive ENTERA en `cursos_no_convalidables`: las institucionales
-     * las gestiona el Superusuario y las de cada carrera, su Coordinador. Antes
-     * había además una lista fija en el código que nadie podía desactivar sin
-     * desplegar.
-     *
-     * `$carreraId` es la carrera DESTINO: sin ella solo rigen las reglas
-     * institucionales.
-     */
-    public function esNoConvalidable(?string $nombre, ?int $carreraId = null): bool
-    {
-        return $this->motivoNoConvalidable($nombre, $carreraId) !== false;
-    }
-
-    /**
-     * Motivo por el que el curso no se convalida: el texto de la regla que lo
-     * descarta (puede ser null si la regla no lo lleva), o `false` si ninguna
-     * regla aplica.
-     *
-     * La coincidencia es por palabra completa, admitiendo el plural: con
-     * `str_contains`, la clave «arte» descartaba «Gestión de cartera» y
-     * «practica» cualquier curso con esa sílaba dentro.
-     */
-    public function motivoNoConvalidable(?string $nombre, ?int $carreraId = null): string|false|null
-    {
-        $n = $this->normaliza($nombre);
-        if ($n === '') {
-            return false;
-        }
-
-        foreach (CursoNoConvalidable::reglasVigentes($carreraId) as $clave => $motivo) {
-            if ($clave !== '' && preg_match('/\b'.preg_quote($clave, '/').'s?\b/', $n) === 1) {
-                return $motivo;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Malla activa (con plan de estudios) de una carrera USIL.
      */
     public function mallaDeCarrera(int $carreraId): ?MallaCurricular
@@ -246,10 +204,6 @@ class ConvalidacionEngine
         foreach ($malla->ciclos as $ciclo) {
             foreach ($ciclo->cursos as $curso) {
                 $nombre = $curso->nombre;
-                // Cursos marcados como NO convalidables no se ofrecen como destino.
-                if ($curso->convalidable === false) {
-                    continue;
-                }
                 // Se omiten los marcadores "Electivo N" (placeholders sin contenido).
                 if (preg_match('/^electivo/i', trim($nombre))) {
                     continue;
@@ -301,11 +255,10 @@ class ConvalidacionEngine
      *
      * @param  array<int,string>  $cursosOrigen  nombres de cursos aprobados de origen
      * @param  array  $pool  salida de poolCursosUsil()
-     * @param  int|null  $carreraId  carrera destino, para aplicar sus reglas propias
      * @return array<string,array{curso_usil_id:int|null,label:string,confianza:float}>
      *                                                                                  mapa nombreOrigen → sugerencia
      */
-    public function asignacionOptima(array $cursosOrigen, array $pool, float $cutoff = 0.55, ?int $carreraId = null): array
+    public function asignacionOptima(array $cursosOrigen, array $pool, float $cutoff = 0.55): array
     {
         $porLabel = [];
         foreach ($pool as $p) {
@@ -315,9 +268,6 @@ class ConvalidacionEngine
         // Genera todos los pares con score >= cutoff.
         $pares = [];
         foreach ($cursosOrigen as $origen) {
-            if ($this->esNoConvalidable($origen, $carreraId)) {
-                continue;
-            }
             foreach ($pool as $p) {
                 $score = $this->similitud($origen, $p['curso']);
                 if ($score >= $cutoff) {
@@ -340,7 +290,7 @@ class ConvalidacionEngine
 
         $resultado = [];
         foreach ($cursosOrigen as $origen) {
-            if ($this->esNoConvalidable($origen, $carreraId) || ! isset($asignado[$origen])) {
+            if (! isset($asignado[$origen])) {
                 $resultado[$origen] = ['curso_usil_id' => null, 'label' => self::NO_CONVALIDAR, 'confianza' => 0.0];
 
                 continue;
