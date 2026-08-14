@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Carrera;
 use App\Models\CarreraExterna;
+use App\Models\Ciclo;
 use App\Models\CursoExterno;
 use App\Models\CursoNoConvalidable;
+use App\Models\CursoUsil;
+use App\Models\Equivalencia;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
@@ -337,6 +340,102 @@ class IntegridadEsquemaTest extends TestCase
             $this->fail('Debió rechazar el curso externo repetido en la misma carrera.');
         } catch (QueryException $e) {
             $this->assertStringContainsString('uq_curso_externo_carrera_nombre', $e->getMessage());
+        }
+    }
+
+    /** Un curso USIL acepta varias opciones externas: el especialista puede
+     *  registrar que POO se convalida con tres cursos distintos de SENATI. */
+    public function test_un_curso_usil_admite_varias_equivalencias(): void
+    {
+        $ctx = $this->crearDependenciasDeSimulacion();
+        $ciclo = Ciclo::create(['malla_id' => $ctx['malla']->id, 'numero' => 1, 'nombre' => 'Ciclo 1']);
+        $cursoUsil = CursoUsil::create(['malla_id' => $ctx['malla']->id, 'codigo' => 'USIL-1', 'nombre' => 'Curso USIL', 'ciclo_id' => $ciclo->id, 'creditos' => 3]);
+
+        $externos = [
+            CursoExterno::create(['carrera_externa_id' => $ctx['carExt']->id, 'nombre' => 'Externo 1']),
+            CursoExterno::create(['carrera_externa_id' => $ctx['carExt']->id, 'nombre' => 'Externo 2']),
+            CursoExterno::create(['carrera_externa_id' => $ctx['carExt']->id, 'nombre' => 'Externo 3']),
+        ];
+
+        foreach ($externos as $externo) {
+            Equivalencia::create([
+                'curso_usil_id' => $cursoUsil->id,
+                'curso_externo_id' => $externo->id,
+                'carrera_externa_id' => $ctx['carExt']->id,
+                'registrado_por_id' => $ctx['user']->id,
+            ]);
+        }
+
+        $this->assertSame(3, Equivalencia::where('curso_usil_id', $cursoUsil->id)->count());
+    }
+
+    /** Y un curso externo puede servir para varios cursos USIL: el cliente lo
+     *  confirmó explícitamente, con la consecuencia de créditos que implica. */
+    public function test_un_curso_externo_sirve_para_varios_cursos_usil(): void
+    {
+        $ctx = $this->crearDependenciasDeSimulacion();
+        $ciclo = Ciclo::create(['malla_id' => $ctx['malla']->id, 'numero' => 1, 'nombre' => 'Ciclo 1']);
+        $cursoUsil1 = CursoUsil::create(['malla_id' => $ctx['malla']->id, 'codigo' => 'USIL-2', 'nombre' => 'Curso USIL A', 'ciclo_id' => $ciclo->id, 'creditos' => 3]);
+        $cursoUsil2 = CursoUsil::create(['malla_id' => $ctx['malla']->id, 'codigo' => 'USIL-3', 'nombre' => 'Curso USIL B', 'ciclo_id' => $ciclo->id, 'creditos' => 3]);
+        $externo = CursoExterno::create(['carrera_externa_id' => $ctx['carExt']->id, 'nombre' => 'Externo 4']);
+
+        Equivalencia::create([
+            'curso_usil_id' => $cursoUsil1->id, 'curso_externo_id' => $externo->id,
+            'carrera_externa_id' => $ctx['carExt']->id, 'registrado_por_id' => $ctx['user']->id,
+        ]);
+        Equivalencia::create([
+            'curso_usil_id' => $cursoUsil2->id, 'curso_externo_id' => $externo->id,
+            'carrera_externa_id' => $ctx['carExt']->id, 'registrado_por_id' => $ctx['user']->id,
+        ]);
+
+        $this->assertSame(2, Equivalencia::where('curso_externo_id', $externo->id)->count());
+    }
+
+    /** Lo único prohibido es registrar dos veces el mismo par. */
+    public function test_no_se_repite_el_mismo_par_de_equivalencia(): void
+    {
+        $ctx = $this->crearDependenciasDeSimulacion();
+        $ciclo = Ciclo::create(['malla_id' => $ctx['malla']->id, 'numero' => 1, 'nombre' => 'Ciclo 1']);
+        $cursoUsil = CursoUsil::create(['malla_id' => $ctx['malla']->id, 'codigo' => 'USIL-4', 'nombre' => 'Curso USIL C', 'ciclo_id' => $ciclo->id, 'creditos' => 3]);
+        $externo = CursoExterno::create(['carrera_externa_id' => $ctx['carExt']->id, 'nombre' => 'Externo 5']);
+
+        $par = [
+            'curso_usil_id' => $cursoUsil->id, 'curso_externo_id' => $externo->id,
+            'carrera_externa_id' => $ctx['carExt']->id, 'registrado_por_id' => $ctx['user']->id,
+        ];
+        Equivalencia::create($par);
+
+        try {
+            Equivalencia::create($par);
+            $this->fail('Debió rechazar el par de equivalencia repetido.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('PRIMARY', $e->getMessage());
+        }
+    }
+
+    /** Y la FK compuesta impide colgar un curso externo de otra carrera. */
+    public function test_no_se_puede_registrar_un_curso_externo_de_otra_carrera(): void
+    {
+        $ctx = $this->crearDependenciasDeSimulacion();
+        $ciclo = Ciclo::create(['malla_id' => $ctx['malla']->id, 'numero' => 1, 'nombre' => 'Ciclo 1']);
+        $cursoUsil = CursoUsil::create(['malla_id' => $ctx['malla']->id, 'codigo' => 'USIL-5', 'nombre' => 'Curso USIL D', 'ciclo_id' => $ciclo->id, 'creditos' => 3]);
+
+        $otraCarrera = CarreraExterna::create([
+            'institucion_id' => $ctx['inst']->id,
+            'nombre' => 'Otra Carrera',
+        ]);
+        $externoDeOtraCarrera = CursoExterno::create(['carrera_externa_id' => $otraCarrera->id, 'nombre' => 'Externo Otra']);
+
+        try {
+            Equivalencia::create([
+                'curso_usil_id' => $cursoUsil->id,
+                'curso_externo_id' => $externoDeOtraCarrera->id,
+                'carrera_externa_id' => $ctx['carExt']->id,
+                'registrado_por_id' => $ctx['user']->id,
+            ]);
+            $this->fail('Debió rechazar un curso externo que no pertenece a esa carrera.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('fk_equivalencia_externo', $e->getMessage());
         }
     }
 

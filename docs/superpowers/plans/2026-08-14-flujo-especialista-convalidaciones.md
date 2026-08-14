@@ -467,7 +467,7 @@ Implementa la decisión **D1**. Sin esto, el especialista tendría que registrar
 **Interfaces:**
 - Produces: `cursos_externos.carrera_externa_id` NOT NULL; `cursos_externos.malla_externa_id` NULLABLE (procedencia); `cursos_externos.nombre_normalizado` derivado; UNIQUE `(carrera_externa_id, nombre_normalizado)`; `UNIQUE (id, carrera_externa_id)` como destino de FK compuesta. La Task B2 depende de todo esto.
 
-- [ ] **Step 1: Escribir la prueba que falla**
+- [x] **Step 1: Escribir la prueba que falla**
 
 ```php
     /** El mismo curso externo vale igual venga de la malla 2019 o de la 2023:
@@ -495,7 +495,7 @@ Implementa la decisión **D1**. Sin esto, el especialista tendría que registrar
     }
 ```
 
-- [ ] **Step 2: Correrla y verificar que falla**
+- [x] **Step 2: Correrla y verificar que falla**
 
 ```bash
 php artisan test --filter=test_un_curso_externo_no_se_repite_en_la_misma_carrera
@@ -503,7 +503,7 @@ php artisan test --filter=test_un_curso_externo_no_se_repite_en_la_misma_carrera
 
 Expected: FAIL — `carrera_externa_id` no existe en `cursos_externos`.
 
-- [ ] **Step 3: Escribir la migración**
+- [x] **Step 3: Escribir la migración**
 
 Estructura, en este orden:
 
@@ -517,11 +517,11 @@ Estructura, en este orden:
 
 **Cuidado con el índice de la FK:** al crear un compuesto cuya columna líder es la de una FK, MySQL suelta el índice simple que la respaldaba. Es exactamente el error 1553 que mordió en la Fase 1 — ver `database/migrations/2026_08_13_000005_unicidad_en_catalogos.php`, que lo documenta y lo resuelve en ambas direcciones.
 
-- [ ] **Step 4: Adaptar la carga de mallas externas**
+- [x] **Step 4: Adaptar la carga de mallas externas**
 
 `MallaExternaController` crea cursos bajo una malla. Ahora debe además resolver la carrera y **reutilizar el curso si ya existe con ese nombre normalizado**, en vez de crear uno nuevo. Ese es el comportamiento que hace que cargar la malla 2023 sobre la 2019 no duplique el catálogo.
 
-- [ ] **Step 5: Correr, verificar el rollback, formatear y confirmar**
+- [x] **Step 5: Correr, verificar el rollback, formatear y confirmar**
 
 ---
 
@@ -541,7 +541,7 @@ Implementa la decisión **D2**. Es el cambio que hace posible el flujo del clien
 
 **Por qué `carrera_externa_id` propagada:** la pantalla del especialista y la de simulación filtran por «esta carrera externa», y sin la columna cada consulta necesitaría dos saltos. Al atarla con FK compuesta contra `cursos_externos (id, carrera_externa_id)` no es duplicación: es una proyección que InnoDB verifica en cada escritura y que no puede contradecir a su origen.
 
-- [ ] **Step 1: Escribir las pruebas que fallan**
+- [x] **Step 1: Escribir las pruebas que fallan**
 
 ```php
     /** Un curso USIL acepta varias opciones externas: el especialista puede
@@ -603,7 +603,7 @@ Implementa la decisión **D2**. Es el cambio que hace posible el flujo del clien
     }
 ```
 
-- [ ] **Step 2: Correrlas y verificar que fallan**
+- [x] **Step 2: Correrlas y verificar que fallan**
 
 ```bash
 php artisan test --filter="test_un_curso_usil_admite|test_un_curso_externo_sirve|test_no_se_repite_el_mismo_par|test_no_se_puede_registrar_un_curso_externo_de_otra"
@@ -611,7 +611,7 @@ php artisan test --filter="test_un_curso_usil_admite|test_un_curso_externo_sirve
 
 Expected: 4 FAIL — la tabla `equivalencias` no existe.
 
-- [ ] **Step 3: Escribir la migración**
+- [x] **Step 3: Escribir la migración**
 
 ```php
 <?php
@@ -700,7 +700,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 4: Crear el modelo**
+- [x] **Step 4: Crear el modelo**
 
 ```php
 <?php
@@ -746,7 +746,7 @@ class Equivalencia extends Model
 
 > Eloquent no maneja claves compuestas de forma nativa. Con `$primaryKey = null` y `$incrementing = false` funcionan `create()`, las consultas y las relaciones; **no** funcionan `find()` ni `save()` sobre una instancia recuperada. Para borrar, usar `where(...)->delete()`. Si esto resulta incómodo en B3, la alternativa es añadir un `id` sustituto **manteniendo el UNIQUE del par** — pero pruébalo primero sin él.
 
-- [ ] **Step 5: Correr las pruebas, verificar el rollback, formatear y confirmar**
+- [x] **Step 5: Correr las pruebas, verificar el rollback, formatear y confirmar**
 
 ---
 
