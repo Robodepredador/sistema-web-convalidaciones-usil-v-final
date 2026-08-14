@@ -50,7 +50,9 @@ const nav = computed(() => {
 
     if (puede('catalogos.gestionar')) items.push({ label: 'Instituciones Externas', href: '/instituciones', icon: ICON.building });
     if (puede('mallas_externas.gestionar')) items.push({ label: 'Mallas Externas', href: '/equivalencias', icon: ICON.globe });
-    if (puede('evaluacion.editar')) items.push({ label: 'Equivalencias', href: '/mapeo-mallas', icon: ICON.arrows });
+    // El catálogo lo registra el Especialista: mismo permiso que exige la ruta.
+    // Antes pedía `evaluacion.editar` y apuntaba a /mapeo-mallas, que ya no existe.
+    if (puede('equivalencias.gestionar')) items.push({ label: 'Equivalencias', href: '/equivalencias-catalogo', icon: ICON.arrows });
     if (puede('solicitudes.ver')) items.push({ label: 'Postulantes', href: '/postulantes', icon: ICON.postulante });
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
     if (puede('convalidacion.ver')) items.push({ label: 'Pre-Convalidaciones Oficiales', href: '/convalidaciones', icon: ICON.check });
