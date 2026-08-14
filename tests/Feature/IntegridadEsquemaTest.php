@@ -15,8 +15,10 @@ use App\Models\Simulacion;
 use App\Models\TipoInstitucion;
 use App\Models\UnidadNegocio;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -53,7 +55,7 @@ class IntegridadEsquemaTest extends TestCase
      */
     public function test_simulaciones_acepta_todos_los_tipos_de_documento_del_postulante(): void
     {
-        $tipos = \Illuminate\Support\Facades\DB::selectOne(
+        $tipos = DB::selectOne(
             "SELECT COLUMN_TYPE t FROM information_schema.COLUMNS
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'simulaciones' AND COLUMN_NAME = 'tipo_documento'"
         )->t;
@@ -207,6 +209,35 @@ class IntegridadEsquemaTest extends TestCase
             $this->fail('Debió lanzar QueryException por violar uq_carrera_externa_institucion_nombre.');
         } catch (QueryException $e) {
             $this->assertStringContainsString('uq_carrera_externa_institucion_nombre', $e->getMessage());
+        }
+    }
+
+    /**
+     * La simulación se calcula contra "la malla activa de la carrera". Si hay dos,
+     * el motor elige la que devuelva primero el optimizador y dos postulantes de
+     * la misma carrera pueden convalidarse contra planes distintos.
+     */
+    public function test_una_carrera_no_puede_tener_dos_mallas_activas(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $usuario = User::create([
+            'nombre' => 'Admin', 'email' => uniqid().'@usil.edu.pe',
+            'password_hash' => Hash::make('x'),
+            'rol_id' => Role::where('nombre', Role::SUPERUSUARIO)->firstOrFail()->id,
+            'activo' => true, 'primer_acceso' => false,
+        ]);
+        $unidad = UnidadNegocio::create(['nombre' => 'Sede Central', 'codigo' => 'SC']);
+        $facultad = Facultad::create(['unidad_negocio_id' => $unidad->id, 'nombre' => 'Ingeniería', 'codigo' => 'ING']);
+        $carrera = Carrera::create(['facultad_id' => $facultad->id, 'nombre' => 'Civil', 'codigo' => 'CIV']);
+
+        $base = ['carrera_id' => $carrera->id, 'origen_carga' => 'manual', 'usuario_id' => $usuario->id, 'activa' => true];
+        MallaCurricular::create($base + ['anio' => 2025, 'version' => 'A']);
+
+        try {
+            MallaCurricular::create($base + ['anio' => 2026, 'version' => 'B']);
+            $this->fail('Debió lanzar QueryException por violar uq_malla_vigente_por_carrera.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('uq_malla_vigente_por_carrera', $e->getMessage());
         }
     }
 
