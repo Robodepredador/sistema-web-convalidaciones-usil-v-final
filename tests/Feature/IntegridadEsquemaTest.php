@@ -241,6 +241,17 @@ class IntegridadEsquemaTest extends TestCase
         }
     }
 
+    /** Un puente puro se identifica por su par, no por un autonumérico añadido. */
+    public function test_las_tablas_puente_de_alcance_no_tienen_id_sustituto(): void
+    {
+        foreach (['permisos_carrera', 'permisos_facultad'] as $tabla) {
+            $this->assertFalse(
+                Schema::hasColumn($tabla, 'id'),
+                "{$tabla} es un puente puro: su clave es el par, no un id aparte."
+            );
+        }
+    }
+
     /**
      * Árbol mínimo de dependencias (carrera externa, carrera y malla USIL,
      * usuario) que exigen las FK NOT NULL de simulaciones. Mismo patrón que
