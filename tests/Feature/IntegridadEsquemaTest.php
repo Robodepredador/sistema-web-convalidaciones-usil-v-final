@@ -253,6 +253,47 @@ class IntegridadEsquemaTest extends TestCase
     }
 
     /**
+     * Y quitar el id no debilita nada: la clave compuesta sigue impidiendo que
+     * un usuario reciba dos veces el mismo alcance. Antes ese trabajo lo hacía
+     * un UNIQUE aparte; comprobarlo es lo que distingue haber movido la
+     * restricción de haberla perdido.
+     */
+    public function test_la_clave_compuesta_sigue_impidiendo_alcances_repetidos(): void
+    {
+        ['user' => $usuario, 'carrera' => $carrera] = $this->crearDependenciasDeSimulacion();
+        $alcance = ['usuario_id' => $usuario->id, 'carrera_id' => $carrera->id];
+
+        DB::table('permisos_carrera')->insert($alcance);
+
+        try {
+            DB::table('permisos_carrera')->insert($alcance);
+            $this->fail('Debió rechazar el alcance repetido por la clave primaria compuesta.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('PRIMARY', $e->getMessage());
+        }
+    }
+
+    /**
+     * La PK compuesta respalda usuario_id por ser su columna líder, pero NO
+     * respalda la segunda columna. Si el índice que sostiene esa FK se perdiera
+     * al soltar el UNIQUE viejo, InnoDB tendría que recorrer la tabla entera en
+     * cada borrado de carrera o facultad, y nada en la suite lo notaría.
+     */
+    public function test_las_fk_de_los_puentes_conservan_su_indice(): void
+    {
+        foreach (['permisos_carrera' => 'carrera_id', 'permisos_facultad' => 'facultad_id'] as $tabla => $columna) {
+            $indices = DB::select(
+                'SELECT DISTINCT INDEX_NAME n FROM information_schema.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? AND SEQ_IN_INDEX = 1',
+                [$tabla, $columna]
+            );
+
+            $this->assertNotEmpty($indices,
+                "{$tabla}.{$columna} tiene una FK y se quedó sin índice que la respalde.");
+        }
+    }
+
+    /**
      * Árbol mínimo de dependencias (carrera externa, carrera y malla USIL,
      * usuario) que exigen las FK NOT NULL de simulaciones. Mismo patrón que
      * SimulacionTest::setUp(), recortado a lo que esta prueba necesita.
