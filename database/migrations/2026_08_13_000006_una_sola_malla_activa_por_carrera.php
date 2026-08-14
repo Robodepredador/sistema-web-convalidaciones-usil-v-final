@@ -8,10 +8,16 @@ use Illuminate\Support\Facades\Schema;
 /**
  * `activa` era un booleano suelto: nada impedía marcar dos mallas de la misma
  * carrera a la vez. ConvalidacionEngine::mallaDeCarrera() se apoya en ese
- * campo para elegir "la" malla vigente de la carrera, así que con dos activas
- * la simulación de un postulante podía terminar calculada contra un plan de
- * estudios distinto al de otro postulante de la misma carrera, sin que nadie
- * lo notara.
+ * campo para elegir "la" malla vigente de la carrera.
+ *
+ * El desempate de ese método (activa, anio, id, todos descendentes) es
+ * determinista, así que dos postulantes evaluados hoy obtienen la misma malla:
+ * el riesgo no es que el resultado varíe entre consultas. Es que con dos
+ * activas la que gana el desempate no tiene por qué ser la que el
+ * coordinador considera vigente, y basta cargar una malla nueva para que la
+ * ganadora cambie sin que nadie lo decida ni lo note. Una carrera tiene una
+ * malla vigente: eso es una regla del negocio y le corresponde a la base
+ * sostenerla, no al ORDER BY de una consulta.
  *
  * Mismo recurso que ya usa `activa_unica` en esta tabla: una columna generada
  * que vale 1 solo cuando la fila cuenta (activa y no borrada) y NULL cuando
