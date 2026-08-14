@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ConvalidacionEngine;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +18,7 @@ class CursoNoConvalidable extends Model
 {
     protected $table = 'cursos_no_convalidables';
 
-    protected $fillable = ['carrera_id', 'palabra_clave', 'clave_normalizada', 'motivo', 'activo'];
+    protected $fillable = ['carrera_id', 'palabra_clave', 'motivo', 'activo'];
 
     protected $casts = ['activo' => 'boolean'];
 
@@ -86,8 +87,19 @@ class CursoNoConvalidable extends Model
         Cache::forget(self::CACHE_KEY);
     }
 
+    /**
+     * La clave normalizada es una proyección de la palabra clave, no un dato
+     * aparte: se recalcula en cada guardado. Antes venía en $fillable y el
+     * llamador podía dejarla desalineada de su origen, con lo que la regla
+     * dejaba de coincidir con nada.
+     */
     protected static function booted(): void
     {
+        static::saving(function (self $regla) {
+            $regla->clave_normalizada = app(ConvalidacionEngine::class)
+                ->normaliza($regla->palabra_clave);
+        });
+
         static::saved(fn () => self::limpiarCache());
         static::deleted(fn () => self::limpiarCache());
     }

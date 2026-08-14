@@ -294,6 +294,26 @@ class IntegridadEsquemaTest extends TestCase
     }
 
     /**
+     * La clave normalizada es un derivado de la palabra clave: el modelo la
+     * recalcula siempre, aunque alguien intente pasarla desde fuera.
+     *
+     * 'Educación Musical' y no 'Educación Física': esta última ya la siembra
+     * 2026_08_05_000004_mueve_no_convalidables_del_codigo_a_la_bd como
+     * institucional de fábrica y chocaría con uq_no_convalidable_clave_carrera.
+     */
+    public function test_la_clave_normalizada_no_se_puede_escribir_a_mano(): void
+    {
+        $regla = CursoNoConvalidable::create([
+            'carrera_id' => null,
+            'palabra_clave' => 'Educación Musical',
+            'clave_normalizada' => 'valor-inventado',
+            'motivo' => 'Prueba',
+        ]);
+
+        $this->assertSame('educacion musical', $regla->fresh()->clave_normalizada);
+    }
+
+    /**
      * Árbol mínimo de dependencias (carrera externa, carrera y malla USIL,
      * usuario) que exigen las FK NOT NULL de simulaciones. Mismo patrón que
      * SimulacionTest::setUp(), recortado a lo que esta prueba necesita.
