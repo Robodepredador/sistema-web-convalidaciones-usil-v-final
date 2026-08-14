@@ -244,14 +244,14 @@ Route::middleware('auth')->group(function () {
         // expedientes. Va con `evaluacion.editar` —cuya descripción en el catálogo de
         // permisos es literalmente «Registrar/editar equivalencias y mapeo»— y el
         // alcance por carrera destino se comprueba dentro del controlador.
-        Route::middleware('permission:evaluacion.editar')->group(function () {
-            Route::get('mapeo-mallas', [MapeoMallasController::class, 'index'])->name('mapeo-mallas.index');
-            Route::get('mapeo-mallas/crear', [MapeoMallasController::class, 'crear'])->name('mapeo-mallas.crear');
-            Route::get('mapeo-mallas/cursos', [MapeoMallasController::class, 'cursos'])->name('mapeo-mallas.cursos');
-            Route::post('mapeo-mallas', [MapeoMallasController::class, 'store'])->name('mapeo-mallas.store');
-            Route::post('mapeo-mallas/no-convalidable', [MapeoMallasController::class, 'marcarNoConvalidable'])->name('mapeo-mallas.no-convalidable');
-            Route::delete('mapeo-mallas/{equivalenciaMalla}', [MapeoMallasController::class, 'destroy'])
-                ->name('mapeo-mallas.destroy')->whereNumber('equivalenciaMalla');
+        Route::middleware('permission:equivalencias.gestionar')->group(function () {
+            Route::get('equivalencias-catalogo', [MapeoMallasController::class, 'index'])->name('equivalencias-catalogo.index');
+            Route::get('equivalencias-catalogo/crear', [MapeoMallasController::class, 'crear'])->name('equivalencias-catalogo.crear');
+            Route::get('equivalencias-catalogo/cursos', [MapeoMallasController::class, 'cursos'])->name('equivalencias-catalogo.cursos');
+            Route::post('equivalencias-catalogo', [MapeoMallasController::class, 'store'])->name('equivalencias-catalogo.store');
+            Route::post('equivalencias-catalogo/no-convalidable', [MapeoMallasController::class, 'marcarNoConvalidable'])->name('equivalencias-catalogo.no-convalidable');
+            Route::delete('equivalencias-catalogo/{cursoUsil}/{cursoExterno}', [MapeoMallasController::class, 'destroy'])
+                ->name('equivalencias-catalogo.destroy')->whereNumber(['cursoUsil', 'cursoExterno']);
         });
 
         // CU-04 / CU-05: Simulación — creación y edición (permiso evaluacion.editar)

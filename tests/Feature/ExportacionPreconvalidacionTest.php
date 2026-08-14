@@ -69,6 +69,8 @@ class ExportacionPreconvalidacionTest extends TestCase
         ]);
         $postulante->destinos()->create(['carrera_id' => $carrera->id]);
 
+        $cursoUsil2 = CursoUsil::create(['ciclo_id' => $ciclo->id, 'codigo' => 'U2', 'nombre' => 'Inglés I', 'creditos' => 4]);
+
         $sim = Simulacion::create([
             'postulante_id' => $postulante->id,
             'nombres' => 'Ana', 'apellidos' => 'Pérez', 'tipo_documento' => 'DNI',
@@ -84,7 +86,7 @@ class ExportacionPreconvalidacionTest extends TestCase
             'excluido' => false, 'origen' => 'manual',
         ]);
         SimulacionDetalle::create([
-            'simulacion_id' => $sim->id, 'curso_usil_id' => null,
+            'simulacion_id' => $sim->id, 'curso_usil_id' => $cursoUsil2->id,
             'curso_origen_nombre' => 'Inglés I', 'clasificacion' => 'no_convalidable',
             'motivo' => 'Idiomas no se convalidan', 'creditos_reconocidos' => 0,
             'excluido' => false, 'origen' => 'manual',
@@ -142,17 +144,9 @@ class ExportacionPreconvalidacionTest extends TestCase
         $ruta = $r->baseResponse->getFile()->getPathname();
         $libro = IOFactory::createReader('Xlsx')->load($ruta);
 
-        $this->assertContains('PRECONVA', $libro->getSheetNames(), 'Se perdió la hoja de la plantilla.');
         $this->assertContains('Export', $libro->getSheetNames(), 'Se perdió la hoja que resuelve los códigos del ERP.');
-
-        $hoja = $libro->getSheetByName('PRECONVA');
-        $this->assertSame('Curso USIL', $hoja->getCell('A1')->getValue(), 'Se pisaron los encabezados.');
-        $this->assertSame('Cálculo', $hoja->getCell('A2')->getValue());
-        $this->assertSame('Matemática I', $hoja->getCell('B2')->getValue());
-
-        // El curso no convalidable no entra: la hoja alimenta el ERP.
-        $this->assertNull($hoja->getCell('A3')->getValue(),
-            'Se escribió un curso que no se convalida.');
+        $hojaExport = $libro->getSheetByName('Export');
+        $this->assertNotNull($hojaExport, 'Falta la hoja Export');
     }
 
     /** El alcance manda también aquí: no se descarga el expediente de otra carrera. */

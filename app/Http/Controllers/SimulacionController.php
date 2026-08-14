@@ -152,22 +152,22 @@ class SimulacionController extends Controller
         $carreraDestino = $carreraDestinoId ? Carrera::find($carreraDestinoId) : null;
         $pool = $carreraDestinoId ? $this->engine->poolCursosUsil($carreraDestinoId) : [];
 
-        // El récord de origen se llena a mano o con el extractor de IA; arranca vacío.
-        $cursosOrigen = [];
-
-        // Catálogo del que ELEGIR, que no es lo mismo que las filas de arriba: son los
-        // cursos de la malla oficial vigente de la carrera de origen. Volcarlos en
-        // `cursosOrigen` haría que la simulación arrancara afirmando que el alumno
-        // cursó el plan entero. Vacío si esa carrera no tiene malla cargada, y entonces
-        // el alta sigue siendo por texto libre como hasta ahora.
-        $cursosMallaOrigen = $postulante->carrera_externa_id
-            ? CursoExterno::whereHas('mallaExterna', fn ($q) => $q
+        // Las opciones pre-autorizadas por el especialista.
+        $equivalencias = $carreraDestinoId && $postulante->carrera_externa_id
+            ? \App\Models\Equivalencia::with('cursoExterno:id,nombre,creditos')
                 ->where('carrera_externa_id', $postulante->carrera_externa_id)
-                ->where('activa', true))
-                ->orderBy('nombre')
-                ->get(['id', 'nombre', 'creditos'])
-                ->all()
-            : [];
+                ->whereHas('cursoUsil.ciclo.malla', fn ($q) => $q->where('carrera_id', $carreraDestinoId))
+                ->get()
+            : collect([]);
+
+        $opcionesPorUsil = [];
+        foreach ($equivalencias as $eq) {
+            $opcionesPorUsil[$eq->curso_usil_id][] = $eq->cursoExterno;
+        }
+
+        foreach ($pool as &$cursoUsil) {
+            $cursoUsil['opciones'] = $opcionesPorUsil[$cursoUsil['id']] ?? [];
+        }
 
         // Al editar: se reconstruyen las filas desde el detalle guardado.
         $edicionData = null;
@@ -205,9 +205,7 @@ class SimulacionController extends Controller
                 'carrera_externa_id' => $postulante->carrera_externa_id,
                 'ciclo_postulacion' => $postulante->ciclo_postulacion,
             ],
-            'poolUsil' => $pool,
-            'cursosOrigen' => $cursosOrigen,
-            'cursosMallaOrigen' => $cursosMallaOrigen,
+            'cursosMalla' => $pool,
             'documentos' => $postulante->documentos->map(fn ($d) => [
                 'id' => $d->id,
                 'tipo' => $d->tipo,
@@ -497,19 +495,16 @@ class SimulacionController extends Controller
             'nota_minima' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
             'filas' => ['array'],
-            'filas.*.curso_origen_nombre' => ['required', 'string', 'max:200'],
+            'filas.*.curso_origen_nombre' => ['nullable', 'string', 'max:200'],
             'filas.*.curso_externo_id' => ['nullable', 'integer'],
-            'filas.*.curso_usil_id' => ['nullable', 'integer', 'exists:cursos_usil,id'],
+            'filas.*.curso_usil_id' => ['required', 'integer', 'exists:cursos_usil,id'],
             'filas.*.nota_origen' => ['nullable', 'string', 'max:20'],
             'filas.*.creditos_origen' => ['nullable', 'numeric'],
             'filas.*.ciclo_origen' => ['nullable', 'string', 'max:30'],
-            'filas.*.clasificacion' => ['required', 'in:convalidable,desaprobado,no_convalidable'],
-            // Un descarte sin motivo es lo que hoy deja al postulante sin explicación.
-            'filas.*.motivo' => ['required_if:filas.*.clasificacion,no_convalidable', 'nullable', 'string', 'max:300'],
+            'filas.*.clasificacion' => ['nullable', 'in:convalidable,desaprobado,no_convalidable'],
+            'filas.*.motivo' => ['nullable', 'string', 'max:300'],
             'filas.*.confianza' => ['nullable', 'numeric'],
             'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud'],
-        ], [
-            'filas.*.motivo.required_if' => 'Indica por qué el curso no se convalida: es lo que verá el postulante.',
         ]);
 
         // La carrera destino debe estar dentro del alcance del evaluador (RF-40):
@@ -527,32 +522,37 @@ class SimulacionController extends Controller
         // Solo se puede convalidar hacia cursos del plan de estudios destino (mismo pool que ve el front).
         $poolIds = array_flip(array_column($this->engine->poolCursosUsil((int) $datos['carrera_usil_id']), 'id'));
 
+        // Las equivalencias autorizadas
+        $equivalencias = \App\Models\Equivalencia::where('carrera_externa_id', $postulante->carrera_externa_id)
+            ->whereHas('cursoUsil.ciclo.malla', fn ($q) => $q->where('carrera_id', $datos['carrera_usil_id']))
+            ->get()
+            ->groupBy('curso_usil_id');
+
         $notaMinima = $this->notaMinimaAplicable($datos);
 
-        // Solo las filas convalidables llevan destino; regla 1‑a‑1: un curso USIL no se repite.
         $usados = [];
         foreach ($datos['filas'] ?? [] as $i => $f) {
-            if (($f['clasificacion'] ?? '') !== 'convalidable') {
-                $datos['filas'][$i]['curso_usil_id'] = null;
+            $cid = $f['curso_usil_id'];
+            
+            abort_if(! isset($poolIds[$cid]), 422, 'Un curso USIL asignado no pertenece al plan de estudios de la carrera destino.');
+            abort_if(isset($usados[$cid]), 422, 'Un curso USIL está asignado más de una vez (regla 1 a 1).');
+            $usados[$cid] = true;
+            
+            $extId = $f['curso_externo_id'] ?? null;
+            if ($extId) {
+                // Verificar que está autorizado por el especialista
+                $autorizados = $equivalencias->get($cid)?->pluck('curso_externo_id')->toArray() ?? [];
+                abort_unless(in_array((int)$extId, $autorizados, true), 422, "El curso externo seleccionado no está autorizado para este curso USIL.");
+                
+                $datos['filas'][$i]['clasificacion'] = 'convalidable';
 
-                continue;
-            }
-
-            // El filtro por nota vivía solo en el navegador y solo en la rama de
-            // extracción con IA: una fila escrita a mano entraba con nota 08.
-            // Es un 'if' y no un abort_if porque el mensaje se evaluaría siempre,
-            // y en una fila sin nota eso es acceder a una clave inexistente.
-            $nota = $this->notaNumerica($f['nota_origen'] ?? null);
-            if ($nota !== null && $nota < $notaMinima) {
-                abort(422, "«{$f['curso_origen_nombre']}» tiene nota {$f['nota_origen']}, por debajo de la mínima "
-                    ."aprobatoria ({$notaMinima}). Un curso desaprobado no se convalida: clasifícalo como desaprobado.");
-            }
-
-            $cid = $f['curso_usil_id'] ?? null;
-            if ($cid) {
-                abort_if(! isset($poolIds[$cid]), 422, 'Un curso USIL asignado no pertenece al plan de estudios de la carrera destino.');
-                abort_if(isset($usados[$cid]), 422, 'Un curso USIL está asignado más de una vez (regla 1 a 1).');
-                $usados[$cid] = true;
+                $nota = $this->notaNumerica($f['nota_origen'] ?? null);
+                if ($nota !== null && $nota < $notaMinima) {
+                    abort(422, "«{$f['curso_origen_nombre']}» tiene nota {$f['nota_origen']}, por debajo de la mínima "
+                        ."aprobatoria ({$notaMinima}). Un curso desaprobado no se convalida.");
+                }
+            } else {
+                $datos['filas'][$i]['clasificacion'] = 'no_convalidable';
             }
         }
 
@@ -600,20 +600,19 @@ class SimulacionController extends Controller
                     }
                 }
 
-                $cid = $f['curso_usil_id'] ?? null;
+                $cid = $f['curso_usil_id'];
                 $sim->detalles()->create([
                     'curso_usil_id' => $cid,
                     'curso_externo_id' => $f['curso_externo_id'] ?? null,
-                    'curso_origen_nombre' => $f['curso_origen_nombre'],
+                    'curso_origen_nombre' => $f['curso_origen_nombre'] ?? '',
                     'nota_origen' => $f['nota_origen'] ?? null,
                     'creditos_origen' => $f['creditos_origen'] ?? null,
                     'ciclo_origen' => $f['ciclo_origen'] ?? null,
                     'clasificacion' => $f['clasificacion'],
-                    // Solo tiene sentido en lo descartado: un curso convalidado
-                    // no arrastra el motivo de cuando no lo estaba.
-                    'motivo' => $f['clasificacion'] === 'convalidable' ? null : ($f['motivo'] ?? null),
+                    // Si no convalida, no hay un motivo que el usuario ingrese ahora, pero podemos dejar null
+                    'motivo' => $f['motivo'] ?? null,
                     'confianza' => $f['confianza'] ?? null,
-                    'creditos_reconocidos' => $cid ? (float) ($creditosUsil[$cid] ?? 0) : 0,
+                    'creditos_reconocidos' => $f['curso_externo_id'] ? (float) ($creditosUsil[$cid] ?? 0) : 0,
                     'excluido' => false,
                     'origen' => $f['origen'] ?? ($datos['metodo'] === 'ia' ? 'ia' : 'manual'),
                 ]);

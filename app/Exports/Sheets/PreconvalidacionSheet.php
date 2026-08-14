@@ -39,7 +39,7 @@ class PreconvalidacionSheet implements FromArray, WithColumnWidths, WithEvents, 
         $fac = $s->carreraUsil?->facultad?->nombre ?? 'Ingeniería';
         $fac = Str::startsWith(mb_strtolower($fac), 'facultad') ? $fac : 'Facultad de '.$fac;
 
-        $convalidados = $s->detalles->filter(fn ($d) => $d->curso_usil_id && ! $d->excluido);
+        $convalidados = $s->detalles->filter(fn ($d) => $d->clasificacion === 'convalidable' && ! $d->excluido);
 
         $filas = [
             [$fac],

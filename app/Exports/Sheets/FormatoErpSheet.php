@@ -36,7 +36,7 @@ class FormatoErpSheet implements FromArray, WithColumnWidths, WithEvents, WithTi
     public function array(): array
     {
         $s = $this->s;
-        $convalidados = $s->detalles->filter(fn ($d) => $d->curso_usil_id && ! $d->excluido);
+        $convalidados = $s->detalles->filter(fn ($d) => $d->clasificacion === 'convalidable' && ! $d->excluido);
         $this->nFilas = $convalidados->count();
 
         $filas = [
