@@ -146,7 +146,7 @@ class DashboardController extends Controller
         $posibles = [
             ['label' => 'Solicitudes', 'href' => '/postulantes', 'permiso' => 'solicitudes.ver'],
             ['label' => 'Mallas Externas', 'href' => '/equivalencias', 'permiso' => 'mallas_externas.gestionar'],
-            ['label' => 'Mapeo de equivalencias', 'href' => '/mapeo-mallas', 'permiso' => 'evaluacion.editar'],
+            ['label' => 'Catálogo de equivalencias', 'href' => '/equivalencias-catalogo', 'permiso' => 'equivalencias.gestionar'],
             ['label' => 'Simulaciones', 'href' => '/simulaciones', 'permiso' => 'evaluacion.ver'],
             ['label' => 'Convalidaciones', 'href' => '/convalidaciones', 'permiso' => 'convalidacion.ver'],
             ['label' => 'Usuarios', 'href' => '/usuarios', 'permiso' => 'usuarios.gestionar'],
