@@ -61,13 +61,6 @@ const limpiar = () => {
                             </svg>
                             <span>Histórico de equivalencias</span>
                         </Link>
-
-                        <span v-else
-                              class="inline-flex items-center gap-1.5 rounded-2xl bg-white/10 border border-white/15 px-3.5 py-2.5 text-xs font-medium text-slate-200 backdrop-blur-md"
-                              title="Configura GEMINI_API_KEY en .env para habilitar la IA">
-                            <span class="h-2 w-2 rounded-full bg-slate-400"></span>
-                            <span>Modo similitud estándar</span>
-                        </span>
                     </div>
                 </div>
 
