@@ -58,7 +58,7 @@ class MapeoMallasTest extends TestCase
         $cursosExt = collect(['Matemática I', 'Matemática II'])
             ->map(fn ($n) => CursoExterno::create(['malla_externa_id' => $mallaExt->id, 'nombre' => $n]));
 
-        $coord = $this->usuario(Role::COORDINADOR, 'coord');
+        $coord = $this->usuario(Role::ADMINISTRATIVO, 'coord');
         $coord->carrerasPermitidas()->sync([$sw->id]);   // solo Software
 
         $this->ctx = compact('admin', 'coord', 'sw', 'mallaSw', 'cursosSw', 'civil', 'mallaCivil',

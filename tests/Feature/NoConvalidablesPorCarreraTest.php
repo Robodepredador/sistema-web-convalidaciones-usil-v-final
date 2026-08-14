@@ -24,7 +24,7 @@ use Tests\TestCase;
 
 /**
  * La política de cursos no convalidables tiene dos niveles: institucional
- * (Superusuario) y de carrera (su Coordinador). La de la carrera pisa a la
+ * (Superusuario) y de carrera (su Administrativo). La de la carrera pisa a la
  * institucional, tanto para excluir de más como para levantar una exclusión.
  */
 class NoConvalidablesPorCarreraTest extends TestCase
@@ -50,8 +50,8 @@ class NoConvalidablesPorCarreraTest extends TestCase
         $ciclo = Ciclo::create(['malla_id' => $mallaIng->id, 'numero' => 1]);
         CursoUsil::create(['ciclo_id' => $ciclo->id, 'codigo' => 'F1', 'nombre' => 'Física I', 'creditos' => 4]);
 
-        // Coordinador con alcance SOLO a Ingeniería Civil.
-        $coord = $this->usuario(Role::COORDINADOR, 'coord');
+        // Administrativo con alcance SOLO a Ingeniería Civil.
+        $coord = $this->usuario(Role::ADMINISTRATIVO, 'coord');
         $coord->carrerasPermitidas()->attach($ing->id);
 
         // Política institucional de partida: Geología no se convalida en ninguna

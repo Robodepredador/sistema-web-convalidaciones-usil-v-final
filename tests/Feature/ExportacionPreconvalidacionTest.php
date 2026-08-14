@@ -158,7 +158,7 @@ class ExportacionPreconvalidacionTest extends TestCase
     /** El alcance manda también aquí: no se descarga el expediente de otra carrera. */
     public function test_la_descarga_respeta_el_alcance(): void
     {
-        $rolCoord = Role::create(['nombre' => Role::COORDINADOR]);
+        $rolCoord = Role::create(['nombre' => Role::ADMINISTRATIVO]);
         $ajeno = User::create([
             'nombre' => 'Coord', 'email' => 'coord@usil.edu.pe', 'password_hash' => Hash::make('x'),
             'rol_id' => $rolCoord->id, 'activo' => true, 'primer_acceso' => false,

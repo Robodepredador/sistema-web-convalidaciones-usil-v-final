@@ -54,7 +54,6 @@ class DashboardController extends Controller
         $pendientesAsignar = $c('pendiente');
         $enEvaluacion = $c('asignada') + $c('en_revision') + $c('observada') + $c('devuelta');
         $aprobadas = $c('aprobada');
-        $tasa = $total ? round($aprobadas / $total * 100) : 0;
 
         $sims = $this->simsScoped($visibles);
         $convs = $this->convsScoped($visibles);
@@ -78,7 +77,7 @@ class DashboardController extends Controller
                     ['label' => 'Solicitudes totales', 'valor' => Postulante::count(), 'color' => 'blue'],
                 ];
 
-            case Role::COORDINADOR:
+            case Role::ADMINISTRATIVO:
                 $asignadasAmi = (clone $this->destinosDe($visibles))->where('asignado_a_id', $user->id)->count();
 
                 return [
@@ -88,39 +87,7 @@ class DashboardController extends Controller
                     ['label' => 'Simulaciones generadas', 'valor' => $sims, 'color' => 'violet'],
                 ];
 
-            case Role::DIRECTOR:
-                return [
-                    ['label' => 'Solicitudes (mis carreras)', 'valor' => $total, 'color' => 'blue'],
-                    ['label' => 'Pendientes de aprobación', 'valor' => $c('en_revision'), 'color' => 'amber'],
-                    ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Observadas / devueltas', 'valor' => $c('observada') + $c('devuelta'), 'color' => 'orange'],
-                ];
-
-            case Role::DECANO:
-                return [
-                    ['label' => 'Solicitudes (facultad)', 'valor' => $total, 'color' => 'blue'],
-                    ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Convalidaciones confirmadas', 'valor' => $convs, 'color' => 'indigo'],
-                    ['label' => 'Tasa de aprobación', 'valor' => $tasa.'%', 'color' => 'violet'],
-                ];
-
-            case Role::AUDITOR:
-                return [
-                    ['label' => 'Expedientes', 'valor' => $total, 'color' => 'blue'],
-                    ['label' => 'En proceso', 'valor' => $enEvaluacion, 'color' => 'amber'],
-                    ['label' => 'Aprobados', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Usuarios activos', 'valor' => User::where('activo', true)->count(), 'color' => 'slate'],
-                ];
-
-            case Role::CONSULTA:
-                return [
-                    ['label' => 'Solicitudes totales', 'valor' => $total, 'color' => 'blue'],
-                    ['label' => 'En proceso', 'valor' => $enEvaluacion, 'color' => 'amber'],
-                    ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Tasa de aprobación', 'valor' => $tasa.'%', 'color' => 'violet'],
-                ];
-
-            default: // Superusuario
+            default: // Superusuario (y, por ahora, Especialista: ver informe de la Task A1)
                 return [
                     ['label' => 'Usuarios activos', 'valor' => User::where('activo', true)->count(), 'color' => 'blue'],
                     ['label' => 'Solicitudes totales', 'valor' => $total, 'color' => 'indigo'],

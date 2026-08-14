@@ -33,7 +33,7 @@ class GateSimulacionTest extends TestCase
     private function coordinador(): User
     {
         $this->seed(RoleSeeder::class);
-        $rol = Role::where('nombre', Role::COORDINADOR)->firstOrFail();
+        $rol = Role::where('nombre', Role::ADMINISTRATIVO)->firstOrFail();
         $u = User::create([
             'nombre' => 'Coord', 'email' => 'coord@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,

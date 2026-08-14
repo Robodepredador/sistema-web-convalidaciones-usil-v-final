@@ -62,7 +62,7 @@ class HistorialEquivalenciasTest extends TestCase
 
         $coord = User::create([
             'nombre' => 'Coord', 'email' => 'coord@usil.edu.pe', 'password_hash' => Hash::make('x'),
-            'rol_id' => Role::where('nombre', Role::COORDINADOR)->firstOrFail()->id,
+            'rol_id' => Role::where('nombre', Role::ADMINISTRATIVO)->firstOrFail()->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
         $coord->carrerasPermitidas()->sync([$sw->id]);   // solo Software

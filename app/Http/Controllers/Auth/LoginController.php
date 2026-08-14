@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
@@ -29,11 +28,10 @@ class LoginController extends Controller
         // Solo en entorno local: accesos rápidos para pruebas (no se exponen en producción).
         $usuariosDemo = app()->environment('local') ? [
             ['label' => 'Superusuario', 'email' => 'admin.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Especialista en Convalidaciones', 'email' => 'especialista.demo@usil.edu.pe', 'password' => 'Demo#1234'],
+            ['label' => 'Administrativo de Facultad', 'email' => 'administrativo.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Asesor de Admisión', 'email' => 'asesor.demo@usil.edu.pe', 'password' => 'Demo#1234'],
             ['label' => 'Ejecutivo Comercial de Admisión', 'email' => 'ejecutivo.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Coordinador — Fac. Ingeniería e IA', 'email' => 'coord.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Director — Fac. Ingeniería e IA', 'email' => 'director.demo@usil.edu.pe', 'password' => 'Demo#1234'],
-            ['label' => 'Decano — Fac. Ingeniería e IA', 'email' => 'decano.demo@usil.edu.pe', 'password' => 'Demo#1234'],
         ] : [];
 
         return inertia('Auth/Login', ['usuariosDemo' => $usuariosDemo]);
@@ -69,14 +67,6 @@ class LoginController extends Controller
 
             throw ValidationException::withMessages([
                 'email' => 'Credenciales inválidas.',
-            ]);
-        }
-
-        // Rol inhabilitado: se valida con la contraseña ya verificada para no
-        // revelar el perfil de una cuenta a quien no conoce sus credenciales.
-        if (in_array($user->rol?->nombre, Role::SIN_ACCESO, true)) {
-            throw ValidationException::withMessages([
-                'email' => 'El perfil asignado no tiene acceso al sistema.',
             ]);
         }
 

@@ -27,15 +27,14 @@ class Permiso extends Model
         'solicitudes.ver' => ['Solicitudes', 'Ver solicitudes de convalidación'],
         'solicitudes.crear' => ['Solicitudes', 'Registrar postulantes/solicitudes'],
         'solicitudes.editar' => ['Solicitudes', 'Editar datos del expediente'],
+        // Sigue vigente: gatea POST /postulantes/{id}/revisar (aprobar/observar
+        // el expediente de Admisión). No es la cadena de aprobación académica que
+        // esta tarea retira -esa es evaluacion.aprobar/observar/reasignar/proponer-
+        // así que no sale con ellos.
         'solicitudes.validar' => ['Solicitudes', 'Validar datos básicos del expediente'],
-        'solicitudes.asignar' => ['Solicitudes', 'Asignar solicitud a un coordinador'],
         // Evaluación académica (equivalencias + simulación)
         'evaluacion.ver' => ['Evaluación', 'Ver evaluaciones y equivalencias'],
         'evaluacion.editar' => ['Evaluación', 'Registrar/editar equivalencias y mapeo'],
-        'evaluacion.proponer' => ['Evaluación', 'Generar propuesta de preconvalidación'],
-        'evaluacion.aprobar' => ['Evaluación', 'Aprobar la evaluación'],
-        'evaluacion.observar' => ['Evaluación', 'Observar / devolver para corrección'],
-        'evaluacion.reasignar' => ['Evaluación', 'Reasignar evaluaciones'],
         // Convalidación. Solo lectura: el sistema dejó de emitir el memorándum
         // oficial —ese acto se gestiona fuera— así que ya no hay nada que
         // confirmar ni anular aquí. La pantalla sobrevive como historial.
@@ -46,6 +45,9 @@ class Permiso extends Model
         // Mallas oficiales de las instituciones de origen. Permiso propio (y no
         // 'evaluacion.ver') para poder retirárselo a un rol sin quitarle Simulaciones.
         'mallas_externas.gestionar' => ['Catálogos', 'Registrar mallas oficiales de instituciones externas'],
+        // Catálogo de equivalencias: qué curso externo vale por qué curso USIL,
+        // registrado una vez por el Especialista, sin importar el expediente.
+        'equivalencias.gestionar' => ['Equivalencias', 'Registrar el catálogo de equivalencias por curso'],
         // Administración
         'usuarios.gestionar' => ['Administración', 'Gestionar usuarios, roles y alcance'],
         'configuracion.gestionar' => ['Administración', 'Configurar parámetros del sistema'],
@@ -57,36 +59,29 @@ class Permiso extends Model
     // -------- Permisos por rol --------
     public const POR_ROL = [
         Role::SUPERUSUARIO => ['*'], // todos
+        // Especialista en Convalidaciones: registra la política una vez (mallas
+        // propias y equivalencias contra cualquier institución). No opera
+        // expedientes ni simulaciones: eso es del Administrativo.
+        Role::ESPECIALISTA => [
+            'dashboard.ver', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'equivalencias.gestionar',
+        ],
+        // Administrativo de Facultad (antes Coordinador de Carrera): aplica la
+        // política del Especialista sobre las simulaciones de sus carreras. Ya
+        // no gestiona catálogos ni mallas externas -eso se centralizó arriba.
+        Role::ADMINISTRATIVO => [
+            'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'evaluacion.editar',
+            'convalidacion.ver',
+        ],
         // Asesor de Admisión: registra postulantes y sus documentos; no evalúa ni aprueba.
         Role::ASESOR => [
             'dashboard.ver', 'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar',
         ],
-        // Ejecutivo Comercial de Admisión: revisa, aprueba u observa; puede corregir datos.
+        // Ejecutivo Comercial de Admisión: revisa, aprueba u observa el expediente
+        // de Admisión; puede corregir datos. Ajeno a la cadena de aprobación
+        // académica que esta tarea retira.
         Role::EJECUTIVO => [
             'dashboard.ver', 'solicitudes.ver', 'solicitudes.editar', 'solicitudes.validar',
-        ],
-        // Evalúa simulaciones de sus carreras; los postulantes los gestiona Admisión.
-        // Con 'mallas_externas.gestionar' desde 2026-08-07: el mapeo de equivalencias
-        // arranca subiendo la malla de la institución de origen, así que sin él
-        // dependería de otro rol para el primer paso de su propio flujo. Nota: ese
-        // permiso NO tiene alcance por carrera, de modo que podrá registrar mallas de
-        // cualquier institución, no solo de las que le tocan.
-        Role::COORDINADOR => [
-            'dashboard.ver', 'catalogos.gestionar', 'mallas_externas.gestionar',
-            'evaluacion.editar', 'evaluacion.ver', 'convalidacion.ver',
-        ],
-        Role::DIRECTOR => [
-            'dashboard.ver', 'estructura.gestionar', 'catalogos.gestionar',
-            'evaluacion.ver', 'convalidacion.ver', 'evaluacion.editar', 'evaluacion.proponer'
-        ],
-        Role::DECANO => [
-            'dashboard.ver', 'convalidacion.ver', 'estructura.gestionar',
-        ],
-        Role::AUDITOR => [
-            'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'convalidacion.ver',
-        ],
-        Role::CONSULTA => [
-            'dashboard.ver',
         ],
     ];
 }

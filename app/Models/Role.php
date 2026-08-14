@@ -10,49 +10,25 @@ class Role extends Model
 {
     protected $table = 'roles';
 
-    // Nomenclatura RBAC. Se conservan ADMIN/COORDINADOR como constantes (con su
-    // nuevo valor) para no romper el código existente que las referencia.
-    public const ADMIN = 'Superusuario';                 // antes 'Administrador'
-
+    // Nomenclatura RBAC. Los cinco roles del flujo real del cliente: la cadena
+    // de aprobación (Director/Decano/Auditor/Consulta) no tiene equivalente aquí.
     public const SUPERUSUARIO = 'Superusuario';
+
+    public const ADMIN = 'Superusuario';              // alias histórico, se conserva
 
     public const ASESOR = 'Asesor de Admisión';
 
     public const EJECUTIVO = 'Ejecutivo Comercial de Admisión';
 
-    public const COORDINADOR = 'Coordinador de Carrera'; // antes 'Coordinador'
+    /** Registra la política: mallas USIL de sus carreras y equivalencias contra todas las instituciones. */
+    public const ESPECIALISTA = 'Especialista en Convalidaciones';
 
-    public const DIRECTOR = 'Director de Carrera';       // antes 'Director de Escuela'
-
-    public const DECANO = 'Decano';
-
-    public const AUDITOR = 'Auditor';
-
-    public const CONSULTA = 'Consulta / Alta Dirección';
-
-    /**
-     * Roles inhabilitados: siguen existiendo en el RBAC (conservan permisos y
-     * alcance) pero no pueden iniciar sesión. Vive aquí, y no en el
-     * LoginController, para que la pantalla de Usuarios muestre la misma verdad
-     * que aplica el login.
-     */
-    public const SIN_ACCESO = [self::AUDITOR, self::CONSULTA];
-
-    /** ¿Este rol habilita el inicio de sesión? */
-    public function puedeIniciarSesion(): bool
-    {
-        return ! in_array($this->nombre, self::SIN_ACCESO, true);
-    }
+    /** Aplica la política: atiende las simulaciones de sus carreras asignadas. */
+    public const ADMINISTRATIVO = 'Administrativo de Facultad';
 
     public const ALCANCE = [
-        self::SUPERUSUARIO => 'global',
-        self::ASESOR => 'global',
-        self::EJECUTIVO => 'global',
-        self::COORDINADOR => 'carrera',
-        self::DIRECTOR => 'carrera',
-        self::DECANO => 'facultad',
-        self::AUDITOR => 'global',
-        self::CONSULTA => 'global',
+        self::ESPECIALISTA => 'carrera',
+        self::ADMINISTRATIVO => 'carrera',
     ];
 
     protected $fillable = ['nombre', 'descripcion'];

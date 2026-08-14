@@ -29,9 +29,9 @@ use Tests\TestCase;
  * AUDITORÍA — pruebas end-to-end por rol y sondas de abuso.
  *
  * Escenario: dos facultades (ING / NEG), una carrera en cada una, dos asesores
- * distintos con un postulante propio cada uno, y un coordinador asignado SOLO a
- * la carrera de Ingeniería. Con eso se puede comprobar si el alcance por rol
- * (RF-40) se aplica también sobre el registro individual y no solo al listar.
+ * distintos con un postulante propio cada uno, y un administrativo asignado
+ * SOLO a la carrera de Ingeniería. Con eso se puede comprobar si el alcance
+ * por rol (RF-40) se aplica también sobre el registro individual y no solo al listar.
  */
 class AuditoriaE2ETest extends TestCase
 {
@@ -66,13 +66,9 @@ class AuditoriaE2ETest extends TestCase
         $inst = InstitucionExterna::create(['tipo_id' => $tipo->id, 'nombre' => 'UNI']);
         $carExt = CarreraExterna::create(['institucion_id' => $inst->id, 'nombre' => 'Sistemas']);
 
-        // Coordinador con alcance SOLO a la carrera de Ingeniería (RF-40).
-        $coord = $this->usuario(Role::COORDINADOR, 'coord');
+        // Administrativo con alcance SOLO a la carrera de Ingeniería (RF-40).
+        $coord = $this->usuario(Role::ADMINISTRATIVO, 'coord');
         $coord->carrerasPermitidas()->attach($carrIng->id);
-
-        // Decano con alcance SOLO a la facultad de Ingeniería.
-        $decano = $this->usuario(Role::DECANO, 'decano');
-        $decano->facultadesPermitidas()->attach($facIng->id);
 
         $this->c += [
             'admin' => $admin,
@@ -80,9 +76,6 @@ class AuditoriaE2ETest extends TestCase
             'asesorB' => $this->usuario(Role::ASESOR, 'asesorb'),
             'ejecutivo' => $this->usuario(Role::EJECUTIVO, 'ejecutivo'),
             'coord' => $coord,
-            'decano' => $decano,
-            'auditor' => $this->usuario(Role::AUDITOR, 'auditor'),
-            'consulta' => $this->usuario(Role::CONSULTA, 'consulta'),
             'facIng' => $facIng, 'facNeg' => $facNeg,
             'carrIng' => $carrIng, 'carrNeg' => $carrNeg,
             'inst' => $inst, 'carExt' => $carExt,
@@ -144,7 +137,7 @@ class AuditoriaE2ETest extends TestCase
     // A. FLUJOS FUNCIONALES END-TO-END POR ROL
     // ==================================================================
 
-    /** E2E completo: Asesor → Ejecutivo → Coordinador → Decano → Postulante. */
+    /** E2E completo: Asesor → Ejecutivo → Administrativo → Postulante. */
     public function test_e2e_flujo_completo_de_convalidacion(): void
     {
         // 1) Asesor registra al postulante con su expediente (queda 'pendiente').
@@ -193,12 +186,13 @@ class AuditoriaE2ETest extends TestCase
         $sim = Simulacion::where('postulante_id', $p->id)->firstOrFail();
         $this->assertSame(4.0, (float) $sim->detalles()->sum('creditos_reconocidos'));
 
-        // 5) La preconvalidación queda en el historial, visible para el decano.
+        // 5) La preconvalidación queda en el historial, visible para el administrativo.
         //
         // Aquí terminaba antes el flujo del sistema, con el decano confirmando y
         // emitiendo el memorándum oficial. Ese acto pasó a gestionarse fuera del
-        // sistema: lo último que el sistema produce es la preconvalidación.
-        $this->actingAs($this->c['decano'])->get('/convalidaciones')
+        // sistema, y el propio rol de Decano salió con la Task A1: lo último que
+        // el sistema produce es la preconvalidación.
+        $this->actingAs($this->c['coord'])->get('/convalidaciones')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('simulaciones.data.0.id', $sim->id));
 
@@ -208,18 +202,6 @@ class AuditoriaE2ETest extends TestCase
         $this->post('/portal/login', ['email' => $p->email, 'password' => 'Portal#2026'])
             ->assertRedirect(route('portal.seguimiento'));
         $this->get('/portal')->assertOk();
-    }
-
-    /** Auditor y Consulta están activos en Usuarios pero el login los rechaza. */
-    public function test_auditor_y_consulta_no_pueden_iniciar_sesion(): void
-    {
-        foreach (['auditor', 'consulta'] as $slug) {
-            $this->post('/login', ['email' => "{$slug}@usil.edu.pe", 'password' => 'Clave#2026'])
-                ->assertSessionHasErrors('email');
-            $this->assertGuest();
-        }
-        // ...y sin embargo la BD los marca como cuentas activas.
-        $this->assertTrue($this->c['auditor']->activo);
     }
 
     // ==================================================================
@@ -285,7 +267,7 @@ class AuditoriaE2ETest extends TestCase
             $this->c['carrIng'], 'ISW');
         $this->assertSame('generada', $sim->estado);
 
-        $this->actingAs($this->c['auditor'])->get("/simulaciones/{$sim->id}/pdf");
+        $this->actingAs($this->c['coord'])->get("/simulaciones/{$sim->id}/pdf");
 
         $this->assertSame('generada', $sim->fresh()->estado,
             'Un GET de solo lectura cambió el estado de la simulación a "enviada".');
@@ -449,43 +431,6 @@ class AuditoriaE2ETest extends TestCase
 
         $this->actingAs($this->c['asesorA'])->get("/postulantes/{$ajeno->id}/preconvalidacion/{$sim->id}/pdf")
             ->assertForbidden('FUGA: el asesor A descargó el PDF de un postulante ajeno.');
-    }
-
-    // ==================================================================
-    // D. SONDA: EL BUSCADOR ROMPE EL FILTRO DE ALCANCE (OR sin agrupar)
-    // ==================================================================
-
-    /**
-     * El buscador del historial no puede saltarse el filtro de alcance.
-     *
-     * La sonda original buscaba por número de memorándum. Retirado el módulo de
-     * Convalidación, la pantalla lista preconvalidaciones y se busca por
-     * apellido o documento — pero el riesgo es el mismo: un `OR` sin agrupar
-     * dentro del `when($q)` anularía el `whereIn` del alcance.
-     */
-    public function test_buscador_del_historial_evade_el_alcance(): void
-    {
-        $this->simulacion($this->postulante($this->c['asesorB'], $this->c['carrNeg'], '40000001'),
-            $this->c['carrNeg'], 'ADM');
-
-        // Sin buscador el decano de Ingeniería no ve la de Negocios (correcto).
-        $sin = $this->actingAs($this->c['decano'])->get('/convalidaciones');
-        $this->assertCount(0, $sin->viewData('page')['props']['simulaciones']['data']);
-
-        // Con el buscador por apellido y por documento, tampoco debe verla.
-        foreach (['Pérez', '40000001'] as $termino) {
-            $con = $this->actingAs($this->c['decano'])->get('/convalidaciones?q='.urlencode($termino));
-            $this->assertCount(0, $con->viewData('page')['props']['simulaciones']['data'],
-                "FUGA: buscar «{$termino}» saltó el filtro de alcance por facultad.");
-        }
-
-        // Control positivo: el buscador sigue encontrando lo que SÍ le corresponde.
-        $this->simulacion($this->postulante($this->c['asesorA'], $this->c['carrIng'], '40000009'),
-            $this->c['carrIng'], 'ISW');
-
-        $ok = $this->actingAs($this->c['decano'])->get('/convalidaciones?q=40000009');
-        $this->assertCount(1, $ok->viewData('page')['props']['simulaciones']['data'],
-            'El buscador no debe quedar inutilizado: la de su facultad sí debe encontrarse.');
     }
 
     // ==================================================================

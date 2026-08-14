@@ -22,7 +22,7 @@ class MallaExternaPlantillaTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $decano;      // tiene mallas_externas.gestionar
+    private User $especialista; // tiene mallas_externas.gestionar
 
     private User $asesor;      // no lo tiene: solo registra postulantes
 
@@ -31,7 +31,7 @@ class MallaExternaPlantillaTest extends TestCase
         parent::setUp();
         $this->seed(RoleSeeder::class);
 
-        $this->decano = $this->usuarioCon(Role::DECANO);
+        $this->especialista = $this->usuarioCon(Role::ESPECIALISTA);
         $this->asesor = $this->usuarioCon(Role::ASESOR);
     }
 
@@ -59,7 +59,7 @@ class MallaExternaPlantillaTest extends TestCase
 
     public function test_la_plantilla_se_descarga(): void
     {
-        $this->actingAs($this->decano)->get('/mallas-externas/plantilla')->assertOk();
+        $this->actingAs($this->especialista)->get('/mallas-externas/plantilla')->assertOk();
     }
 
     public function test_la_plantilla_exige_el_permiso_de_mallas_externas(): void
@@ -72,7 +72,7 @@ class MallaExternaPlantillaTest extends TestCase
     {
         $csv = "codigo,nombre,creditos\nMAT101,Cálculo I,4\nPRG101,Fundamentos de Programación,3\n";
 
-        $this->actingAs($this->decano)
+        $this->actingAs($this->especialista)
             ->post('/mallas-externas/previsualizar', ['archivo' => $this->archivo($csv)])
             ->assertOk()
             ->assertJsonPath('cursos.0.codigo', 'MAT101')
@@ -88,7 +88,7 @@ class MallaExternaPlantillaTest extends TestCase
     {
         $csv = "codigo,nombre,creditos\n,Seminario de investigación,\n";
 
-        $this->actingAs($this->decano)
+        $this->actingAs($this->especialista)
             ->post('/mallas-externas/previsualizar', ['archivo' => $this->archivo($csv)])
             ->assertOk()
             ->assertJsonPath('cursos.0.nombre', 'Seminario de investigación')
@@ -105,7 +105,7 @@ class MallaExternaPlantillaTest extends TestCase
         // Cabecera = línea 1, así que la fila sin nombre es la línea 3.
         $csv = "codigo,nombre,creditos\nMAT101,Cálculo I,4\nX999,,2\n";
 
-        $this->actingAs($this->decano)
+        $this->actingAs($this->especialista)
             ->post('/mallas-externas/previsualizar', ['archivo' => $this->archivo($csv)])
             ->assertOk()
             ->assertJsonCount(1, 'cursos')
@@ -120,7 +120,7 @@ class MallaExternaPlantillaTest extends TestCase
         $nombre = str_repeat('N', 250);
         $csv = "codigo,nombre,creditos\n{$codigo},{$nombre},4\n";
 
-        $respuesta = $this->actingAs($this->decano)
+        $respuesta = $this->actingAs($this->especialista)
             ->post('/mallas-externas/previsualizar', ['archivo' => $this->archivo($csv)])
             ->assertOk()
             ->json('cursos.0');
@@ -131,7 +131,7 @@ class MallaExternaPlantillaTest extends TestCase
 
     public function test_rechaza_un_archivo_que_no_es_excel(): void
     {
-        $this->actingAs($this->decano)
+        $this->actingAs($this->especialista)
             ->postJson('/mallas-externas/previsualizar', ['archivo' => $this->archivo('%PDF-1.4', 'malla.pdf')])
             ->assertStatus(422);
     }

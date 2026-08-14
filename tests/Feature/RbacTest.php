@@ -13,21 +13,41 @@ class RbacTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function coordinador(): User
+    /**
+     * El cliente describe cinco roles: superusuario, especialista, administrativo
+     * de facultad, asesor de admisión y ejecutivo comercial. Los cuatro que
+     * sobraban sostenían una cadena de aprobación que este flujo no tiene.
+     */
+    public function test_el_catalogo_de_roles_es_el_del_flujo_del_cliente(): void
     {
-        $rol = Role::create(['nombre' => Role::COORDINADOR]);
+        $esperados = [
+            Role::SUPERUSUARIO,
+            Role::ESPECIALISTA,
+            Role::ADMINISTRATIVO,
+            Role::ASESOR,
+            Role::EJECUTIVO,
+        ];
+
+        $this->seed(RoleSeeder::class);
+
+        $this->assertEqualsCanonicalizing($esperados, Role::pluck('nombre')->all());
+    }
+
+    private function administrativo(): User
+    {
+        $rol = Role::create(['nombre' => Role::ADMINISTRATIVO]);
 
         return User::create([
-            'nombre' => 'Coord', 'email' => 'c@usil.edu.pe',
+            'nombre' => 'Admin Facultad', 'email' => 'af@usil.edu.pe',
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
     }
 
-    /** RF-39: el coordinador no accede a la administración de usuarios. */
-    public function test_coordinador_no_accede_a_usuarios(): void
+    /** RF-39: el administrativo de facultad no accede a la administración de usuarios. */
+    public function test_administrativo_no_accede_a_usuarios(): void
     {
-        $this->actingAs($this->coordinador())
+        $this->actingAs($this->administrativo())
             ->get('/usuarios')
             ->assertForbidden();
     }
@@ -43,29 +63,6 @@ class RbacTest extends TestCase
             'password_hash' => Hash::make('x'), 'rol_id' => $rol->id,
             'activo' => true, 'primer_acceso' => false,
         ]);
-    }
-
-    /** El Auditor (solo lectura) no puede ejecutar acciones de escritura. */
-    public function test_auditor_no_puede_escribir(): void
-    {
-        $auditor = $this->usuarioConRol(Role::AUDITOR);
-
-        // Rutas sin binding: el middleware responde 403 directo.
-        $this->actingAs($auditor)->post('/mallas-externas', [])->assertForbidden();
-        $this->actingAs($auditor)->post('/simulaciones', [])->assertForbidden();
-        $this->actingAs($auditor)->post('/postulantes', [])->assertForbidden();
-
-        // Rutas con binding {id}: el binding (404) corre antes que el permiso (403);
-        // ambos deniegan — lo importante es que nunca sea 2xx/302 de éxito.
-        foreach ([
-            fn () => $this->put('/simulaciones/1', []),
-            fn () => $this->delete('/simulaciones/1'),
-            fn () => $this->delete('/postulantes/1'),
-        ] as $peticion) {
-            $this->actingAs($auditor);
-            $status = $peticion()->getStatusCode();
-            $this->assertContains($status, [403, 404], "Se esperaba denegación (403/404), llegó {$status}.");
-        }
     }
 
     /** El Asesor de Admisión registra postulantes pero no evalúa. */
@@ -88,41 +85,26 @@ class RbacTest extends TestCase
         $this->actingAs($ejecutivo)->get('/simulaciones')->assertForbidden();
     }
 
-    /** El Coordinador no accede al módulo de postulantes (lo gestiona Admisión). */
-    public function test_coordinador_no_accede_a_postulantes(): void
+    /** El Administrativo ve solicitudes (nuevo: RF-40 ya no se lo impide) pero no las gestiona: eso es de Admisión. */
+    public function test_administrativo_no_gestiona_postulantes(): void
     {
-        $coordinador = $this->usuarioConRol(Role::COORDINADOR);
+        $administrativo = $this->usuarioConRol(Role::ADMINISTRATIVO);
 
-        $this->actingAs($coordinador)->get('/postulantes')->assertForbidden();
-        $this->actingAs($coordinador)->post('/postulantes', [])->assertForbidden();
+        $this->actingAs($administrativo)->get('/postulantes')->assertOk();
+        $this->actingAs($administrativo)->post('/postulantes', [])->assertForbidden();
         // Pero conserva su módulo de evaluación.
-        $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
+        $this->actingAs($administrativo)->get('/simulaciones')->assertOk();
     }
 
     /**
-     * El Coordinador SÍ gestiona mallas externas desde 2026-08-07.
-     *
-     * Antes no podía, y era deliberado. Cambió porque el mapeo de equivalencias
-     * arranca subiendo la malla de la institución de origen: sin este permiso el
-     * coordinador dependería de otro rol para dar el primer paso de su propio flujo.
+     * El Administrativo ya NO gestiona mallas externas: ese permiso se centralizó
+     * en el Especialista en Convalidaciones, que registra la política una sola vez.
      */
-    public function test_coordinador_gestiona_mallas_externas(): void
+    public function test_administrativo_no_gestiona_mallas_externas(): void
     {
-        $coordinador = $this->usuarioConRol(Role::COORDINADOR);
+        $administrativo = $this->usuarioConRol(Role::ADMINISTRATIVO);
 
-        $this->actingAs($coordinador)->get('/equivalencias')->assertOk();
-        // 302 (redirect con errores de validación) = pasó la autorización; 403 = bloqueado.
-        $this->actingAs($coordinador)->post('/mallas-externas', [])->assertStatus(302);
-        $this->actingAs($coordinador)->get('/simulaciones')->assertOk();
-    }
-
-    /** El Decano sí puede gestionar mallas externas (pasa el middleware de permiso). */
-    public function test_decano_puede_gestionar_mallas_externas(): void
-    {
-        $decano = $this->usuarioConRol(Role::DECANO);
-
-        // 302 (redirect con errores de validación) = pasó la autorización; 403 = bloqueado.
-        $this->actingAs($decano)->post('/mallas-externas', [])->assertStatus(302);
-        $this->actingAs($decano)->get('/equivalencias')->assertOk();
+        $this->actingAs($administrativo)->post('/mallas-externas', [])->assertForbidden();
+        $this->actingAs($administrativo)->get('/simulaciones')->assertOk();
     }
 }
