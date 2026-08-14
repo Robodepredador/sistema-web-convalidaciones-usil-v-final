@@ -76,7 +76,6 @@ const nav = computed(() => {
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
     if (puede('convalidacion.ver')) items.push({ label: 'Pre-Convalidaciones Oficiales', href: '/convalidaciones', icon: ICON.check });
     if (puede('usuarios.gestionar')) items.push({ label: 'Usuarios', href: '/usuarios', icon: ICON.users });
-    if (puede('configuracion.gestionar')) items.push({ label: 'Configuración', href: '/configuracion', icon: ICON.cog });
     return items;
 });
 

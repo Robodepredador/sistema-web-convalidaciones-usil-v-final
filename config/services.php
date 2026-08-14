@@ -42,14 +42,5 @@ return [
     ],
 
     // Motor de convalidación con IA. Proveedor por defecto: Google Gemini (gratis).
-    'gemini' => [
-        'key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
-    ],
-    'ia' => [
-        'proveedor' => env('IA_PROVEEDOR', 'gemini'), // gemini | openai
-        // CA bundle para verificar TLS (soluciona cURL error 60 en entornos sin CA).
-        'ca_bundle' => env('CURL_CA_BUNDLE', storage_path('certs/cacert.pem')),
-    ],
 
 ];

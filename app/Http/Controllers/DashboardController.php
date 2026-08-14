@@ -149,7 +149,6 @@ class DashboardController extends Controller
             ['label' => 'Simulaciones', 'href' => '/simulaciones', 'permiso' => 'evaluacion.ver'],
             ['label' => 'Convalidaciones', 'href' => '/convalidaciones', 'permiso' => 'convalidacion.ver'],
             ['label' => 'Usuarios', 'href' => '/usuarios', 'permiso' => 'usuarios.gestionar'],
-            ['label' => 'Configuración', 'href' => '/configuracion', 'permiso' => 'configuracion.gestionar'],
         ];
 
         return array_values(array_filter($posibles, fn ($a) => $user->puede($a['permiso'])));

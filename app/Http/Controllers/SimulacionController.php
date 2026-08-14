@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Carrera;
-use App\Models\CursoExterno;
 use App\Models\CursoUsil;
 use App\Models\Equivalencia;
 use App\Models\MallaCurricular;
@@ -15,7 +14,6 @@ use App\Models\SimulacionDetalle;
 use App\Services\AlcanceService;
 use App\Services\AuditoriaService;
 use App\Services\ConvalidacionEngine;
-use App\Services\IAConvalidacionService;
 use App\Services\SimulacionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Client\RequestException;
@@ -52,7 +50,6 @@ class SimulacionController extends Controller
     public function __construct(
         private SimulacionService $service,
         private ConvalidacionEngine $engine,
-        private IAConvalidacionService $ia,
     ) {}
 
     /** Lista de postulantes lista para iniciar/ver simulaciones. */
@@ -113,7 +110,6 @@ class SimulacionController extends Controller
             'postulantes' => $postulantes,
             'carreras' => Carrera::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'filtros' => $request->only(['q', 'carrera_destino_id', 'desde', 'hasta']),
-            'ia' => ['disponible' => $this->ia->disponible(), 'proveedor' => $this->ia->proveedor()],
         ]);
     }
 
@@ -175,7 +171,6 @@ class SimulacionController extends Controller
         if ($edicion) {
             $edicionData = [
                 'id' => $edicion->id,
-                'metodo' => $edicion->metodo,
                 'escala_notas' => $edicion->escala_notas,
                 'nota_minima' => $edicion->nota_minima,
                 'universidad_origen' => $edicion->universidad_origen,
@@ -189,7 +184,6 @@ class SimulacionController extends Controller
                     'clasificacion' => $d->clasificacion,
                     'motivo' => $d->motivo,
                     'curso_usil_id' => $d->curso_usil_id,
-                    'confianza' => $d->confianza,
                 ])->values(),
             ];
         }
@@ -215,35 +209,16 @@ class SimulacionController extends Controller
             ]),
             'tieneMalla' => $carreraDestinoId ? (bool) $this->engine->mallaDeCarrera($carreraDestinoId) : false,
             'noConvalidar' => ConvalidacionEngine::NO_CONVALIDAR,
-            'ia' => ['disponible' => $this->ia->disponible(), 'proveedor' => $this->ia->proveedor()],
             'edicion' => $edicionData,
             'simulacionesPrevias' => $postulante->simulaciones()
                 ->when($carreraDestinoId, fn ($q) => $q->where('carrera_usil_id', $carreraDestinoId))
                 ->where('estado', '!=', 'borrador')
                 ->with('carreraUsil')->orderByDesc('id')->get()
                 ->map(fn (Simulacion $s) => [
-                    'id' => $s->id, 'metodo' => $s->metodo, 'estado' => $s->estado,
+                    'id' => $s->id, 'estado' => $s->estado,
                     'carrera' => $s->carreraUsil?->nombre, 'fecha' => $s->created_at?->format('d/m/Y H:i'),
                 ]),
         ];
-    }
-
-    /** Sugerencia de mapeo por similitud (sin IA). */
-    public function sugerirSimilitud(Request $request): JsonResponse
-    {
-        $datos = $request->validate([
-            'carrera_usil_id' => ['required', 'exists:carreras,id'],
-            'cursos' => ['array'],
-            'cursos.*' => ['string'],
-        ]);
-
-        $carreraId = (int) $datos['carrera_usil_id'];
-        AlcanceService::autorizarCarrera($request->user(), $carreraId);
-
-        $pool = $this->engine->poolCursosUsil($carreraId);
-        $mapa = $this->engine->asignacionOptima($datos['cursos'] ?? [], $pool);
-
-        return response()->json(['mapa' => $mapa]);
     }
 
     /**
@@ -264,170 +239,12 @@ class SimulacionController extends Controller
         return Storage::response($documento->ruta, $documento->nombre_original);
     }
 
-    /** Sugerencia de mapeo semántico con IA. */
-    public function sugerirIA(Request $request): JsonResponse
-    {
-        $datos = $request->validate([
-            'carrera_usil_id' => ['required', 'exists:carreras,id'],
-            'cursos' => ['array'],
-            'cursos.*' => ['string'],
-        ]);
-
-        // El pool de cursos de una carrera ajena no se filtra ni siquiera para
-        // pedir una sugerencia: el id viaja en el cuerpo de la petición.
-        AlcanceService::autorizarCarrera($request->user(), (int) $datos['carrera_usil_id']);
-
-        if (! $this->ia->disponible()) {
-            return response()->json(['message' => 'IA no configurada. Define la API key en .env.'], 422);
-        }
-
-        @set_time_limit(180);
-
-        $carrera = Carrera::find($datos['carrera_usil_id']);
-        $pool = $this->engine->poolCursosUsil((int) $datos['carrera_usil_id']);
-        $porLabel = collect($pool)->keyBy('label');
-
-        try {
-            $mapeo = $this->ia->sugerirMapeo($carrera->nombre, $datos['cursos'] ?? [], $pool);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => $this->mensajeErrorIA($e, 'No se pudo consultar la IA')], 502);
-        }
-
-        // Traduce label → curso_usil_id.
-        $mapa = [];
-        foreach ($datos['cursos'] ?? [] as $curso) {
-            $label = $mapeo[$curso] ?? ConvalidacionEngine::NO_CONVALIDAR;
-            $mapa[$curso] = [
-                'curso_usil_id' => $porLabel[$label]['id'] ?? null,
-                'label' => $label,
-                'confianza' => $label === ConvalidacionEngine::NO_CONVALIDAR ? 0 : 90,
-            ];
-        }
-
-        return response()->json(['mapa' => $mapa]);
-    }
-
-    /**
-     * Extracción de cursos con IA.
-     *
-     * Trabaja con la base de datos existente: por defecto usa un documento ya
-     * cargado por el postulante (trazabilidad); admite también subir uno nuevo.
-     */
-    public function extraerIA(Request $request): JsonResponse
-    {
-        $request->validate([
-            'documento_id' => ['nullable', 'integer', 'exists:postulante_documentos,id'],
-            'documento' => ['nullable', 'file', 'max:20480', 'mimes:pdf,png,jpg,jpeg,gif,webp,txt,csv'],
-            'carrera_externa_id' => ['nullable', 'integer', 'exists:carreras_externas,id'],
-            // De quién es el récord que se sube al vuelo: sin saberlo no se puede
-            // comprobar su consentimiento de tratamiento de datos.
-            'postulante_id' => ['nullable', 'integer', 'exists:postulantes,id'],
-        ]);
-
-        // La extracción con IA de un PDF puede tardar más que el límite por defecto.
-        @set_time_limit(180);
-
-        // El récord va íntegro al proveedor de IA (nombre, documento y notas), así
-        // que el consentimiento se comprueba ANTES que nada: es la base legal del
-        // tratamiento (Art. 15 del Reglamento de Admisión, Ley 29733), no un
-        // detalle de configuración.
-        $doc = $request->filled('documento_id')
-            ? PostulanteDocumento::with('postulante')->findOrFail($request->integer('documento_id'))
-            : null;
-
-        $dueno = $doc?->postulante ?: ($request->filled('postulante_id')
-            ? Postulante::find($request->integer('postulante_id'))
-            : null);
-
-        if (! $dueno) {
-            return response()->json(['message' => 'Indica de qué postulante es el documento: sin eso no se puede '
-                .'comprobar su consentimiento para el tratamiento de datos personales.'], 422);
-        }
-
-        // El alcance se comprueba ANTES que el consentimiento: `documento_id`
-        // llega por el cuerpo de la petición, así que sin esto un evaluador
-        // restringido a una carrera podía recorrer identificadores y extraer el
-        // récord íntegro —nombre, documento y notas— de cualquier postulante del
-        // sistema, y de paso enviarlo al proveedor de IA. Es la misma puerta que
-        // `verDocumento()` ya cerraba; aquí faltaba.
-        AlcanceService::autorizarPostulante($request->user(), $dueno);
-
-        if (! $dueno->tieneConsentimientoDatos()) {
-            return response()->json(['message' => 'El postulante no tiene registrado su consentimiento para el '
-                .'tratamiento de datos personales. Regístralo en su expediente antes de usar la extracción automática, '
-                .'o transcribe los cursos a mano.'], 422);
-        }
-
-        if (! $this->ia->disponible()) {
-            return response()->json(['message' => 'IA no configurada. Ve a Configuración y define la API key.'], 422);
-        }
-
-        // Catálogo real de la institución (para completar/normalizar nombres extraídos).
-        $carreraExternaId = $request->integer('carrera_externa_id') ?: null;
-
-        // 1) Documento existente del postulante (fuente principal).
-        if ($doc) {
-            if (! Storage::exists($doc->ruta)) {
-                return response()->json(['message' => 'El documento del postulante no se encuentra en el almacenamiento.'], 404);
-            }
-            $contenido = Storage::get($doc->ruta);
-            $nombre = $doc->nombre_original;
-            $rutaTrazabilidad = $doc->ruta;
-            $carreraExternaId = $carreraExternaId ?: $doc->postulante?->carrera_externa_id;
-        } elseif ($request->hasFile('documento')) {
-            // 2) Subida puntual (alternativa), ya con el consentimiento verificado.
-            $archivo = $request->file('documento');
-            $contenido = file_get_contents($archivo->getRealPath());
-            $nombre = $archivo->getClientOriginalName();
-            $rutaTrazabilidad = null;
-        } else {
-            return response()->json(['message' => 'Selecciona un documento del postulante o sube uno.'], 422);
-        }
-
-        try {
-            $notaMinima = $request->input('nota_minima', 11);
-            $escala = $request->input('escala', '0-20');
-            $extraccion = $this->ia->extraerCursos($contenido, $nombre, $notaMinima, $escala);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => $this->mensajeErrorIA($e, 'No se pudo procesar el documento')], 502);
-        }
-
-        // Catálogo canónico de la institución de origen (nombres completos y bien acentuados).
-        $catalogo = $carreraExternaId
-            ? CursoExterno::whereHas('mallaExterna', fn ($q) => $q
-                ->where('carrera_externa_id', $carreraExternaId)->where('activa', true))
-                ->pluck('nombre')->all()
-            : [];
-
-        // Completa/normaliza cada nombre extraído contra el catálogo (o formatea a estilo oración).
-        $normalizar = fn ($c) => [
-            'nombre' => $this->engine->nombreCanonico((string) ($c['curso'] ?? ''), $catalogo),
-            'nota' => $c['nota'] ?? '',
-            'creditos' => $c['creditos'] ?? '',
-            'ciclo' => $c['ciclo'] ?? '',
-        ];
-
-        // Todo curso aprobado llega al especialista para que decida el mapeo: ya
-        // no hay una política aparte que lo descarte de antemano por su nombre.
-        $aprobados = array_map($normalizar, $extraccion['aprobados']);
-        $desaprobados = array_map($normalizar, $extraccion['desaprobados']);
-
-        return response()->json([
-            'estudiante' => $extraccion['estudiante'],
-            'institucion' => $extraccion['institucion'],
-            'aprobados' => $aprobados,
-            'desaprobados' => $desaprobados,
-            'documento_path' => $rutaTrazabilidad,
-            'documento_nombre' => $nombre,
-        ]);
-    }
-
     /** Guarda una nueva simulación. */
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $simulacion = $this->persistirSimulacion($request, null);
 
-        AuditoriaService::registrar('crear', 'simulaciones', $simulacion->id, null, ['metodo' => $simulacion->metodo]);
+        AuditoriaService::registrar('crear', 'simulaciones', $simulacion->id);
 
         if ($request->expectsJson()) {
             return response()->json(['id' => $simulacion->id, 'status' => 'Preconvalidación guardada.']);
@@ -458,7 +275,7 @@ class SimulacionController extends Controller
 
         $this->persistirSimulacion($request, $simulacion);
 
-        AuditoriaService::registrar('editar', 'simulaciones', $simulacion->id, null, ['metodo' => $simulacion->metodo]);
+        AuditoriaService::registrar('editar', 'simulaciones', $simulacion->id);
 
         if ($request->expectsJson()) {
             return response()->json(['id' => $simulacion->id, 'status' => 'Preconvalidación actualizada.']);
@@ -473,7 +290,6 @@ class SimulacionController extends Controller
         $datos = $request->validate([
             'postulante_id' => ['required', 'exists:postulantes,id'],
             'carrera_usil_id' => ['required', 'exists:carreras,id'],
-            'metodo' => ['required', 'in:manual,ia'],
             'universidad_origen' => ['nullable', 'string', 'max:200'],
             'documento_path' => ['nullable', 'string', 'max:500'],
             'escala_notas' => ['nullable', 'string', 'max:10'],
@@ -488,7 +304,6 @@ class SimulacionController extends Controller
             'filas.*.ciclo_origen' => ['nullable', 'string', 'max:30'],
             'filas.*.clasificacion' => ['nullable', 'in:convalidable,desaprobado,no_convalidable'],
             'filas.*.motivo' => ['nullable', 'string', 'max:300'],
-            'filas.*.confianza' => ['nullable', 'numeric'],
             'filas.*.origen' => ['nullable', 'in:automatico,manual,ia,similitud'],
         ]);
 
@@ -556,7 +371,6 @@ class SimulacionController extends Controller
                 'carrera_externa_id' => $postulante->carrera_externa_id,
                 'carrera_usil_id' => $datos['carrera_usil_id'],
                 'malla_usil_id' => $malla->id,
-                'metodo' => $datos['metodo'],
                 'documento_path' => $datos['documento_path'] ?? null,
                 'universidad_origen' => $datos['universidad_origen'] ?? $postulante->institucionOrigen?->nombre,
                 'escala_notas' => $datos['escala_notas'] ?? null,
@@ -586,10 +400,9 @@ class SimulacionController extends Controller
                     'clasificacion' => $f['clasificacion'],
                     // Si no convalida, no hay un motivo que el usuario ingrese ahora, pero podemos dejar null
                     'motivo' => $f['motivo'] ?? null,
-                    'confianza' => $f['confianza'] ?? null,
                     'creditos_reconocidos' => $f['curso_externo_id'] ? (float) ($creditosUsil[$cid] ?? 0) : 0,
                     'excluido' => false,
-                    'origen' => $f['origen'] ?? ($datos['metodo'] === 'ia' ? 'ia' : 'manual'),
+                    'origen' => $f['origen'] ?? 'manual',
                 ]);
             }
 
@@ -638,7 +451,6 @@ class SimulacionController extends Controller
                 'documento' => "{$simulacion->tipo_documento} {$simulacion->numero_documento}",
                 'carrera' => $simulacion->carreraUsil?->nombre,
                 'origen' => $simulacion->universidad_origen ?: $simulacion->carreraExterna?->nombre,
-                'metodo' => $simulacion->metodo,
                 'estado' => $simulacion->estado,
                 'documento_fuente' => $simulacion->documento_path ? basename($simulacion->documento_path) : null,
                 'tiene_pdf' => (bool) $simulacion->pdf_path,
@@ -652,7 +464,6 @@ class SimulacionController extends Controller
                 'curso_usil' => $d->cursoUsil?->nombre,
                 'clasificacion' => $d->clasificacion,
                 'motivo' => $d->motivo,
-                'confianza' => $d->confianza,
                 'creditos' => $d->creditos_reconocidos,
                 'excluido' => $d->excluido,
             ]),

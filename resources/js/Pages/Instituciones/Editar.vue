@@ -100,7 +100,6 @@ const cerrarEdicionDatos = () => {
  * ------------------------------------------------------------------ */
 const totalCarreras = computed(() => form.carreras.length);
 
-// Paleta de íconos/colores para dar variedad a la lista (como en el diseño).
 const ICONOS = [
     'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
     'M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0',
@@ -109,11 +108,11 @@ const ICONOS = [
     'm16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125',
 ];
 const COLORES = [
-    'bg-sky-100 text-sky-600',
-    'bg-emerald-100 text-emerald-600',
-    'bg-violet-100 text-violet-600',
-    'bg-amber-100 text-amber-600',
-    'bg-pink-100 text-pink-600',
+    'bg-sky-50 text-[#2E75B6] border-sky-100',
+    'bg-emerald-50 text-emerald-700 border-emerald-100',
+    'bg-violet-50 text-violet-700 border-violet-100',
+    'bg-amber-50 text-amber-700 border-amber-100',
+    'bg-indigo-50 text-indigo-700 border-indigo-100',
 ];
 const iconoCarrera = (i) => ICONOS[i % ICONOS.length];
 const colorCarrera = (i) => COLORES[i % COLORES.length];
@@ -189,7 +188,7 @@ const guardarCarrera = () => {
     const nombre = modalNombre.value.trim();
     if (modalIndice.value === null) {
         form.carreras.push({ id: null, nombre, cursos_count: 0 });
-        paginaActual.value = totalPaginas.value; // salta a la página de la nueva carrera
+        paginaActual.value = totalPaginas.value;
     } else {
         form.carreras[modalIndice.value].nombre = nombre;
     }
@@ -225,237 +224,274 @@ const enviar = () => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-5xl" @click="cerrarMenu">
-        <!-- Encabezado -->
+    <div class="mx-auto max-w-5xl pb-16" @click="cerrarMenu">
         <VolverA href="/instituciones" texto="Instituciones externas" />
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-[#1F3864]">Institución</h1>
-            <p class="mt-1 text-sm text-slate-500">Actualiza los datos generales y mantén sus carreras de procedencia.</p>
+
+        <!-- HERO HEADER INTEGRADO CON METADATOS -->
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] p-6 sm:p-10 text-white shadow-xl">
+            <!-- Decorative blur background -->
+            <div class="absolute -top-24 -right-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2.5 mb-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 border border-white/20 backdrop-blur-md text-blue-100">
+                                <svg class="w-3.5 h-3.5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                Ficha Institucional
+                            </span>
+                            <span v-if="form.activa" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Activa
+                            </span>
+                            <span v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-slate-200">
+                                Inactiva
+                            </span>
+                        </div>
+
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                            {{ form.nombre || 'Institución' }}
+                        </h1>
+
+                        <!-- Metadata compacta -->
+                        <div class="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-blue-100/90 font-medium">
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 font-mono">ID #{{ institucion.id }}</span>
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">Tipo: <b>{{ nombreTipo }}</b></span>
+                            <span v-if="form.pais" class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">País: <b>{{ form.pais }}</b></span>
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">Gestión: <b>{{ etiquetaGestion }}</b></span>
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10"><b>{{ totalCarreras }}</b> carreras registradas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- Alerta de Borrador Restaurado -->
         <div v-if="borradorRestaurado"
-             class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <span>Se restauraron cambios sin guardar de una sesión anterior.</span>
+             class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-xs font-medium text-amber-900 shadow-xs backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+                <span class="grid h-6 w-6 place-items-center rounded-full bg-amber-200 text-amber-900 font-bold">!</span>
+                <span>Se han restaurado cambios sin guardar de una sesión anterior en este navegador.</span>
+            </div>
             <button type="button" @click="descartarBorrador"
-                    class="rounded-md border border-amber-300 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100">
+                    class="rounded-xl border border-amber-300 bg-white px-3.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shadow-2xs">
                 Descartar borrador
             </button>
         </div>
 
         <form @submit.prevent="enviar" class="space-y-6">
             <!-- ============================ DATOS GENERALES ============================ -->
-            <section class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="mb-6 flex items-center justify-between">
+            <section class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs relative">
+                <div class="mb-6 flex items-center justify-between gap-3 pb-4 border-b border-slate-100">
                     <div class="flex items-center gap-3">
-                        <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#1F3864]/10 text-[#1F3864]">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                            </svg>
+                        <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#1F3864] font-bold text-xs flex items-center justify-center border border-blue-100">
+                            1
+                        </span>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Información Institucional y Licenciamiento</h2>
+                            <p class="text-xs text-slate-400">Parámetros oficiales y acreditación ante organismos educativos.</p>
                         </div>
-                        <h2 class="text-base font-bold tracking-wide text-[#2E75B6]">DATOS GENERALES</h2>
                     </div>
+                    
                     <button type="button" @click="editandoDatos ? cerrarEdicionDatos() : (editandoDatos = true)"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-[#2E75B6]/40 px-3.5 py-2 text-sm font-medium text-[#2E75B6] hover:bg-[#2E75B6]/5">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-[#2E75B6] hover:bg-blue-50 hover:border-[#2E75B6] transition-all shadow-2xs">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                             <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                         </svg>
                         {{ editandoDatos ? 'Listo' : 'Editar información' }}
                     </button>
                 </div>
 
-                <div class="grid gap-x-8 gap-y-5 md:grid-cols-2 lg:pr-56">
+                <div class="grid gap-x-8 gap-y-5 md:grid-cols-2">
+                    <!-- Nombre -->
+                    <div class="md:col-span-2">
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Nombre de la institución</label>
+                        <template v-if="editandoDatos">
+                            <input v-model="form.nombre" type="text"
+                                   class="w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                            <p v-if="erroresDatos.nombre || form.errors.nombre" class="mt-1 text-xs text-red-600">{{ erroresDatos.nombre || form.errors.nombre }}</p>
+                        </template>
+                        <div v-else class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-xs font-bold text-slate-800">
+                            {{ form.nombre || '—' }}
+                        </div>
+                    </div>
+
                     <!-- Tipo -->
                     <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Tipo</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Tipo de Institución</label>
                         <template v-if="editandoDatos">
                             <select v-model="form.tipo_id"
-                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
                                 <option value="" disabled>Seleccione</option>
                                 <option v-for="t in tipos" :key="t.id" :value="t.id">{{ t.nombre }}</option>
                             </select>
                             <p v-if="erroresDatos.tipo_id || form.errors.tipo_id" class="mt-1 text-xs text-red-600">{{ erroresDatos.tipo_id || form.errors.tipo_id }}</p>
                         </template>
-                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">{{ nombreTipo }}</p>
+                        <div v-else class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700">
+                            {{ nombreTipo }}
+                        </div>
                     </div>
 
                     <!-- País -->
                     <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">País</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">País de Origen</label>
                         <template v-if="editandoDatos">
                             <input v-model="form.pais" type="text"
-                                   class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                   class="w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                             <p v-if="erroresDatos.pais || form.errors.pais" class="mt-1 text-xs text-red-600">{{ erroresDatos.pais || form.errors.pais }}</p>
                         </template>
-                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">{{ form.pais || '—' }}</p>
+                        <div v-else class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700">
+                            {{ form.pais || '—' }}
+                        </div>
                     </div>
 
                     <!-- Gestión -->
                     <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Gestión</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Tipo de Gestión</label>
                         <template v-if="editandoDatos">
                             <select v-model="form.gestion"
-                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
                                 <option value="">Sin especificar</option>
                                 <option value="publica">Pública</option>
                                 <option value="privada">Privada</option>
                             </select>
                             <p v-if="form.errors.gestion" class="mt-1 text-xs text-red-600">{{ form.errors.gestion }}</p>
                         </template>
-                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">{{ etiquetaGestion }}</p>
+                        <div v-else class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700">
+                            {{ etiquetaGestion }}
+                        </div>
                     </div>
 
                     <!-- Licenciamiento SUNEDU -->
                     <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Licenciamiento SUNEDU</label>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Licenciamiento SUNEDU</label>
                         <template v-if="editandoDatos">
                             <select v-model="form.licenciamiento"
-                                    class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
                                 <option value="desconocido">Sin verificar</option>
                                 <option value="licenciada">Licenciada por SUNEDU</option>
                                 <option value="no_licenciada">No licenciada</option>
                             </select>
                             <input v-model="form.licenciamiento_resolucion" maxlength="120"
                                    placeholder="N.º de resolución (opcional)"
-                                   class="mt-2 w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                   class="mt-2 w-full rounded-xl border-slate-300 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
                             <p v-if="form.errors.licenciamiento" class="mt-1 text-xs text-red-600">{{ form.errors.licenciamiento }}</p>
                         </template>
-                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
+                        <div v-else class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700">
                             {{ etiquetaLicenciamiento }}
-                            <span v-if="form.licenciamiento_resolucion" class="text-slate-500">· {{ form.licenciamiento_resolucion }}</span>
-                        </p>
+                            <span v-if="form.licenciamiento_resolucion" class="text-slate-400 font-mono ml-1">· {{ form.licenciamiento_resolucion }}</span>
+                        </div>
                     </div>
 
                     <!-- Institución activa -->
-                    <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Institución activa</label>
-                        <label v-if="editandoDatos" class="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
-                            <input v-model="form.activa" type="checkbox" class="rounded border-slate-300 text-[#2E75B6] focus:ring-[#2E75B6]" />
-                            {{ form.activa ? 'Sí' : 'No' }}
-                        </label>
-                        <p v-else>
-                            <span :class="form.activa ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'"
-                                  class="inline-flex rounded-md px-2.5 py-1 text-sm font-medium">
-                                {{ form.activa ? 'Sí' : 'No' }}
-                            </span>
-                        </p>
-                    </div>
-
-                    <!-- Nombre -->
                     <div class="md:col-span-2">
-                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">Nombre de la institución</label>
-                        <template v-if="editandoDatos">
-                            <input v-model="form.nombre" type="text"
-                                   class="w-full rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                            <p v-if="erroresDatos.nombre || form.errors.nombre" class="mt-1 text-xs text-red-600">{{ erroresDatos.nombre || form.errors.nombre }}</p>
-                        </template>
-                        <p v-else class="rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-700">{{ form.nombre || '—' }}</p>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Estado de Operatividad</label>
+                        <label v-if="editandoDatos" class="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-bold text-slate-700 cursor-pointer">
+                            <input v-model="form.activa" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-[#2E75B6] focus:ring-[#2E75B6]" />
+                            {{ form.activa ? 'Institución Activa (Habilitada para convalidaciones)' : 'Institución Inactiva' }}
+                        </label>
+                        <div v-else>
+                            <span :class="form.activa ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
+                                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset">
+                                <span :class="form.activa ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'" class="w-1.5 h-1.5 rounded-full"></span>
+                                {{ form.activa ? 'Activa' : 'Inactiva' }}
+                            </span>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Ilustración decorativa -->
-                <svg class="pointer-events-none absolute -right-2 bottom-0 hidden h-44 w-52 text-[#2E75B6]/10 lg:block"
-                     viewBox="0 0 200 160" fill="currentColor" aria-hidden="true">
-                    <polygon points="100,20 180,60 20,60" />
-                    <rect x="24" y="60" width="152" height="10" />
-                    <rect x="34" y="74" width="14" height="60" />
-                    <rect x="66" y="74" width="14" height="60" />
-                    <rect x="98" y="74" width="14" height="60" />
-                    <rect x="130" y="74" width="14" height="60" />
-                    <rect x="152" y="74" width="14" height="60" />
-                    <rect x="20" y="138" width="160" height="12" />
-                </svg>
             </section>
 
             <!-- ======================= CARRERAS DE PROCEDENCIA ======================= -->
-            <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <section class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                <div class="mb-6 flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
                     <div class="flex items-center gap-3">
-                        <div class="grid h-12 w-12 place-items-center rounded-xl bg-[#2E75B6]/10 text-[#2E75B6]">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443" />
-                            </svg>
-                        </div>
+                        <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#1F3864] font-bold text-xs flex items-center justify-center border border-blue-100">
+                            2
+                        </span>
                         <div>
-                            <h2 class="text-base font-bold tracking-wide text-[#2E75B6]">CARRERAS DE PROCEDENCIA</h2>
-                            <p class="mt-0.5 text-xs text-slate-500">{{ totalCarreras }} carrera(s) registrada(s).</p>
+                            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Carreras de Procedencia</h2>
+                            <p class="text-xs text-slate-400">{{ totalCarreras }} programa(s) registrados en catálogo.</p>
                         </div>
                     </div>
                     <button type="button" @click="abrirNuevaCarrera"
-                            class="inline-flex items-center gap-2 rounded-lg bg-[#3B5BDB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1F3864]">
-                        <span class="text-base leading-none">+</span> Agregar carrera
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-[#1F3864] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#2E75B6] transition-all">
+                        <span class="text-sm leading-none">+</span> Agregar carrera
                     </button>
                 </div>
 
-                <p v-if="form.errors.carreras" class="mb-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 ring-1 ring-inset ring-red-200">
+                <p v-if="form.errors.carreras" class="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 font-medium">
                     {{ form.errors.carreras }}
                 </p>
 
-                <div class="overflow-hidden rounded-xl border border-slate-200">
-                    <div class="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Nombre de la carrera
+                <div class="overflow-hidden rounded-2xl border border-slate-200/80">
+                    <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Nombre del Programa Académico
                     </div>
 
                     <ul class="divide-y divide-slate-100">
                         <li v-for="c in carrerasPagina" :key="c._idx"
-                            class="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50/70">
+                            class="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50/80 transition-colors group">
                             <div class="flex min-w-0 items-center gap-3">
-                                <span :class="colorCarrera(c._idx)" class="grid h-10 w-10 shrink-0 place-items-center rounded-xl">
-                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <span :class="colorCarrera(c._idx)" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                                         <path :d="iconoCarrera(c._idx)" />
                                     </svg>
                                 </span>
-                                <span class="truncate text-sm font-medium text-slate-800">{{ c.nombre }}</span>
+                                <span class="truncate text-xs sm:text-sm font-semibold text-slate-800 group-hover:text-[#2E75B6] transition-colors">{{ c.nombre }}</span>
                                 <span v-if="c.cursos_count > 0"
-                                      class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                                      class="shrink-0 rounded-full bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 text-[11px] font-bold">
                                     {{ c.cursos_count }} curso(s)
                                 </span>
                             </div>
 
                             <div class="flex shrink-0 items-center gap-1.5">
                                 <button type="button" @click="abrirEditarCarrera(c._idx)"
-                                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-[#2E75B6] hover:text-[#2E75B6]">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                                        class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-[#2E75B6] hover:text-[#2E75B6] transition-colors shadow-2xs">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                                     </svg>
                                     Editar
                                 </button>
 
                                 <div class="relative" @click.stop>
                                     <button type="button" @click="alternarMenu(c._idx)"
-                                            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                            class="grid h-8 w-8 place-items-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
                                             aria-label="Más acciones">
-                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                                             <circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" />
                                         </svg>
                                     </button>
                                     <div v-if="menuAbierto === c._idx"
-                                         class="absolute right-0 z-10 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                         class="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl">
                                         <button type="button" @click="abrirEditarCarrera(c._idx)"
-                                                class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                                            Editar
+                                                class="block w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                            Editar nombre
                                         </button>
                                         <button type="button" @click="quitarCarrera(c._idx)"
                                                 :disabled="c.cursos_count > 0"
                                                 :title="c.cursos_count > 0 ? 'No se puede eliminar: tiene cursos registrados' : 'Eliminar carrera'"
-                                                class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent">
-                                            Eliminar
+                                                class="block w-full px-4 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent">
+                                            Eliminar carrera
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </li>
 
-                        <li v-if="!totalCarreras" class="px-5 py-12 text-center text-slate-400">
-                            Sin carreras registradas. Usa «Agregar carrera» para añadir una.
+                        <li v-if="!totalCarreras" class="px-5 py-12 text-center text-xs text-slate-400">
+                            Sin carreras registradas. Haz clic en <button type="button" @click="abrirNuevaCarrera" class="font-bold text-[#2E75B6] hover:underline">«Agregar carrera»</button> para añadir una.
                         </li>
                     </ul>
 
                     <!-- Paginación -->
-                    <div v-if="totalCarreras" class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
-                        <div class="flex items-center gap-2 text-sm text-slate-500">
-                            <span>Mostrando</span>
+                    <div v-if="totalCarreras" class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 bg-slate-50/50">
+                        <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                            <span>Mostrar</span>
                             <select v-model.number="porPagina"
-                                    class="rounded-md border-slate-300 py-1 pl-2 pr-7 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="rounded-xl border-slate-200 py-1 pl-2 pr-7 text-xs font-bold text-slate-700 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
                                 <option :value="5">5</option>
                                 <option :value="10">10</option>
                                 <option :value="25">25</option>
@@ -466,16 +502,16 @@ const enviar = () => {
 
                         <nav v-if="totalPaginas > 1" class="flex items-center gap-1">
                             <button type="button" @click="irA(paginaActual - 1)" :disabled="paginaActual === 1"
-                                    class="grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40">
+                                    class="h-8 w-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40">
                                 ‹
                             </button>
                             <button v-for="p in totalPaginas" :key="p" type="button" @click="irA(p)"
-                                    :class="p === paginaActual ? 'bg-[#3B5BDB] text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-100'"
-                                    class="grid h-8 w-8 place-items-center rounded-md text-sm font-medium">
+                                    :class="p === paginaActual ? 'bg-[#1F3864] text-white shadow-2xs' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
+                                    class="h-8 min-w-[2rem] px-2 rounded-xl text-xs font-bold">
                                 {{ p }}
                             </button>
                             <button type="button" @click="irA(paginaActual + 1)" :disabled="paginaActual === totalPaginas"
-                                    class="grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40">
+                                    class="h-8 w-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40">
                                 ›
                             </button>
                         </nav>
@@ -483,48 +519,50 @@ const enviar = () => {
                 </div>
             </section>
 
-            <!-- Acciones -->
-            <div class="flex gap-3">
-                <button type="submit" :disabled="form.processing"
-                        class="rounded-lg bg-[#1F3864] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#2E75B6] disabled:opacity-60">
-                    Guardar cambios
-                </button>
-                <Link href="/instituciones" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+            <!-- Acciones Finales -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <Link href="/instituciones" class="px-5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                     Cancelar
                 </Link>
+                <button type="submit" :disabled="form.processing"
+                        class="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-xs font-bold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-60">
+                    <svg v-if="form.processing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Guardar cambios
+                </button>
             </div>
         </form>
     </div>
 
     <!-- ============================== MODAL CARRERA ============================== -->
     <div v-if="modalAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-900/40" @click="cerrarModal"></div>
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 class="text-lg font-semibold text-[#1F3864]">
-                {{ modalIndice === null ? 'Agregar carrera' : 'Editar carrera' }}
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" @click="cerrarModal"></div>
+        <div class="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl">
+            <h3 class="text-base font-bold text-slate-900">
+                {{ modalIndice === null ? 'Nueva Carrera Externa' : 'Editar Carrera Externa' }}
             </h3>
-            <p class="mt-1 text-sm text-slate-500">Carrera de procedencia de la institución externa.</p>
+            <p class="mt-1 text-xs text-slate-400">Programa académico de procedencia para convalidaciones.</p>
 
             <div class="mt-5">
-                <label class="mb-1.5 block text-sm font-semibold text-slate-700">Nombre de la carrera</label>
+                <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Nombre de la carrera</label>
                 <input v-model="modalNombre" type="text" maxlength="200" autofocus
                        @keyup.enter="guardarCarrera" @input="modalError = ''"
                        placeholder="Ej. Administración de Empresas"
                        :class="modalError ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-slate-300 focus:border-[#2E75B6] focus:ring-[#2E75B6]'"
-                       class="w-full rounded-lg text-sm" />
-                <p v-if="modalError" class="mt-1 text-xs text-red-600">{{ modalError }}</p>
+                       class="w-full rounded-xl text-xs font-medium text-slate-800" />
+                <p v-if="modalError" class="mt-1.5 text-xs text-red-600 font-medium">{{ modalError }}</p>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
+            <div class="mt-6 flex justify-end gap-2.5">
                 <button type="button" @click="cerrarModal"
-                        class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                        class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                     Cancelar
                 </button>
                 <button type="button" @click="guardarCarrera"
-                        class="rounded-lg bg-[#1F3864] px-5 py-2 text-sm font-semibold text-white hover:bg-[#2E75B6]">
-                    {{ modalIndice === null ? 'Agregar' : 'Guardar' }}
+                        class="rounded-xl bg-[#1F3864] px-5 py-2 text-xs font-bold text-white hover:bg-[#2E75B6] transition-all shadow-xs">
+                    {{ modalIndice === null ? 'Agregar carrera' : 'Guardar cambios' }}
                 </button>
             </div>
         </div>
     </div>
 </template>
+

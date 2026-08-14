@@ -12,7 +12,7 @@ class SimulacionDetalle extends Model
     protected $fillable = [
         'simulacion_id', 'curso_usil_id', 'curso_externo_id',
         'curso_origen_nombre', 'nota_origen', 'creditos_origen', 'ciclo_origen',
-        'clasificacion', 'motivo', 'confianza', 'creditos_reconocidos', 'excluido', 'origen',
+        'clasificacion', 'motivo', 'creditos_reconocidos', 'excluido', 'origen',
     ];
 
     protected $casts = [

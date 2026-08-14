@@ -29,6 +29,12 @@ const tabs = [
     { id: 'historial', label: 'Historial' },
 ];
 
+const TIPO = {
+    teorico: 'Teórico',
+    practico: 'Práctico',
+    teorico_practico: 'Teórico - Práctico',
+};
+
 const verCurso = (curso) => { cursoSel.value = curso; tab.value = 'info'; panel.value = 'view'; };
 
 const nuevoCurso = (ciclo) => {
@@ -39,13 +45,14 @@ const nuevoCurso = (ciclo) => {
     panel.value = 'new';
 };
 
-const editarCurso = () => {
-    const c = cursoSel.value;
+const editarCurso = (curso = null) => {
+    const c = curso || cursoSel.value;
+    cursoSel.value = c;
     form.clearErrors();
     Object.assign(form, {
         codigo: c.codigo, nombre: c.nombre, creditos: c.creditos,
         horas_teoria: c.horas_teoria ?? '', horas_practica: c.horas_practica ?? '',
-        es_electivo: c.es_electivo, mencion: c.mencion ?? '', prerequisito_id: c.prerequisito_id ?? '', silabo_texto: c.silabo_texto ?? '',
+        es_electivo: Boolean(c.es_electivo), mencion: c.mencion ?? '', prerequisito_id: c.prerequisito_id ?? '', silabo_texto: c.silabo_texto ?? '',
         tipo_curso: c.tipo_curso ?? '', area: c.area ?? '',
         competencias: (c.competencias ?? []).join(', '), resultados_aprendizaje: c.resultados_aprendizaje ?? '',
     });
@@ -85,19 +92,6 @@ const eliminarMalla = () => {
     if (confirm(aviso)) router.delete(`/mallas/${props.malla.id}`);
 };
 
-// ----- Importar -----
-const importForm = useForm({ archivo: null });
-const fileInput = ref(null);
-const importar = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    importForm.archivo = f;
-    importForm.post(`/mallas/${props.malla.id}/importar-cursos`, {
-        preserveScroll: true,
-        onFinish: () => { importForm.reset(); if (fileInput.value) fileInput.value.value = ''; },
-    });
-};
-
 const prereqOpciones = computed(() =>
     props.cursosMalla.filter((c) => !cursoSel.value || c.id !== cursoSel.value.id));
 
@@ -125,23 +119,23 @@ const ciclosVista = computed(() => props.ciclos
     .map((c) => ({
         ...c,
         cursos: c.cursos.filter((cu) =>
-            (!buscar.value || cu.nombre.toLowerCase().includes(buscar.value.toLowerCase())) &&
+            (!buscar.value || cu.nombre.toLowerCase().includes(buscar.value.toLowerCase()) || (cu.codigo && cu.codigo.toLowerCase().includes(buscar.value.toLowerCase()))) &&
             (!filtroTipo.value || (filtroTipo.value === 'electivo' ? cu.es_electivo : !cu.es_electivo)) &&
             coincideMencion(cu)),
     })));
 
-// Paleta por ciclo: riel lateral + chip del número (clases literales para el JIT de Tailwind).
+// Paleta visual suave para ciclos
 const PALETA = [
-    { rail: 'border-l-blue-500', bg: 'bg-blue-50', tx: 'text-blue-700' },
-    { rail: 'border-l-emerald-500', bg: 'bg-emerald-50', tx: 'text-emerald-700' },
-    { rail: 'border-l-violet-500', bg: 'bg-violet-50', tx: 'text-violet-700' },
-    { rail: 'border-l-amber-500', bg: 'bg-amber-50', tx: 'text-amber-700' },
-    { rail: 'border-l-rose-500', bg: 'bg-rose-50', tx: 'text-rose-700' },
-    { rail: 'border-l-teal-500', bg: 'bg-teal-50', tx: 'text-teal-700' },
-    { rail: 'border-l-sky-500', bg: 'bg-sky-50', tx: 'text-sky-700' },
-    { rail: 'border-l-indigo-500', bg: 'bg-indigo-50', tx: 'text-indigo-700' },
-    { rail: 'border-l-orange-500', bg: 'bg-orange-50', tx: 'text-orange-700' },
-    { rail: 'border-l-pink-500', bg: 'bg-pink-50', tx: 'text-pink-700' },
+    { badge: 'bg-[#1F3864] text-white', light: 'bg-blue-50/70 border-blue-100', tx: 'text-[#1F3864]' },
+    { badge: 'bg-[#2E75B6] text-white', light: 'bg-sky-50/70 border-sky-100', tx: 'text-[#2E75B6]' },
+    { badge: 'bg-indigo-600 text-white', light: 'bg-indigo-50/70 border-indigo-100', tx: 'text-indigo-700' },
+    { badge: 'bg-teal-700 text-white', light: 'bg-teal-50/70 border-teal-100', tx: 'text-teal-800' },
+    { badge: 'bg-emerald-700 text-white', light: 'bg-emerald-50/70 border-emerald-100', tx: 'text-emerald-800' },
+    { badge: 'bg-amber-700 text-white', light: 'bg-amber-50/70 border-amber-100', tx: 'text-amber-800' },
+    { badge: 'bg-violet-700 text-white', light: 'bg-violet-50/70 border-violet-100', tx: 'text-violet-800' },
+    { badge: 'bg-slate-700 text-white', light: 'bg-slate-50/70 border-slate-200', tx: 'text-slate-700' },
+    { badge: 'bg-rose-700 text-white', light: 'bg-rose-50/70 border-rose-100', tx: 'text-rose-800' },
+    { badge: 'bg-cyan-700 text-white', light: 'bg-cyan-50/70 border-cyan-100', tx: 'text-cyan-800' },
 ];
 const colorCiclo = (n) => PALETA[(n - 1) % PALETA.length];
 const creditosCiclo = (c) => c.cursos.reduce((a, cu) => a + (Number(cu.creditos) || 0), 0);
@@ -155,325 +149,541 @@ const alternarTodos = () => {
     if (todoColapsado.value) colapsados.clear();
     else props.ciclos.forEach((c) => colapsados.add(c.id));
 };
-
-const ICON = {
-    book: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25',
-    cap: 'M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5',
-    globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.949 8.949 0 0 0 12 21Zm3-11.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
-    star: 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z',
-    users: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
-    tag: 'M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3ZM6 6h.008v.008H6V6Z',
-};
-const tarjetas = computed(() => [
-    { label: 'Cursos totales', valor: props.resumen.cursos, icon: ICON.book, ibg: 'bg-blue-50', it: 'text-blue-600', num: 'text-blue-600' },
-    { label: 'Créditos totales', valor: props.resumen.creditos, icon: ICON.cap, ibg: 'bg-emerald-50', it: 'text-emerald-600', num: 'text-emerald-600' },
-    { label: 'Ciclos académicos', valor: props.resumen.ciclos, icon: ICON.globe, ibg: 'bg-violet-50', it: 'text-violet-600', num: 'text-violet-600' },
-    { label: 'Obligatorios', valor: props.resumen.obligatorios, icon: ICON.star, ibg: 'bg-amber-50', it: 'text-amber-600', num: 'text-amber-600' },
-    { label: 'Electivos', valor: props.resumen.electivos, icon: ICON.users, ibg: 'bg-rose-50', it: 'text-rose-600', num: 'text-rose-600' },
-    { label: 'Menciones', valor: props.resumen.menciones, icon: ICON.tag, ibg: 'bg-indigo-50', it: 'text-indigo-600', num: 'text-indigo-600' },
-]);
 </script>
 
 <template>
-    <div>
-        <!-- Cabecera -->
-        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <VolverA href="/mallas" texto="Mallas curriculares" />
-                <div class="flex flex-wrap items-center gap-3">
-                    <h1 class="text-2xl font-semibold text-[#1F3864]">{{ malla.carrera }}</h1>
-                    <span :class="malla.activa ? 'bg-green-50 text-green-700 ring-green-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
-                          class="rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ malla.activa ? 'Activa' : 'Inactiva' }}</span>
-                </div>
-                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                    <span class="rounded-md bg-slate-100 px-2 py-1">Versión: <b class="text-slate-700">{{ malla.version }}</b></span>
-                    <span class="rounded-md bg-slate-100 px-2 py-1">Período: <b class="text-slate-700">{{ malla.periodo || '—' }}</b></span>
-                    <span class="rounded-md bg-slate-100 px-2 py-1">Modalidad: <b class="text-slate-700">{{ MODALIDAD[malla.modalidad] || malla.modalidad }}</b></span>
-                    <span class="rounded-md bg-slate-100 px-2 py-1"><b class="text-slate-700">{{ resumen.creditos }}</b> créditos</span>
-                    <span class="rounded-md bg-slate-100 px-2 py-1"><b class="text-slate-700">{{ resumen.cursos }}</b> cursos</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <Link :href="`/mallas/${malla.id}/editar`" class="inline-flex items-center gap-2 rounded-lg bg-[#1F3864] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#2E75B6]">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
-                    Editar malla
-                </Link>
-                <button @click="eliminarMalla" class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                    Eliminar malla
-                </button>
-            </div>
-        </div>
+    <div class="max-w-7xl mx-auto pb-16">
+        <VolverA href="/mallas" texto="Mallas curriculares" />
 
-        <!-- Resumen -->
-        <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <div v-for="t in tarjetas" :key="t.label" class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div :class="t.ibg" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl">
-                    <svg :class="t.it" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
-                </div>
-                <div>
-                    <p :class="t.num" class="text-2xl font-bold leading-none">{{ t.valor }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ t.label }}</p>
-                </div>
-            </div>
-        </div>
+        <!-- HERO HEADER INTEGRADO CON MICRO-KPIS COMPACTOS -->
+        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] p-6 sm:p-8 text-white shadow-xl">
+            <!-- Decorative blur background -->
+            <div class="absolute -top-24 -right-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
 
-        <!-- Barra de acciones -->
-        <div class="mb-4 flex flex-wrap items-center gap-2">
-            <a :href="`/mallas/${malla.id}/exportar`" class="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Exportar</a>
-        </div>
-
-        <!-- Buscador + filtros -->
-        <div class="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div class="relative min-w-[200px] flex-1">
-                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                </span>
-                <input v-model="buscar" type="text" placeholder="Buscar curso por nombre…"
-                       class="w-full rounded-lg border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-            </div>
-            <select v-model="filtroTipo" class="rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
-                <option value="">Todos los tipos</option>
-                <option value="obligatorio">Obligatorios</option>
-                <option value="electivo">Electivos</option>
-            </select>
-            <select v-model="filtroCiclo" class="rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
-                <option value="">Todos los ciclos</option>
-                <option v-for="c in ciclos" :key="c.id" :value="c.numero">Ciclo {{ c.numero }}</option>
-            </select>
-            <select v-if="mencionesDisponibles.length" v-model="filtroMencion" class="rounded-lg border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]">
-                <option value="">Todas las menciones</option>
-                <option value="__reg">Solo ciclos regulares</option>
-                <option v-for="m in mencionesDisponibles" :key="m" :value="m">{{ m }}</option>
-            </select>
-            <button @click="limpiarFiltros" class="inline-flex items-center gap-1 text-sm font-medium text-[#2E75B6] hover:underline">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-                Limpiar filtros
-            </button>
-        </div>
-
-        <!-- Progresión de ciclos: secciones verticales apiladas y colapsables (el plan es una secuencia, no carriles paralelos) -->
-        <div v-if="ciclos.length">
-            <div class="mb-2 flex items-center justify-end">
-                <button @click="alternarTodos" class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 15 3.75 3.75L15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                    {{ todoColapsado ? 'Expandir todo' : 'Contraer todo' }}
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <template v-for="ciclo in ciclosVista" :key="ciclo.id">
-                    <div v-if="!hayFiltro || ciclo.cursos.length"
-                         :class="colorCiclo(ciclo.numero).rail"
-                         class="overflow-hidden rounded-2xl border border-l-4 border-slate-200 bg-white shadow-sm">
-                        <!-- Encabezado del ciclo (clic = colapsar/expandir) -->
-                        <div class="flex items-center gap-2 px-3 py-2.5 sm:px-4">
-                            <button @click="toggleCiclo(ciclo.id)" class="flex flex-1 items-center gap-3 text-left">
-                                <span :class="[colorCiclo(ciclo.numero).bg, colorCiclo(ciclo.numero).tx]"
-                                      class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-bold">{{ ciclo.numero }}</span>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-slate-700">Ciclo {{ ciclo.numero }}</p>
-                                    <p class="text-xs text-slate-400">{{ ciclo.cursos.length }} {{ ciclo.cursos.length === 1 ? 'curso' : 'cursos' }} · {{ creditosCiclo(ciclo) }} créditos</p>
-                                </div>
-                                <svg class="ml-1 h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="colapsados.has(ciclo.id) ? '' : 'rotate-90'"
-                                     fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                            </button>
-                            <button v-if="!ciclo.cursos.length" @click="eliminarCiclo(ciclo)" class="shrink-0 rounded-md px-1.5 py-0.5 text-slate-300 hover:bg-red-50 hover:text-red-600" title="Eliminar ciclo">✕</button>
-                        </div>
-
-                        <!-- Cursos en grilla (usa el ancho; sin scroll horizontal) -->
-                        <div v-show="!colapsados.has(ciclo.id)" class="grid gap-2.5 border-t border-slate-100 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <button v-for="curso in ciclo.cursos" :key="curso.id" @click="verCurso(curso)"
-                                    :class="cursoSel && cursoSel.id === curso.id ? 'border-[#2E75B6] ring-1 ring-[#2E75B6]' : 'border-slate-200'"
-                                    class="group flex flex-col rounded-xl border bg-white p-3 text-left transition hover:border-[#2E75B6] hover:shadow-sm">
-                                <div class="flex items-start justify-between gap-2">
-                                    <p class="text-sm font-semibold leading-snug text-slate-800">{{ curso.nombre }}</p>
-                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-300 group-hover:text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                                </div>
-                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                                    <span class="text-xs font-medium text-slate-500">{{ curso.creditos }} créd.</span>
-                                    <span :class="curso.es_electivo ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'"
-                                          class="rounded-full px-2 py-0.5 text-[11px] font-medium">{{ curso.es_electivo ? 'Electivo' : 'Obligatorio' }}</span>
-                                    <span v-if="curso.mencion"
-                                          class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600" :title="`Mención: ${curso.mencion}`">Mención</span>
-                                </div>
-                            </button>
-                            <button @click="nuevoCurso(ciclo)"
-                                    class="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-[#2E75B6] hover:border-[#2E75B6] hover:bg-slate-50">
-                                <span class="text-base leading-none">+</span> Agregar curso
-                            </button>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-        <div v-else class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-400">
-            Esta malla aún no tiene ciclos. Usa <span class="font-medium text-slate-600">“+ Nuevo ciclo”</span> para empezar.
-        </div>
-
-        <!-- Drawer de detalle / formulario -->
-        <div v-if="panel" class="fixed inset-0 z-50 flex justify-end">
-            <div class="absolute inset-0 bg-slate-900/30" @click="cerrar"></div>
-            <div class="relative z-10 h-full w-full max-w-md overflow-y-auto bg-white p-5 shadow-2xl">
-                <!-- Vista de detalle (con pestañas) -->
-                <template v-if="panel === 'view' && cursoSel">
-                    <div class="mb-3 flex items-start justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-slate-800">{{ cursoSel.nombre }}</h2>
-                            <span :class="cursoSel.es_electivo ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-violet-50 text-violet-700 ring-violet-200'"
-                                  class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset">
-                                {{ cursoSel.es_electivo ? 'Electivo' : 'Obligatorio' }}
+            <div class="relative z-10">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2.5 mb-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 border border-white/20 backdrop-blur-md text-blue-100">
+                                <svg class="w-3.5 h-3.5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                                </svg>
+                                Plan de Estudios Oficial
+                            </span>
+                            <span v-if="malla.activa" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Activa
+                            </span>
+                            <span v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-slate-200">
+                                Inactiva
                             </span>
                         </div>
-                        <button @click="cerrar" class="text-slate-400 hover:text-slate-600">✕</button>
+
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                            {{ malla.carrera }}
+                        </h1>
+
+                        <!-- Metadata compacta del plan -->
+                        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-blue-100/90 font-medium">
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">Año <b>{{ malla.anio }}</b></span>
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">Versión: <b class="font-mono">{{ malla.version }}</b></span>
+                            <span class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">Modalidad: <b>{{ MODALIDAD[malla.modalidad] || malla.modalidad }}</b></span>
+                            <span v-if="malla.periodo" class="bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 font-mono">{{ malla.periodo }}</span>
+                        </div>
                     </div>
 
-                    <div class="mb-4 flex gap-4 overflow-x-auto border-b border-slate-200 text-sm">
-                        <button v-for="t in tabs" :key="t.id" @click="tab = t.id"
-                                :class="tab === t.id ? 'border-[#2E75B6] text-[#1F3864]' : 'border-transparent text-slate-400 hover:text-slate-600'"
-                                class="-mb-px shrink-0 border-b-2 pb-2 font-medium">
-                            {{ t.label }}
-                            <span v-if="t.id === 'convalidaciones' && cursoSel.convalidaciones.length" class="ml-1 rounded-full bg-slate-100 px-1.5 text-xs">{{ cursoSel.convalidaciones.length }}</span>
+                    <!-- Botones de Acción de Cabecera -->
+                    <div class="flex flex-wrap items-center gap-2.5 self-stretch lg:self-center">
+                        <a :href="`/mallas/${malla.id}/exportar`"
+                           class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 text-xs font-bold text-white border border-white/20 hover:bg-white/20 transition-all shadow-xs"
+                           title="Exportar estructura en formato Excel">
+                            <svg class="w-4 h-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                            </svg>
+                            Exportar Excel
+                        </a>
+
+                        <Link :href="`/mallas/${malla.id}/editar`"
+                              class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-xs font-bold text-[#1F3864] hover:bg-blue-50 transition-all shadow-md">
+                            <svg class="w-4 h-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                            </svg>
+                            Editar
+                        </Link>
+
+                        <button @click="eliminarMalla"
+                                class="inline-flex items-center justify-center p-2.5 rounded-xl bg-red-500/20 text-red-200 border border-red-400/30 hover:bg-red-500 hover:text-white transition-all shadow-xs"
+                                title="Eliminar plan curricular">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
                         </button>
                     </div>
+                </div>
 
-                    <dl v-if="tab === 'info'" class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                        <div><dt class="text-xs text-slate-400">Créditos</dt><dd class="font-medium text-slate-700">{{ cursoSel.creditos }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Tipo de curso</dt><dd class="text-slate-700">{{ TIPO[cursoSel.tipo_curso] || '—' }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Carácter</dt><dd class="text-slate-700">{{ cursoSel.es_electivo ? 'Electivo' : 'Obligatorio' }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Área</dt><dd class="text-slate-700">{{ cursoSel.area || '—' }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Horas teoría</dt><dd class="text-slate-700">{{ cursoSel.horas_teoria ?? '—' }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Horas práctica</dt><dd class="text-slate-700">{{ cursoSel.horas_practica ?? '—' }}</dd></div>
-                        <div v-if="cursoSel.mencion" class="col-span-2"><dt class="text-xs text-slate-400">Mención / especialidad</dt><dd class="font-medium text-indigo-700">{{ cursoSel.mencion }}</dd></div>
-                        <div class="col-span-2"><dt class="text-xs text-slate-400">Prerrequisito</dt><dd class="text-slate-700">{{ cursoSel.prerequisito || '—' }}</dd></div>
-                        <div v-if="cursoSel.silabo_texto" class="col-span-2"><dt class="text-xs text-slate-400">Descripción / sílabo</dt><dd class="text-slate-600">{{ cursoSel.silabo_texto }}</dd></div>
-                    </dl>
-
-                    <div v-else-if="tab === 'competencias'" class="space-y-4 text-sm">
-                        <div>
-                            <p class="mb-2 text-xs font-medium text-slate-400">Competencias relacionadas</p>
-                            <div v-if="cursoSel.competencias.length" class="flex flex-wrap gap-2">
-                                <span v-for="(comp, i) in cursoSel.competencias" :key="i" class="rounded-full bg-[#2E75B6]/10 px-2.5 py-0.5 text-xs font-medium text-[#2E75B6]">{{ comp }}</span>
-                            </div>
-                            <p v-else class="text-slate-400">Sin competencias registradas.</p>
+                <!-- Tira Compacta de Métricas (Reemplaza los 6 bloques gigantes) -->
+                <div class="mt-6 pt-5 border-t border-white/15 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/30 flex items-center justify-center text-blue-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                         </div>
                         <div>
-                            <p class="mb-1 text-xs font-medium text-slate-400">Resultados de aprendizaje</p>
-                            <p class="whitespace-pre-line text-slate-600">{{ cursoSel.resultados_aprendizaje || '—' }}</p>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.cursos }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Cursos totales</div>
                         </div>
                     </div>
 
-                    <div v-else-if="tab === 'convalidaciones'" class="space-y-2 text-sm">
-                        <div v-for="(c, i) in cursoSel.convalidaciones" :key="i" class="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342" /></svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.creditos }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Créditos totales</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-violet-500/30 flex items-center justify-center text-violet-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" /></svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.ciclos }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Ciclos académicos</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/30 flex items-center justify-center text-amber-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5Z" /></svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.obligatorios }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Obligatorios</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-rose-500/30 flex items-center justify-center text-rose-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0Z" /></svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.electivos }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Electivos</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-xs">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-200">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3ZM6 6h.008v.008H6V6Z" /></svg>
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-white leading-none">{{ resumen.menciones }}</div>
+                            <div class="text-[11px] text-blue-200 font-medium mt-0.5">Menciones</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA COMPACTA DE BÚSQUEDA Y FILTROS -->
+        <div class="mb-6 bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                <!-- Input de búsqueda -->
+                <div class="relative flex-1 min-w-[200px]">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607Z" /></svg>
+                    </span>
+                    <input v-model="buscar" type="text" placeholder="Buscar por código o nombre…"
+                           class="w-full rounded-xl border-slate-200 py-1.5 pl-9 pr-3 text-xs focus:border-[#2E75B6] focus:ring-2 focus:ring-[#2E75B6]/20 transition-all" />
+                </div>
+
+                <!-- Filtros rápidos tipo select -->
+                <select v-model="filtroTipo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                    <option value="">Todos los tipos</option>
+                    <option value="obligatorio">Obligatorios</option>
+                    <option value="electivo">Electivos</option>
+                </select>
+
+                <select v-model="filtroCiclo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                    <option value="">Todos los ciclos</option>
+                    <option v-for="c in ciclos" :key="c.id" :value="c.numero">Ciclo {{ c.numero }}</option>
+                </select>
+
+                <select v-if="mencionesDisponibles.length" v-model="filtroMencion" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                    <option value="">Todas las menciones</option>
+                    <option value="__reg">Solo plan regular</option>
+                    <option v-for="m in mencionesDisponibles" :key="m" :value="m">{{ m }}</option>
+                </select>
+
+                <button v-if="hayFiltro" @click="limpiarFiltros"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#2E75B6] hover:bg-blue-50 transition-colors">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Limpiar
+                </button>
+            </div>
+
+            <!-- Botones de Acción Global de Ciclos -->
+            <div class="flex items-center gap-2">
+                <button @click="alternarTodos"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                    <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                    </svg>
+                    {{ todoColapsado ? 'Expandir todos' : 'Contraer todos' }}
+                </button>
+
+                <button v-if="puedeAgregarCiclo" @click="agregarCiclo"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1F3864] text-xs font-bold text-white hover:bg-[#2E75B6] transition-all shadow-xs">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    + Nuevo Ciclo
+                </button>
+            </div>
+        </div>
+
+        <!-- NUEVO PARADIGMA: TABLA COMPACTA Y MODULAR DE CICLOS -->
+        <div v-if="ciclos.length" class="space-y-4">
+            <template v-for="ciclo in ciclosVista" :key="ciclo.id">
+                <div v-if="!hayFiltro || ciclo.cursos.length"
+                     class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden transition-all duration-200 hover:border-slate-300">
+                    
+                    <!-- Barra de Título del Ciclo (Compacta y Clickable) -->
+                    <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100">
+                        <button @click="toggleCiclo(ciclo.id)" class="flex items-center gap-3 text-left focus:outline-none group">
+                            <span :class="colorCiclo(ciclo.numero).badge"
+                                  class="h-7 min-w-[2rem] px-2 rounded-lg flex items-center justify-center text-xs font-bold shadow-2xs">
+                                {{ ciclo.numero }}
+                            </span>
                             <div>
-                                <p class="font-medium text-slate-700">{{ c.estudiante || 'Estudiante' }}</p>
-                                <p class="text-xs text-slate-500">{{ c.creditos }} créditos · <span class="capitalize">{{ c.estado }}</span></p>
+                                <span class="text-sm font-bold text-slate-800 group-hover:text-[#1F3864] transition-colors">
+                                    Ciclo {{ ciclo.numero }}
+                                </span>
+                                <span class="text-xs text-slate-400 ml-2">
+                                    ({{ ciclo.cursos.length }} {{ ciclo.cursos.length === 1 ? 'asignatura' : 'asignaturas' }} · {{ creditosCiclo(ciclo) }} créditos)
+                                </span>
                             </div>
-                            <span :class="c.excluido ? 'bg-slate-100 text-slate-500' : 'bg-green-50 text-green-700'" class="rounded-full px-2 py-0.5 text-xs font-medium">{{ c.excluido ? 'Excluido' : 'Reconocido' }}</span>
+                            <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 ml-1"
+                                 :class="colapsados.has(ciclo.id) ? '' : 'rotate-180'"
+                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+
+                        <div class="flex items-center gap-2">
+                            <button @click="nuevoCurso(ciclo)"
+                                    class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-xs font-bold text-[#2E75B6] hover:bg-[#2E75B6] hover:text-white transition-all">
+                                <span class="text-sm leading-none">+</span> Agregar curso
+                            </button>
+                            <button v-if="!ciclo.cursos.length" @click="eliminarCiclo(ciclo)"
+                                    class="p-1 rounded-md text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Eliminar ciclo vacío">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
                         </div>
-                        <p v-if="!cursoSel.convalidaciones.length" class="py-4 text-center text-slate-400">Este curso aún no aparece en simulaciones/convalidaciones.</p>
                     </div>
 
-                    <dl v-else-if="tab === 'historial'" class="space-y-3 text-sm">
-                        <div><dt class="text-xs text-slate-400">Creado</dt><dd class="text-slate-700">{{ cursoSel.creado || '—' }}</dd></div>
-                        <div><dt class="text-xs text-slate-400">Última actualización</dt><dd class="text-slate-700">{{ cursoSel.actualizado || '—' }}</dd></div>
-                        <p class="text-xs text-slate-400">Las operaciones sobre la malla quedan registradas en la auditoría (RNF-08).</p>
-                    </dl>
+                    <!-- Lista Compacta de Asignaturas en Fila de Alta Densidad -->
+                    <div v-show="!colapsados.has(ciclo.id)" class="divide-y divide-slate-100">
+                        <div v-if="!ciclo.cursos.length" class="px-4 py-6 text-center text-xs text-slate-400">
+                            No hay cursos en este ciclo. Usa <button @click="nuevoCurso(ciclo)" class="font-bold text-[#2E75B6] hover:underline">+ Agregar curso</button> para comenzar.
+                        </div>
 
-                    <div class="mt-5 flex gap-2 border-t border-slate-200 pt-4">
-                        <button @click="editarCurso" class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">Editar</button>
-                        <button @click="eliminarCurso(cursoSel)" class="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50">Eliminar</button>
+                        <div v-for="curso in ciclo.cursos" :key="curso.id"
+                             class="group px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
+                            
+                            <!-- Código y Nombre del Curso (Clickable para abrir Drawer) -->
+                            <div @click="verCurso(curso)" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                                <span class="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0 group-hover:bg-blue-100 group-hover:text-[#1F3864] transition-colors">
+                                    {{ curso.codigo || 'S/C' }}
+                                </span>
+                                <span class="text-xs sm:text-sm font-semibold text-slate-800 truncate group-hover:text-[#2E75B6] transition-colors">
+                                    {{ curso.nombre }}
+                                </span>
+                                <span v-if="curso.mencion" class="hidden md:inline-flex px-2 py-0.2 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700">
+                                    {{ curso.mencion }}
+                                </span>
+                            </div>
+
+                            <!-- Metadata Compacta (Tipo, Prerrequisito, Créditos) -->
+                            <div class="flex items-center gap-3 shrink-0">
+                                <span :class="curso.es_electivo ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-slate-100 text-slate-600 ring-slate-200'"
+                                      class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset">
+                                    {{ curso.es_electivo ? 'Electivo' : 'Obligatorio' }}
+                                </span>
+
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-50 text-[#2E75B6]">
+                                    {{ curso.creditos }} cr
+                                </span>
+
+                                <!-- Botones de Acción Rápida -->
+                                <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                                    <button @click.stop="verCurso(curso)"
+                                            class="p-1 rounded-md text-slate-400 hover:text-[#2E75B6] hover:bg-blue-50 transition-colors"
+                                            title="Ver ficha completa">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    </button>
+                                    <button @click.stop="editarCurso(curso)"
+                                            class="p-1 rounded-md text-slate-400 hover:text-[#2E75B6] hover:bg-blue-50 transition-colors"
+                                            title="Editar curso">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                                    </button>
+                                    <button @click.stop="eliminarCurso(curso)"
+                                            class="p-1 rounded-md text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                            title="Eliminar curso">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div v-else class="rounded-3xl border-2 border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-400">
+            Esta malla aún no tiene ciclos configurados. Haz clic en <button @click="agregarCiclo" class="font-bold text-[#2E75B6] hover:underline">“+ Nuevo Ciclo”</button> para empezar.
+        </div>
+
+        <!-- DRAWER MODERNO Y ELEGANTE DE DETALLE / FORMULARIO -->
+        <div v-if="panel" class="fixed inset-0 z-50 flex justify-end">
+            <!-- Backdrop con desenfoque -->
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" @click="cerrar"></div>
+
+            <div class="relative z-10 h-full w-full max-w-lg overflow-y-auto bg-white p-6 sm:p-8 shadow-2xl flex flex-col justify-between">
+                
+                <!-- VISTA DE DETALLE DEL CURSO -->
+                <template v-if="panel === 'view' && cursoSel">
+                    <div>
+                        <!-- Header del Drawer -->
+                        <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                            <div>
+                                <span class="font-mono text-xs font-bold text-[#2E75B6] bg-blue-50 px-2 py-0.5 rounded-md">
+                                    {{ cursoSel.codigo || 'SIN CÓDIGO' }}
+                                </span>
+                                <h2 class="text-lg font-bold text-slate-900 mt-1 leading-snug">{{ cursoSel.nombre }}</h2>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span :class="cursoSel.es_electivo ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-violet-50 text-violet-700 ring-violet-200'"
+                                          class="inline-block rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset">
+                                        {{ cursoSel.es_electivo ? 'Electivo' : 'Obligatorio' }}
+                                    </span>
+                                    <span class="text-xs font-bold text-slate-600">{{ cursoSel.creditos }} Créditos</span>
+                                </div>
+                            </div>
+                            <button @click="cerrar" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <!-- Pestañas del Drawer -->
+                        <div class="flex gap-4 border-b border-slate-100 text-xs font-bold uppercase tracking-wider mt-4">
+                            <button v-for="t in tabs" :key="t.id" @click="tab = t.id"
+                                    :class="tab === t.id ? 'border-[#2E75B6] text-[#1F3864]' : 'border-transparent text-slate-400 hover:text-slate-600'"
+                                    class="-mb-px pb-2.5 border-b-2 transition-colors">
+                                {{ t.label }}
+                                <span v-if="t.id === 'convalidaciones' && cursoSel.convalidaciones?.length" class="ml-1 rounded-full bg-blue-100 text-[#2E75B6] px-1.5 py-0.2 text-[10px]">
+                                    {{ cursoSel.convalidaciones.length }}
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Contenido Pestaña Info -->
+                        <div v-if="tab === 'info'" class="py-4 space-y-4 text-xs">
+                            <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div><span class="text-slate-400 block font-medium">Créditos</span><span class="font-bold text-slate-800 text-sm">{{ cursoSel.creditos }}</span></div>
+                                <div><span class="text-slate-400 block font-medium">Tipo de curso</span><span class="font-bold text-slate-800 text-sm">{{ TIPO[cursoSel.tipo_curso] || '—' }}</span></div>
+                                <div><span class="text-slate-400 block font-medium">Horas teoría</span><span class="font-bold text-slate-800 text-sm">{{ cursoSel.horas_teoria ?? '—' }}</span></div>
+                                <div><span class="text-slate-400 block font-medium">Horas práctica</span><span class="font-bold text-slate-800 text-sm">{{ cursoSel.horas_practica ?? '—' }}</span></div>
+                            </div>
+
+                            <div v-if="cursoSel.area" class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-slate-400 block font-medium">Área formativa</span>
+                                <span class="font-bold text-slate-800">{{ cursoSel.area }}</span>
+                            </div>
+
+                            <div v-if="cursoSel.mencion" class="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                                <span class="text-indigo-500 block font-medium">Mención o Especialidad</span>
+                                <span class="font-bold text-indigo-900">{{ cursoSel.mencion }}</span>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-slate-400 block font-medium">Prerrequisito</span>
+                                <span class="font-bold text-slate-800">{{ cursoSel.prerequisito || 'Ninguno' }}</span>
+                            </div>
+
+                            <div v-if="cursoSel.silabo_texto" class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-slate-400 block font-medium mb-1">Descripción / Sílabo</span>
+                                <p class="text-slate-600 leading-relaxed">{{ cursoSel.silabo_texto }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Contenido Pestaña Competencias -->
+                        <div v-else-if="tab === 'competencias'" class="py-4 space-y-4 text-xs">
+                            <div>
+                                <span class="text-slate-400 block font-medium mb-2 uppercase tracking-wider">Competencias Desarrolladas</span>
+                                <div v-if="cursoSel.competencias?.length" class="flex flex-wrap gap-1.5">
+                                    <span v-for="(comp, i) in cursoSel.competencias" :key="i"
+                                          class="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1 font-semibold text-[#2E75B6]">
+                                        {{ comp }}
+                                    </span>
+                                </div>
+                                <p v-else class="text-slate-400 italic">No se han registrado competencias para esta asignatura.</p>
+                            </div>
+                            <div class="pt-3 border-t border-slate-100">
+                                <span class="text-slate-400 block font-medium mb-1 uppercase tracking-wider">Resultados de Aprendizaje</span>
+                                <p class="text-slate-700 whitespace-pre-line leading-relaxed">{{ cursoSel.resultados_aprendizaje || '—' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Contenido Pestaña Convalidaciones -->
+                        <div v-else-if="tab === 'convalidaciones'" class="py-4 space-y-2 text-xs">
+                            <div v-for="(c, i) in (cursoSel.convalidaciones || [])" :key="i"
+                                 class="p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-800">{{ c.estudiante || 'Estudiante' }}</div>
+                                    <div class="text-slate-400 text-[11px]">{{ c.creditos }} créditos · {{ c.estado }}</div>
+                                </div>
+                                <span :class="c.excluido ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'"
+                                      class="px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                    {{ c.excluido ? 'Excluido' : 'Reconocido' }}
+                                </span>
+                            </div>
+                            <p v-if="!cursoSel.convalidaciones?.length" class="text-center text-slate-400 py-6 italic">
+                                Sin registros de convalidación activos para esta asignatura.
+                            </p>
+                        </div>
+
+                        <!-- Contenido Pestaña Historial -->
+                        <div v-else-if="tab === 'historial'" class="py-4 space-y-3 text-xs">
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-slate-400 block font-medium">Fecha de Creación</span>
+                                <span class="font-bold text-slate-800">{{ cursoSel.creado || '—' }}</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-slate-400 block font-medium">Última Actualización</span>
+                                <span class="font-bold text-slate-800">{{ cursoSel.actualizado || '—' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer de Acciones del Drawer -->
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                        <button @click="eliminarCurso(cursoSel)"
+                                class="px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors">
+                            Eliminar asignatura
+                        </button>
+                        <button @click="editarCurso(cursoSel)"
+                                class="px-5 py-2 rounded-xl bg-[#1F3864] text-white text-xs font-bold hover:bg-[#2E75B6] transition-all shadow-xs">
+                            Editar asignatura
+                        </button>
                     </div>
                 </template>
 
-                <!-- Formulario nuevo / editar -->
+                <!-- FORMULARIO DE NUEVO / EDITAR CURSO -->
                 <template v-else>
-                    <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-slate-800">{{ panel === 'new' ? `Nuevo curso · Ciclo ${cicloDestino?.numero}` : 'Editar curso' }}</h2>
-                        <button @click="cerrar" class="text-slate-400 hover:text-slate-600">✕</button>
-                    </div>
-                    <form @submit.prevent="guardar" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Código</label>
-                                <input v-model="form.codigo" type="text" class="w-full rounded-md border-slate-300 text-sm" />
-                                <p v-if="form.errors.codigo" class="mt-1 text-xs text-red-600">{{ form.errors.codigo }}</p>
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Créditos</label>
-                                <input v-model="form.creditos" type="number" step="0.5" class="w-full rounded-md border-slate-300 text-sm" />
-                                <p v-if="form.errors.creditos" class="mt-1 text-xs text-red-600">{{ form.errors.creditos }}</p>
-                            </div>
+                    <div>
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                            <h2 class="text-base font-bold text-slate-900">
+                                {{ panel === 'new' ? `Nueva Asignatura · Ciclo ${cicloDestino?.numero}` : 'Editar Asignatura' }}
+                            </h2>
+                            <button @click="cerrar" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
                         </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Nombre del curso</label>
-                            <input v-model="form.nombre" type="text" class="w-full rounded-md border-slate-300 text-sm" />
-                            <p v-if="form.errors.nombre" class="mt-1 text-xs text-red-600">{{ form.errors.nombre }}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Horas teoría</label>
-                                <input v-model="form.horas_teoria" type="number" step="0.5" class="w-full rounded-md border-slate-300 text-sm" />
+
+                        <form @submit.prevent="guardar" class="py-4 space-y-4 text-xs">
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Código</label>
+                                    <input v-model="form.codigo" type="text" placeholder="INF101"
+                                           class="w-full rounded-xl border-slate-300 text-xs font-mono uppercase focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                    <p v-if="form.errors.codigo" class="text-red-600 text-[10px] mt-1">{{ form.errors.codigo }}</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Créditos</label>
+                                    <input v-model="form.creditos" type="number" step="0.5" min="0" placeholder="4.0"
+                                           class="w-full rounded-xl border-slate-300 text-xs font-bold focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                    <p v-if="form.errors.creditos" class="text-red-600 text-[10px] mt-1">{{ form.errors.creditos }}</p>
+                                </div>
                             </div>
+
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Horas práctica</label>
-                                <input v-model="form.horas_practica" type="number" step="0.5" class="w-full rounded-md border-slate-300 text-sm" />
+                                <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Nombre de la Asignatura</label>
+                                <input v-model="form.nombre" type="text" placeholder="Ej. Algoritmos y Estructuras de Datos"
+                                       class="w-full rounded-xl border-slate-300 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                <p v-if="form.errors.nombre" class="text-red-600 text-[10px] mt-1">{{ form.errors.nombre }}</p>
                             </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Horas Teoría</label>
+                                    <input v-model="form.horas_teoria" type="number" step="0.5" class="w-full rounded-xl border-slate-300 text-xs" />
+                                </div>
+                                <div>
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Horas Práctica</label>
+                                    <input v-model="form.horas_practica" type="number" step="0.5" class="w-full rounded-xl border-slate-300 text-xs" />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Tipo de Curso</label>
+                                    <select v-model="form.tipo_curso" class="w-full rounded-xl border-slate-300 text-xs">
+                                        <option value="">—</option>
+                                        <option value="teorico">Teórico</option>
+                                        <option value="practico">Práctico</option>
+                                        <option value="teorico_practico">Teórico - Práctico</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Área Formativa</label>
+                                    <input v-model="form.area" type="text" placeholder="General, Especialidad…" class="w-full rounded-xl border-slate-300 text-xs" />
+                                </div>
+                            </div>
+
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Tipo de curso</label>
-                                <select v-model="form.tipo_curso" class="w-full rounded-md border-slate-300 text-sm">
-                                    <option value="">—</option>
-                                    <option value="teorico">Teórico</option>
-                                    <option value="practico">Práctico</option>
-                                    <option value="teorico_practico">Teórico - Práctico</option>
+                                <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Mención (Opcional)</label>
+                                <input v-model="form.mencion" list="menciones-datalist" type="text" placeholder="Plan regular (sin mención)" class="w-full rounded-xl border-slate-300 text-xs" />
+                                <datalist id="menciones-datalist"><option v-for="m in mencionesDisponibles" :key="m" :value="m" /></datalist>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Prerrequisito</label>
+                                <select v-model="form.prerequisito_id" class="w-full rounded-xl border-slate-300 text-xs">
+                                    <option value="">Ninguno</option>
+                                    <option v-for="c in prereqOpciones" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                                 </select>
                             </div>
+
                             <div>
-                                <label class="mb-1 block text-xs font-medium text-slate-500">Área</label>
-                                <input v-model="form.area" type="text" placeholder="Especialidad, General…" class="w-full rounded-md border-slate-300 text-sm" />
+                                <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Competencias (separadas por coma)</label>
+                                <input v-model="form.competencias" type="text" placeholder="Diseño de software, Trabajo en equipo" class="w-full rounded-xl border-slate-300 text-xs" />
                             </div>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Mención / especialidad <span class="text-slate-400">(opcional)</span></label>
-                            <input v-model="form.mencion" list="menciones-datalist" type="text" placeholder="Sin mención (curso del plan regular)" class="w-full rounded-md border-slate-300 text-sm" />
-                            <datalist id="menciones-datalist"><option v-for="m in mencionesDisponibles" :key="m" :value="m" /></datalist>
-                            <p v-if="form.errors.mencion" class="mt-1 text-xs text-red-600">{{ form.errors.mencion }}</p>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Competencias <span class="text-slate-400">(separadas por coma)</span></label>
-                            <input v-model="form.competencias" type="text" placeholder="Análisis, Diseño, Resolución de problemas" class="w-full rounded-md border-slate-300 text-sm" />
-                            <p v-if="form.errors.competencias" class="mt-1 text-xs text-red-600">{{ form.errors.competencias }}</p>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Resultados de aprendizaje</label>
-                            <textarea v-model="form.resultados_aprendizaje" rows="2" class="w-full rounded-md border-slate-300 text-sm"></textarea>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Prerrequisito</label>
-                            <select v-model="form.prerequisito_id" class="w-full rounded-md border-slate-300 text-sm">
-                                <option value="">Ninguno</option>
-                                <option v-for="c in prereqOpciones" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-500">Descripción / sílabo</label>
-                            <textarea v-model="form.silabo_texto" rows="3" class="w-full rounded-md border-slate-300 text-sm"></textarea>
-                        </div>
-                        <label class="flex items-center gap-2 text-sm text-slate-700">
-                            <input v-model="form.es_electivo" type="checkbox" class="rounded border-slate-300 text-[#2E75B6]" /> Curso electivo
-                        </label>
-                        <div class="flex gap-2 border-t border-slate-200 pt-3">
-                            <button type="submit" :disabled="form.processing"
-                                    class="rounded-md bg-[#1F3864] px-4 py-2 text-sm font-medium text-white hover:bg-[#2E75B6] disabled:opacity-60">
-                                {{ panel === 'new' ? 'Agregar curso' : 'Guardar cambios' }}
-                            </button>
-                            <button type="button" @click="cerrar" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
-                        </div>
-                    </form>
+
+                            <div>
+                                <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Resultados de Aprendizaje</label>
+                                <textarea v-model="form.resultados_aprendizaje" rows="2" class="w-full rounded-xl border-slate-300 text-xs"></textarea>
+                            </div>
+
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 p-2 rounded-xl bg-slate-50 cursor-pointer">
+                                <input v-model="form.es_electivo" type="checkbox" class="rounded border-slate-300 text-[#2E75B6] focus:ring-[#2E75B6]" />
+                                Asignatura de carácter electivo
+                            </label>
+
+                            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                                <button type="button" @click="cerrar" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600">
+                                    Cancelar
+                                </button>
+                                <button type="submit" :disabled="form.processing"
+                                        class="px-6 py-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-white text-xs font-bold shadow-md hover:shadow transition-all disabled:opacity-60">
+                                    {{ panel === 'new' ? 'Agregar asignatura' : 'Guardar cambios' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </template>
             </div>
         </div>
     </div>
 </template>
+

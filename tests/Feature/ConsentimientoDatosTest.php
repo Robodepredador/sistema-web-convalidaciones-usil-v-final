@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Carrera;
 use App\Models\Facultad;
 use App\Models\Postulante;
-use App\Models\PostulanteDocumento;
 use App\Models\Role;
 use App\Models\UnidadNegocio;
 use App\Models\User;
@@ -86,33 +85,5 @@ class ConsentimientoDatosTest extends TestCase
         $p = Postulante::firstOrFail();
         $this->assertSame('borrador', $p->estado);
         $this->assertFalse($p->tieneConsentimientoDatos());
-    }
-
-    /** Sin consentimiento no se manda el récord al proveedor de IA. */
-    public function test_la_extraccion_con_ia_exige_consentimiento(): void
-    {
-        $asesor = $this->asesor();
-        $this->actingAs($asesor)->post('/postulantes', $this->datos())->assertInvalid();
-
-        $p = Postulante::create([
-            'codigo' => 'POST-2026-00009', 'tipo_documento' => 'DNI', 'numero_documento' => '11111111',
-            'nombres' => 'Ana', 'apellido_paterno' => 'Pérez', 'email' => 'sin@consent.com',
-            'estado' => 'nuevo', 'usuario_id' => $asesor->id, 'revision_estado' => 'aprobada',
-        ]);
-        $doc = PostulanteDocumento::create([
-            'postulante_id' => $p->id, 'tipo' => 'certificado',
-            'nombre_original' => 'record.pdf', 'ruta' => "postulantes/{$p->id}/record.pdf", 'tamano' => 1024,
-        ]);
-
-        $admin = User::create([
-            'nombre' => 'Admin', 'email' => 'admin@usil.edu.pe', 'password_hash' => Hash::make('x'),
-            'rol_id' => Role::where('nombre', Role::SUPERUSUARIO)->firstOrFail()->id,
-            'activo' => true, 'primer_acceso' => false,
-        ]);
-
-        $resp = $this->actingAs($admin)->postJson('/simulaciones/extraer-ia', ['documento_id' => $doc->id]);
-
-        $resp->assertStatus(422);
-        $this->assertStringContainsString('consentimiento', $resp->json('message'));
     }
 }

@@ -22,35 +22,62 @@ class MapeoMallasController extends Controller
     {
         $permitidas = AlcanceService::carrerasVisibles($request->user());
 
+        $subCursosMalla = \DB::table('cursos_usil')
+            ->join('ciclos', 'ciclos.id', '=', 'cursos_usil.ciclo_id')
+            ->select('ciclos.malla_id', \DB::raw('COUNT(*) as total_cursos'))
+            ->groupBy('ciclos.malla_id');
+
         $mapeos = Equivalencia::query()
             ->join('carreras_externas as ce', 'ce.id', '=', 'equivalencias.carrera_externa_id')
             ->join('instituciones_externas as ie', 'ie.id', '=', 'ce.institucion_id')
+            ->leftJoin('tipos_institucion as ti', 'ti.id', '=', 'ie.tipo_id')
             ->join('cursos_usil as cu', 'cu.id', '=', 'equivalencias.curso_usil_id')
             ->join('ciclos as ci', 'ci.id', '=', 'cu.ciclo_id')
             ->join('mallas_curriculares as mu', 'mu.id', '=', 'ci.malla_id')
             ->join('carreras as c', 'c.id', '=', 'mu.carrera_id')
+            ->leftJoin('facultades as f', 'f.id', '=', 'c.facultad_id')
+            ->leftJoinSub($subCursosMalla, 'tcm', 'tcm.malla_id', '=', 'mu.id')
             ->when($permitidas !== null, fn ($q) => $q->whereIn('c.id', $permitidas ?: [0]))
             ->selectRaw('ce.id as carrera_externa_id, c.id as carrera_usil_id,
-                ie.nombre as institucion, ce.nombre as carrera_externa,
-                c.nombre as carrera_usil, mu.anio as anio_usil, mu.version as version_usil,
+                ie.nombre as institucion, ie.pais as pais_origen, ie.gestion as gestion_origen,
+                ti.nombre as tipo_institucion, ce.nombre as carrera_externa,
+                f.nombre as facultad_usil, c.nombre as carrera_usil, 
+                mu.anio as anio_usil, mu.version as version_usil,
+                COALESCE(MAX(tcm.total_cursos), 0) as total_cursos_malla,
                 COUNT(DISTINCT cu.id) as cursos_con_equivalencia, 
                 COUNT(*) as total_opciones, MAX(equivalencias.updated_at) as ultima')
-            ->groupBy('ce.id', 'c.id', 'ie.nombre', 'ce.nombre', 'c.nombre', 'mu.anio', 'mu.version')
+            ->groupBy('ce.id', 'c.id', 'ie.nombre', 'ie.pais', 'ie.gestion', 'ti.nombre', 'ce.nombre', 'f.nombre', 'c.nombre', 'mu.anio', 'mu.version')
             ->orderByDesc('ultima')
             ->get()
             ->map(fn ($m) => [
                 'carrera_externa_id' => (int) $m->carrera_externa_id,
                 'carrera_usil_id' => (int) $m->carrera_usil_id,
                 'institucion' => $m->institucion,
+                'pais_origen' => $m->pais_origen ?? 'Perú',
+                'gestion_origen' => $m->gestion_origen,
+                'tipo_institucion' => $m->tipo_institucion ?? 'Universidad',
                 'carrera_externa' => $m->carrera_externa,
+                'facultad_usil' => $m->facultad_usil,
                 'carrera_usil' => $m->carrera_usil,
                 'plan_usil' => $m->anio_usil.' · '.$m->version_usil,
+                'total_cursos_malla' => (int) $m->total_cursos_malla,
                 'cursos_con_equivalencia' => (int) $m->cursos_con_equivalencia,
                 'total_opciones' => (int) $m->total_opciones,
+                'ultima_actualizacion' => $m->ultima ? date('d/m/Y', strtotime($m->ultima)) : null,
             ])
             ->all();
 
-        return inertia('MapeoMallas/Index', ['mapeos' => $mapeos]);
+        $stats = [
+            'total_mapeos' => count($mapeos),
+            'total_equivalencias' => array_sum(array_column($mapeos, 'total_opciones')),
+            'instituciones_unicas' => count(array_unique(array_column($mapeos, 'institucion'))),
+            'carreras_usil_unicas' => count(array_unique(array_column($mapeos, 'carrera_usil'))),
+        ];
+
+        return inertia('MapeoMallas/Index', [
+            'mapeos' => $mapeos,
+            'stats' => $stats,
+        ]);
     }
 
     public function crear(Request $request)

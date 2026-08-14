@@ -22,6 +22,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -160,6 +161,26 @@ class IntegridadEsquemaTest extends TestCase
     public function test_el_curso_externo_sigue_colgando_de_su_carrera(): void
     {
         $this->assertTrue(Schema::hasColumn('cursos_externos', 'carrera_externa_id'));
+    }
+
+    /**
+     * Sin IA no hay nada que sugerir.
+     *
+     * El administrativo escoge dentro de lo que el especialista autorizó tras
+     * comparar sílabos, y esa lista no la propone una máquina. Con el motor
+     * fuera, distinguir si una fila la puso una persona o un algoritmo deja de
+     * significar algo, y el sistema deja de depender de un proveedor externo.
+     */
+    public function test_no_queda_rastro_del_motor_de_ia(): void
+    {
+        foreach (['simulaciones.sugerir-ia', 'simulaciones.sugerir-similitud', 'simulaciones.extraer-ia'] as $ruta) {
+            $this->assertFalse(Route::has($ruta),
+                "La ruta {$ruta} sugiere equivalencias, que ya no es decisión de nadie automático.");
+        }
+
+        $this->assertFileDoesNotExist(app_path('Services/IAConvalidacionService.php'));
+        $this->assertFalse(Schema::hasColumn('simulaciones', 'metodo'));
+        $this->assertFalse(Schema::hasColumn('simulacion_detalle', 'confianza'));
     }
 
     /** El catálogo SUNEDU se recarga periódicamente: sin unicidad, cada recarga

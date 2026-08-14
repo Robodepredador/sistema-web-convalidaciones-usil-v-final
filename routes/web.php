@@ -3,7 +3,6 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\CatalogoController;
-use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\ConvalidacionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Estructura\EstructuraController;
@@ -62,14 +61,6 @@ Route::middleware('auth')->group(function () {
             ->parameters(['usuarios' => 'usuario']);
         Route::patch('usuarios/{usuario}/estado', [UsuarioController::class, 'estado'])->name('usuarios.estado');
         Route::patch('usuarios/{usuario}/reset-password', [UsuarioController::class, 'resetPassword'])->name('usuarios.reset');
-    });
-
-    Route::middleware('permission:configuracion.gestionar')->group(function () {
-        // Configuración del sistema (motor de IA, etc.)
-        Route::get('configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
-        Route::put('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
-        Route::post('configuracion/probar', [ConfiguracionController::class, 'probar'])->name('configuracion.probar');
-
     });
 
     Route::middleware('permission:estructura.gestionar')->group(function () {
@@ -233,9 +224,6 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:evaluacion.editar')->group(function () {
             Route::get('simulaciones/simular/{postulante}', [SimulacionController::class, 'crear'])->name('simulaciones.crear');
             // Endpoints AJAX del motor de convalidación
-            Route::post('simulaciones/sugerir-similitud', [SimulacionController::class, 'sugerirSimilitud'])->name('simulaciones.sugerir-similitud');
-            Route::post('simulaciones/sugerir-ia', [SimulacionController::class, 'sugerirIA'])->name('simulaciones.sugerir-ia');
-            Route::post('simulaciones/extraer-ia', [SimulacionController::class, 'extraerIA'])->name('simulaciones.extraer-ia');
             Route::post('simulaciones', [SimulacionController::class, 'store'])->name('simulaciones.store');
             Route::get('simulaciones/{simulacion}/editar', [SimulacionController::class, 'editar'])->name('simulaciones.editar');
             Route::put('simulaciones/{simulacion}', [SimulacionController::class, 'update'])->name('simulaciones.update');
@@ -256,7 +244,6 @@ Route::middleware('auth')->group(function () {
 
         // CU-11 / CU-12 / RF-43..45: el asistente de sugerencias por curso está
         // DESACTIVADO junto con el catálogo de equivalencias (era su única UI).
-        // La IA del flujo de simulación (sugerir-ia, extraer-ia) sigue activa.
     }); // fin operación del proceso
 });
 

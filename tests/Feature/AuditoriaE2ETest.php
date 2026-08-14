@@ -129,7 +129,7 @@ class AuditoriaE2ETest extends TestCase
             'tipo_documento' => 'DNI', 'numero_documento' => $p->numero_documento, 'email' => $p->email,
             'ciclo_postulacion' => '2026-1', 'carrera_externa_id' => $this->c['carExt']->id,
             'carrera_usil_id' => $carrera->id, 'malla_usil_id' => $this->c['malla'.$cod]->id,
-            'estado' => 'generada', 'metodo' => 'manual', 'usuario_id' => $this->c['admin']->id,
+            'estado' => 'generada', 'usuario_id' => $this->c['admin']->id,
         ]);
         SimulacionDetalle::create([
             'simulacion_id' => $sim->id, 'curso_usil_id' => $this->c['curso'.$cod]->id,
@@ -183,7 +183,7 @@ class AuditoriaE2ETest extends TestCase
         // 4) Coordinador genera la preconvalidación.
         $this->actingAs($this->c['coord'])->get("/simulaciones/simular/{$p->id}?carrera={$this->c['carrIng']->id}")->assertOk();
         $this->actingAs($this->c['coord'])->postJson('/simulaciones', [
-            'postulante_id' => $p->id, 'carrera_usil_id' => $this->c['carrIng']->id, 'metodo' => 'manual',
+            'postulante_id' => $p->id, 'carrera_usil_id' => $this->c['carrIng']->id,
             'filas' => [[
                 'curso_origen_nombre' => 'Matemática I',
                 'curso_usil_id' => $this->c['cursoISW']->id, 'clasificacion' => 'convalidable',
@@ -241,7 +241,7 @@ class AuditoriaE2ETest extends TestCase
         $ajena = $this->simulacion($pAjeno, $this->c['carrNeg'], 'ADM');
 
         $this->actingAs($this->c['coord'])->putJson("/simulaciones/{$ajena->id}", [
-            'postulante_id' => $pAjeno->id, 'carrera_usil_id' => $this->c['carrNeg']->id, 'metodo' => 'manual',
+            'postulante_id' => $pAjeno->id, 'carrera_usil_id' => $this->c['carrNeg']->id,
             'filas' => [], 'observaciones' => 'MODIFICADO POR UN ROL SIN ALCANCE',
         ])->assertForbidden('FUGA: el coordinador editó una simulación fuera de su alcance.');
 
@@ -300,54 +300,6 @@ class AuditoriaE2ETest extends TestCase
 
         $this->actingAs($this->c['coord'])->get("/documentos/{$suyo->id}/ver")
             ->assertOk('El evaluador debe poder abrir el récord de los postulantes de su alcance.');
-    }
-
-    /**
-     * La misma fuga por la otra puerta: la extracción con IA recibe el
-     * `documento_id` por el cuerpo de la petición.
-     *
-     * `verDocumento()` comprobaba el alcance y `extraerIA()` no, así que bastaba
-     * con recorrer identificadores para sacar el récord íntegro —nombre,
-     * documento y notas— de cualquier postulante, y de paso mandárselo al
-     * proveedor de IA. Que la IA se entregue apagada no arregla esto: la
-     * comprobación tiene que estar en el código.
-     */
-    public function test_extraccion_con_ia_de_un_documento_fuera_del_alcance(): void
-    {
-        Storage::fake();
-        $pAjeno = $this->postulante($this->c['asesorB'], $this->c['carrNeg'], '20000009');
-        $pAjeno->forceFill(['consentimiento_datos_en' => now()])->save();
-        Storage::put('postulantes/z/record.pdf', 'RECORD ACADEMICO CONFIDENCIAL');
-        $doc = PostulanteDocumento::create(['postulante_id' => $pAjeno->id, 'tipo' => 'certificado',
-            'nombre_original' => 'record.pdf', 'ruta' => 'postulantes/z/record.pdf', 'tamano' => 10]);
-
-        $this->actingAs($this->c['coord'])
-            ->postJson('/simulaciones/extraer-ia', ['documento_id' => $doc->id])
-            ->assertForbidden('FUGA: se extrajo el récord de un postulante fuera del alcance del evaluador.');
-
-        // Y tampoco nombrando al postulante directamente, sin pasar por el documento.
-        $this->actingAs($this->c['coord'])
-            ->postJson('/simulaciones/extraer-ia', ['postulante_id' => $pAjeno->id])
-            ->assertForbidden('FUGA: `postulante_id` saltó la comprobación de alcance.');
-    }
-
-    /** El pool de cursos de una carrera ajena tampoco se filtra por sugerencias. */
-    public function test_sugerencia_por_similitud_de_una_carrera_ajena(): void
-    {
-        $this->actingAs($this->c['coord'])
-            ->postJson('/simulaciones/sugerir-similitud', [
-                'carrera_usil_id' => $this->c['carrNeg']->id,
-                'cursos' => ['Matemática I'],
-            ])
-            ->assertForbidden('FUGA: se devolvió el plan de estudios de una carrera fuera del alcance.');
-
-        // Control positivo: la suya sí responde.
-        $this->actingAs($this->c['coord'])
-            ->postJson('/simulaciones/sugerir-similitud', [
-                'carrera_usil_id' => $this->c['carrIng']->id,
-                'cursos' => ['Matemática I'],
-            ])
-            ->assertOk();
     }
 
     /**

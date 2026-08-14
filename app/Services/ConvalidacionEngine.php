@@ -151,31 +151,33 @@ class ConvalidacionEngine
     }
 
     /**
-     * Devuelve el nombre canónico de un curso de origen cotejándolo contra el
-     * catálogo real de la institución (cursos_externos). Si hay una coincidencia
-     * clara, usa el nombre completo del catálogo (corrige truncados/acentos);
-     * si no, aplica el formateo de {@see titulo()}.
-     *
-     * @param  array<int,string>  $catalogo  nombres canónicos de la institución
-     */
-    public function nombreCanonico(string $extraido, array $catalogo, float $cutoff = 0.82): string
-    {
-        $mejor = 0.0;
-        $best = null;
-        foreach ($catalogo as $nombre) {
-            $s = $this->similitud($extraido, $nombre);
-            if ($s > $mejor) {
-                $mejor = $s;
-                $best = $nombre;
-            }
-        }
-
-        return ($best !== null && $mejor >= $cutoff) ? $best : $this->titulo($extraido);
-    }
-
-    /**
      * Malla activa (con plan de estudios) de una carrera USIL.
      */
+    /**
+     * Parecido entre dos nombres de curso, de 0 a 1.
+     *
+     * NO es IA: es `similar_text()` de PHP sobre los nombres normalizados, todo
+     * dentro del proceso y sin salir a ningún servicio. Se retiró por error al
+     * desmontar el motor de IA y hubo que devolverla: la usa el histórico de
+     * equivalencias (HistorialEquivalenciasService) para agrupar las variantes
+     * de escritura de un mismo curso —«Matemática I» y «Matematica 1»— cuando
+     * cuenta con qué frecuencia se convalidó cada cosa.
+     */
+    public function similitud(string $a, string $b): float
+    {
+        $a = $this->normaliza($a);
+        $b = $this->normaliza($b);
+        if ($a === '' || $b === '') {
+            return 0.0;
+        }
+        if ($a === $b) {
+            return 1.0;
+        }
+        similar_text($a, $b, $pct);
+
+        return $pct / 100;
+    }
+
     public function mallaDeCarrera(int $carreraId): ?MallaCurricular
     {
         return MallaCurricular::where('carrera_id', $carreraId)
@@ -230,79 +232,5 @@ class ConvalidacionEngine
         }
 
         return $items;
-    }
-
-    /**
-     * Similitud 0..1 entre dos textos normalizados (equivalente a SequenceMatcher.ratio).
-     */
-    public function similitud(string $a, string $b): float
-    {
-        $a = $this->normaliza($a);
-        $b = $this->normaliza($b);
-        if ($a === '' || $b === '') {
-            return 0.0;
-        }
-        if ($a === $b) {
-            return 1.0;
-        }
-        similar_text($a, $b, $pct);
-
-        return $pct / 100;
-    }
-
-    /**
-     * Asignación óptima 1‑a‑1 por similitud (greedy sobre los mejores pares).
-     *
-     * @param  array<int,string>  $cursosOrigen  nombres de cursos aprobados de origen
-     * @param  array  $pool  salida de poolCursosUsil()
-     * @return array<string,array{curso_usil_id:int|null,label:string,confianza:float}>
-     *                                                                                  mapa nombreOrigen → sugerencia
-     */
-    public function asignacionOptima(array $cursosOrigen, array $pool, float $cutoff = 0.55): array
-    {
-        $porLabel = [];
-        foreach ($pool as $p) {
-            $porLabel[$p['label']] = $p;
-        }
-
-        // Genera todos los pares con score >= cutoff.
-        $pares = [];
-        foreach ($cursosOrigen as $origen) {
-            foreach ($pool as $p) {
-                $score = $this->similitud($origen, $p['curso']);
-                if ($score >= $cutoff) {
-                    $pares[] = ['score' => $score, 'origen' => $origen, 'label' => $p['label']];
-                }
-            }
-        }
-
-        usort($pares, fn ($x, $y) => $y['score'] <=> $x['score']);
-
-        $asignado = [];
-        $usilTomados = [];
-        foreach ($pares as $par) {
-            if (isset($asignado[$par['origen']]) || isset($usilTomados[$par['label']])) {
-                continue;
-            }
-            $asignado[$par['origen']] = ['label' => $par['label'], 'score' => $par['score']];
-            $usilTomados[$par['label']] = true;
-        }
-
-        $resultado = [];
-        foreach ($cursosOrigen as $origen) {
-            if (! isset($asignado[$origen])) {
-                $resultado[$origen] = ['curso_usil_id' => null, 'label' => self::NO_CONVALIDAR, 'confianza' => 0.0];
-
-                continue;
-            }
-            $sel = $asignado[$origen];
-            $resultado[$origen] = [
-                'curso_usil_id' => $porLabel[$sel['label']]['id'] ?? null,
-                'label' => $sel['label'],
-                'confianza' => round($sel['score'] * 100, 1),
-            ];
-        }
-
-        return $resultado;
     }
 }

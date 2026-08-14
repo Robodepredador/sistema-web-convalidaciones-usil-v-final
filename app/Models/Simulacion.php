@@ -17,7 +17,7 @@ class Simulacion extends Model
     protected $fillable = [
         'postulante_id', 'nombres', 'apellidos', 'tipo_documento', 'numero_documento', 'email',
         'telefono', 'ciclo_postulacion', 'carrera_externa_id', 'carrera_usil_id',
-        'malla_usil_id', 'estado', 'metodo', 'pdf_path', 'documento_path',
+        'malla_usil_id', 'estado', 'pdf_path', 'documento_path',
         'universidad_origen', 'escala_notas', 'nota_minima', 'observaciones', 'motivo_eliminacion', 'usuario_id',
     ];
 
