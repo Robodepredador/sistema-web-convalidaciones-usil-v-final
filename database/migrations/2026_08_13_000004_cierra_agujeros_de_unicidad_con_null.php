@@ -102,7 +102,7 @@ return new class extends Migration
                 ->implode(' | ');
 
             throw new RuntimeException(
-                "No se puede aplicar la migración: hay mallas externas que colapsarían en la ".
+                'No se puede aplicar la migración: hay mallas externas que colapsarían en la '.
                 "misma fila al volver 'version' obligatoria (toda fila con version NULL pasa a ".
                 "'1'). Deduplique a mano antes de reintentar. Filas en conflicto ".
                 "(carrera_externa_id, anio): {$filas}."
@@ -113,7 +113,7 @@ return new class extends Migration
 
         if ($largoMaximo !== null && $largoMaximo > 20) {
             throw new RuntimeException(
-                "No se puede aplicar la migración: mallas_externas.version tiene un valor de ".
+                'No se puede aplicar la migración: mallas_externas.version tiene un valor de '.
                 "{$largoMaximo} caracteres, y el destino de la migración es VARCHAR(20). Corrija ".
                 'o acorte ese valor antes de reintentar.'
             );
@@ -133,8 +133,8 @@ return new class extends Migration
                 ->implode(' | ');
 
             throw new RuntimeException(
-                "No se puede aplicar la migración: hay reglas de cursos no convalidables ".
-                "duplicadas para la misma clave dentro del mismo ámbito (misma carrera, o ambas ".
+                'No se puede aplicar la migración: hay reglas de cursos no convalidables '.
+                'duplicadas para la misma clave dentro del mismo ámbito (misma carrera, o ambas '.
                 "institucionales). Deduplique a mano antes de reintentar. Filas en conflicto: {$filas}."
             );
         }

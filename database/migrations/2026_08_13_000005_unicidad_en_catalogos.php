@@ -51,10 +51,32 @@ return new class extends Migration
                 $table->unique(['institucion_id', 'nombre'], 'uq_carrera_externa_institucion_nombre');
             });
         }
+        $this->soltarIndiceSimpleRedundante('carreras_externas', 'carreras_externas_institucion_id_foreign');
 
         if (! $this->existeIndice('cursos_usil', 'uq_curso_usil_ciclo_codigo')) {
             Schema::table('cursos_usil', function (Blueprint $table) {
                 $table->unique(['ciclo_id', 'codigo'], 'uq_curso_usil_ciclo_codigo');
+            });
+        }
+        $this->soltarIndiceSimpleRedundante('cursos_usil', 'cursos_usil_ciclo_id_foreign');
+    }
+
+    /**
+     * En la primera corrida MySQL suelta solo el índice simple que respaldaba la
+     * FK, en cuanto el compuesto pasa a respaldarla. Pero el que repone down()
+     * es explícito, y esos no se sueltan solos: sin esto, un ciclo
+     * up() → down() → up() dejaría la tabla con los dos índices, mientras que
+     * una base construida desde cero tendría solo el compuesto. El esquema
+     * acabaría dependiendo del camino recorrido.
+     *
+     * Es seguro porque para cuando esto corre el compuesto ya respalda la FK,
+     * que es justo la razón por la que InnoDB se permite soltarlo por su cuenta.
+     */
+    private function soltarIndiceSimpleRedundante(string $tabla, string $indice): void
+    {
+        if ($this->existeIndice($tabla, $indice)) {
+            Schema::table($tabla, function (Blueprint $table) use ($indice) {
+                $table->dropIndex($indice);
             });
         }
     }
@@ -82,22 +104,32 @@ return new class extends Migration
                 $table->index('ciclo_id', 'cursos_usil_ciclo_id_foreign');
             });
         }
-        Schema::table('cursos_usil', function (Blueprint $table) {
-            $table->dropUnique('uq_curso_usil_ciclo_codigo');
-        });
+        $this->soltarUnicoSiExiste('cursos_usil', 'uq_curso_usil_ciclo_codigo');
 
         if (! $this->existeIndice('carreras_externas', 'carreras_externas_institucion_id_foreign')) {
             Schema::table('carreras_externas', function (Blueprint $table) {
                 $table->index('institucion_id', 'carreras_externas_institucion_id_foreign');
             });
         }
-        Schema::table('carreras_externas', function (Blueprint $table) {
-            $table->dropUnique('uq_carrera_externa_institucion_nombre');
-        });
+        $this->soltarUnicoSiExiste('carreras_externas', 'uq_carrera_externa_institucion_nombre');
 
-        Schema::table('instituciones_externas', function (Blueprint $table) {
-            $table->dropUnique('uq_institucion_nombre_pais');
-        });
+        $this->soltarUnicoSiExiste('instituciones_externas', 'uq_institucion_nombre_pais');
+    }
+
+    /**
+     * Las eliminaciones van guardadas por el mismo motivo que las creaciones de
+     * up(): si down() aborta a medio camino, Laravel no borra la fila de la
+     * migración, así que el siguiente rollback vuelve a entrar desde arriba y
+     * un DROP sobre un índice ya eliminado rompería con el error 1091, dejando
+     * al operador sin forma de reintentar.
+     */
+    private function soltarUnicoSiExiste(string $tabla, string $indice): void
+    {
+        if ($this->existeIndice($tabla, $indice)) {
+            Schema::table($tabla, function (Blueprint $table) use ($indice) {
+                $table->dropUnique($indice);
+            });
+        }
     }
 
     /**
@@ -113,17 +145,16 @@ return new class extends Migration
         // violan uq_institucion_nombre_pais (InnoDB no compara NULLs entre sí),
         // así que agruparlas aquí sería una falsa alarma.
         $institucionesDuplicadas = DB::select(
-            "SELECT nombre, pais, COUNT(*) total
+            'SELECT nombre, pais, COUNT(*) total
              FROM instituciones_externas
              WHERE pais IS NOT NULL
              GROUP BY nombre, pais
-             HAVING total > 1"
+             HAVING total > 1'
         );
 
         if ($institucionesDuplicadas !== []) {
-            $filas = collect($institucionesDuplicadas)
-                ->map(fn ($f) => "nombre='{$f->nombre}', pais='{$f->pais}' ({$f->total} filas)")
-                ->implode(' | ');
+            $filas = $this->resumirConflictos($institucionesDuplicadas,
+                fn ($f) => "nombre='{$f->nombre}', pais='{$f->pais}' ({$f->total} filas)");
 
             throw new RuntimeException(
                 'No se puede aplicar la migración: hay instituciones externas duplicadas '.
@@ -140,9 +171,8 @@ return new class extends Migration
         );
 
         if ($carrerasDuplicadas !== []) {
-            $filas = collect($carrerasDuplicadas)
-                ->map(fn ($f) => "institucion_id={$f->institucion_id}, nombre='{$f->nombre}' ({$f->total} filas)")
-                ->implode(' | ');
+            $filas = $this->resumirConflictos($carrerasDuplicadas,
+                fn ($f) => "institucion_id={$f->institucion_id}, nombre='{$f->nombre}' ({$f->total} filas)");
 
             throw new RuntimeException(
                 'No se puede aplicar la migración: hay carreras externas duplicadas dentro de la '.
@@ -158,15 +188,31 @@ return new class extends Migration
         );
 
         if ($cursosDuplicados !== []) {
-            $filas = collect($cursosDuplicados)
-                ->map(fn ($f) => "ciclo_id={$f->ciclo_id}, codigo='{$f->codigo}' ({$f->total} filas)")
-                ->implode(' | ');
+            $filas = $this->resumirConflictos($cursosDuplicados,
+                fn ($f) => "ciclo_id={$f->ciclo_id}, codigo='{$f->codigo}' ({$f->total} filas)");
 
             throw new RuntimeException(
                 'No se puede aplicar la migración: hay cursos USIL duplicados (mismo ciclo y mismo '.
                 "código). Deduplique a mano antes de reintentar. Filas en conflicto: {$filas}."
             );
         }
+    }
+
+    /**
+     * El fallo que estas comprobaciones existen para atrapar es una importación
+     * masiva a medio completar, que produce duplicados por miles y no de uno en
+     * uno. Volcarlos todos enterraría en la consola la instrucción que el
+     * operador necesita leer, así que se muestra una muestra y se dice cuántos
+     * quedan fuera.
+     *
+     * @param  array<int, object>  $grupos
+     */
+    private function resumirConflictos(array $grupos, callable $describir): string
+    {
+        $muestra = collect($grupos)->take(20)->map($describir)->implode(' | ');
+        $restantes = count($grupos) - 20;
+
+        return $restantes > 0 ? "{$muestra} (y {$restantes} grupos mas)" : $muestra;
     }
 
     /** information_schema.STATISTICS es donde MySQL expone si un índice existe. */
