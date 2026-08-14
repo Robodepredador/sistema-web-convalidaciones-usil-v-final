@@ -6,7 +6,6 @@ use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\ConvalidacionController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\EquivalenciaController;
 use App\Http\Controllers\Estructura\EstructuraController;
 use App\Http\Controllers\Estructura\FacultadController;
 use App\Http\Controllers\Estructura\ModalidadController;
@@ -16,7 +15,6 @@ use App\Http\Controllers\Estructura\SedeController;
 use App\Http\Controllers\HistorialEquivalenciasController;
 use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\MallaController;
-use App\Http\Controllers\MallaExternaController;
 use App\Http\Controllers\MallaImportController;
 use App\Http\Controllers\MapeoMallasController;
 use App\Http\Controllers\Portal\AccesoController as PortalAccesoController;
@@ -148,36 +146,14 @@ Route::middleware('auth')->group(function () {
             Route::put('instituciones/{institucion}', [InstitucionController::class, 'update'])->name('instituciones.update');
             Route::patch('instituciones/{institucion}/activar', [InstitucionController::class, 'activar'])->name('instituciones.activar');
             Route::delete('instituciones/{institucion}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
-        }); // fin catalogos.gestionar
 
-        // CU-03: Mallas Externas (permiso mallas_externas.gestionar).
-        //
-        // El catálogo de equivalencias curso↔curso está DESACTIVADO: se retiraron
-        // sus rutas de escritura (sugerencias.*, simulaciones.sugerir-catalogo),
-        // la UI de mapeo, la tabla `equivalencias` (migración 2026_08_02_000003)
-        // y los métodos store/destroy de este controlador.
-        //
-        // Lo que sigue vivo bajo el prefijo `equivalencias` es el registro de las
-        // mallas oficiales de las instituciones de origen: el nombre de la ruta
-        // quedó del módulo anterior, la pantalla se titula "Mallas Externas".
-        Route::middleware('permission:mallas_externas.gestionar')->group(function () {
-            Route::get('equivalencias', [EquivalenciaController::class, 'index'])->name('equivalencias.index');
-            Route::get('equivalencias/crear', [EquivalenciaController::class, 'create'])->name('equivalencias.create');
-            // Carga sin IA: se baja la plantilla, se transcribe la malla oficial y se
-            // sube. `previsualizar` devuelve la misma forma que `extraer-ia`, así que
-            // la revisión en pantalla y el guardado son los mismos.
-            Route::get('mallas-externas/plantilla', [MallaExternaController::class, 'plantilla'])->name('mallas-externas.plantilla');
-            Route::post('mallas-externas/previsualizar', [MallaExternaController::class, 'previsualizarExcel'])->name('mallas-externas.previsualizar');
-            Route::post('mallas-externas/extraer-ia', [MallaExternaController::class, 'extraerIA'])->name('mallas-externas.extraer-ia');
-            Route::post('mallas-externas', [MallaExternaController::class, 'store'])->name('mallas-externas.store');
-            // El PDF vive en el disco privado: se sirve por aquí, con permiso.
-            Route::get('mallas-externas/{mallaExterna}/pdf', [MallaExternaController::class, 'pdf'])
-                ->name('mallas-externas.pdf')->whereNumber('mallaExterna');
-            // Récord académico externo: cursos de la carrera de origen
+            // Cursos de la carrera de origen: son el catalogo del que el
+            // especialista escoge al registrar equivalencias. Vivian bajo
+            // `mallas_externas.gestionar`, que se retiro con ese modulo.
             Route::post('carreras-externas/{carreraExterna}/cursos', [CatalogoController::class, 'agregarCursoExterno'])->name('cursos-externos.store');
             Route::put('cursos-externos/{cursoExterno}', [CatalogoController::class, 'actualizarCursoExterno'])->name('cursos-externos.update');
             Route::delete('cursos-externos/{cursoExterno}', [CatalogoController::class, 'eliminarCursoExterno'])->name('cursos-externos.destroy');
-        }); // fin mallas_externas.gestionar
+        }); // fin catalogos.gestionar
 
         // Postulantes / Solicitudes — lectura (permiso solicitudes.ver)
         Route::middleware('permission:solicitudes.ver')->group(function () {

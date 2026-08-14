@@ -1,22 +1,45 @@
 <script setup>
 import { Link, usePage, router } from '@inertiajs/vue3';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const page = usePage();
 const usuario = computed(() => page.props.auth?.user ?? null);
 const flash = computed(() => page.props.flash?.status ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
-
-// Varias acciones se envían con preserveScroll, así que el aviso puede quedar
-// fuera de la pantalla: si aparece uno, se lo acercamos al usuario.
-const avisos = ref(null);
-watch([flash, flashError], async ([ok, error]) => {
-    if (!ok && !error) return;
-    await nextTick();
-    avisos.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
-// Errores de validación compartidos por Inertia (se limpian al navegar con éxito).
 const erroresValidacion = computed(() => Object.values(page.props.errors ?? {}).filter(Boolean));
+
+// Toast Pop-up flotante con temporizador y botón de cierre
+const toastVisible = ref(false);
+const toastMensaje = ref('');
+const toastTipo = ref('ok'); // 'ok' | 'error'
+let toastTimer = null;
+
+const mostrarToast = (mensaje, tipo = 'ok') => {
+    if (toastTimer) clearTimeout(toastTimer);
+    toastMensaje.value = mensaje;
+    toastTipo.value = tipo;
+    toastVisible.value = true;
+    toastTimer = setTimeout(() => {
+        toastVisible.value = false;
+    }, tipo === 'ok' ? 4500 : 7000);
+};
+
+const cerrarToast = () => {
+    if (toastTimer) clearTimeout(toastTimer);
+    toastVisible.value = false;
+};
+
+// Escuchar cambios de flash messages y errores de validación
+watch([flash, flashError, erroresValidacion], ([nuevoOk, nuevoErr, nuevosErrores]) => {
+    if (nuevoOk) {
+        mostrarToast(nuevoOk, 'ok');
+    } else if (nuevoErr) {
+        mostrarToast(nuevoErr, 'error');
+    } else if (nuevosErrores?.length) {
+        mostrarToast(`Revisa la información: ${nuevosErrores.length} campo(s) requieren corrección.`, 'error');
+    }
+}, { immediate: true });
+
 const esAdmin = computed(() => usuario.value?.rol === 'Superusuario');
 const urlActual = computed(() => page.url);
 
@@ -35,7 +58,7 @@ const ICON = {
     chart: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
     globe: 'M12 3.75a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5zM3.75 12h16.5M12 3.75v16.5M15.75 6.75c-1.687 1.937-4.5 1.937-6.187 0M15.75 17.25c-1.687-1.937-4.5-1.937-6.187 0',
     arrows: 'M3.75 6.75h16.5m0 0l-3 3m3-3-3-3M3.75 17.25h16.5m0 0l-3-3m3 3-3 3',
-    users: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
+    users: 'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z',
     estructura: 'M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 0 1-1.125-1.125v-3.75ZM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-8.25ZM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-2.25Z',
     postulante: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z',
     menu: 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
@@ -44,14 +67,10 @@ const ICON = {
 
 const nav = computed(() => {
     const items = [{ label: 'Inicio', href: '/', icon: ICON.home }];
-    // Estructura Institucional (Superusuario) contiene las Mallas; el resto ve Mallas si puede.
     if (puede('estructura.gestionar')) items.push({ label: 'Estructura Institucional', href: '/estructura', icon: ICON.estructura });
     else if (puede('catalogos.gestionar')) items.push({ label: 'Mallas Curriculares', href: '/mallas', icon: ICON.mallas });
 
     if (puede('catalogos.gestionar')) items.push({ label: 'Instituciones Externas', href: '/instituciones', icon: ICON.building });
-    if (puede('mallas_externas.gestionar')) items.push({ label: 'Mallas Externas', href: '/equivalencias', icon: ICON.globe });
-    // El catálogo lo registra el Especialista: mismo permiso que exige la ruta.
-    // Antes pedía `evaluacion.editar` y apuntaba a /mapeo-mallas, que ya no existe.
     if (puede('equivalencias.gestionar')) items.push({ label: 'Equivalencias', href: '/equivalencias-catalogo', icon: ICON.arrows });
     if (puede('solicitudes.ver')) items.push({ label: 'Postulantes', href: '/postulantes', icon: ICON.postulante });
     if (puede('evaluacion.ver')) items.push({ label: 'Simulaciones', href: '/simulaciones', icon: ICON.beaker });
@@ -74,7 +93,48 @@ const logout = () => router.post('/logout');
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50">
+    <div class="min-h-screen bg-slate-50 relative">
+        <!-- ======================= POP-UP TOAST FLOTANTE ======================= -->
+        <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="translate-y-[-16px] opacity-0 scale-95"
+            enter-to-class="translate-y-0 opacity-100 scale-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="translate-y-0 opacity-100 scale-100"
+            leave-to-class="translate-y-[-16px] opacity-0 scale-95">
+            <div v-if="toastVisible"
+                 class="fixed top-5 right-5 z-50 flex items-start gap-3 w-88 max-w-[calc(100vw-2.5rem)] rounded-2xl bg-white p-4 shadow-2xl border"
+                 :class="toastTipo === 'ok' ? 'border-emerald-200 ring-4 ring-emerald-500/10' : 'border-red-200 ring-4 ring-red-500/10'"
+                 role="alert">
+                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+                      :class="toastTipo === 'ok' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-red-500 to-rose-600'">
+                    <svg v-if="toastTipo === 'ok'" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                    </svg>
+                </span>
+
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-bold uppercase tracking-wider"
+                       :class="toastTipo === 'ok' ? 'text-emerald-800' : 'text-red-800'">
+                        {{ toastTipo === 'ok' ? 'Operación exitosa' : 'Atención requerida' }}
+                    </p>
+                    <p class="mt-0.5 text-xs font-medium text-slate-700 leading-snug break-words">
+                        {{ toastMensaje }}
+                    </p>
+                </div>
+
+                <button type="button" @click="cerrarToast" title="Cerrar notificación"
+                        class="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </Transition>
+
         <!-- Barra lateral -->
         <aside :class="menuMovil ? 'translate-x-0' : '-translate-x-full'"
                class="fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col bg-[#1F3864] text-white transition-transform duration-200 md:translate-x-0">
@@ -132,29 +192,9 @@ const logout = () => router.post('/logout');
             </header>
 
             <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-                <!-- Retroalimentación de cada acción. role/aria-live hacen que el
-                     lector de pantalla lo anuncie sin que el usuario tenga que buscarlo. -->
-                <div ref="avisos" class="scroll-mt-6">
-                    <div v-if="flash" role="status" aria-live="polite"
-                         class="mb-6 flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                        <span aria-hidden="true">✓</span><span>{{ flash }}</span>
-                    </div>
-
-                    <!-- Retroalimentación de errores (validación o mensaje del servidor) -->
-                    <div v-if="flashError || erroresValidacion.length" role="alert" aria-live="assertive"
-                         class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                        <p class="flex items-start gap-2 font-medium">
-                            <span aria-hidden="true">⚠️</span>
-                            <span>{{ flashError || `Revisa la información: ${erroresValidacion.length} campo(s) requieren corrección.` }}</span>
-                        </p>
-                        <ul v-if="erroresValidacion.length" class="mt-1.5 list-disc space-y-0.5 pl-8">
-                            <li v-for="(e, i) in erroresValidacion" :key="i">{{ e }}</li>
-                        </ul>
-                    </div>
-                </div>
-
                 <slot />
             </main>
         </div>
     </div>
 </template>
+

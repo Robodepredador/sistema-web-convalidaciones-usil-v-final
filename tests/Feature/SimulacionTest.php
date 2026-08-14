@@ -7,10 +7,10 @@ use App\Models\CarreraExterna;
 use App\Models\Ciclo;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
+use App\Models\Equivalencia;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
-use App\Models\MallaExterna;
 use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\Simulacion;
@@ -18,7 +18,6 @@ use App\Models\SimulacionDetalle;
 use App\Models\TipoInstitucion;
 use App\Models\UnidadNegocio;
 use App\Models\User;
-use App\Models\Equivalencia;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -47,8 +46,7 @@ class SimulacionTest extends TestCase
         $inst = InstitucionExterna::create(['tipo_id' => $tipo->id, 'nombre' => 'UNI']);
         $carExt = CarreraExterna::create(['institucion_id' => $inst->id, 'nombre' => 'Sistemas']);
         // Los cursos externos cuelgan de la malla oficial de la carrera de origen.
-        $mallaExt = MallaExterna::create(['carrera_externa_id' => $carExt->id, 'anio' => '2026', 'version' => '1', 'activa' => true]);
-        $cursoExt = CursoExterno::create(['malla_externa_id' => $mallaExt->id, 'carrera_externa_id' => $carExt->id, 'nombre' => 'Matemática I']);
+        $cursoExt = CursoExterno::create(['carrera_externa_id' => $carExt->id, 'nombre' => 'Matemática I']);
 
         $postulante = Postulante::create([
             'codigo' => 'POST-2026-00001', 'tipo_documento' => 'DNI', 'numero_documento' => '12345678',
@@ -83,7 +81,7 @@ class SimulacionTest extends TestCase
                 'clasificacion' => 'convalidable',
             ]],
         ]);
-        
+
         if ($response->status() !== 200 && $response->status() !== 302) {
             dump($response->json());
             $response->assertOk();
@@ -119,8 +117,8 @@ class SimulacionTest extends TestCase
     /** El desplegable de cada curso trae solo lo que el especialista autorizó. */
     public function test_la_simulacion_solo_ofrece_las_equivalencias_registradas(): void
     {
-        $cursoExt2 = CursoExterno::create(['malla_externa_id' => $this->ctx['cursoExt']->malla_externa_id, 'carrera_externa_id' => $this->ctx['carExt']->id, 'nombre' => 'Matemática II']);
-        
+        $cursoExt2 = CursoExterno::create(['carrera_externa_id' => $this->ctx['carExt']->id, 'nombre' => 'Matemática II']);
+
         Equivalencia::create([
             'carrera_externa_id' => $this->ctx['carExt']->id,
             'curso_usil_id' => $this->ctx['cursoUsil']->id,
@@ -143,17 +141,17 @@ class SimulacionTest extends TestCase
     /** Y guardar una equivalencia no autorizada se rechaza en el servidor. */
     public function test_no_se_guarda_una_equivalencia_que_nadie_autorizo(): void
     {
-        $externoSinAutorizar = CursoExterno::create(['malla_externa_id' => $this->ctx['cursoExt']->malla_externa_id, 'carrera_externa_id' => $this->ctx['carExt']->id, 'nombre' => 'Física I']);
+        $externoSinAutorizar = CursoExterno::create(['carrera_externa_id' => $this->ctx['carExt']->id, 'nombre' => 'Física I']);
 
         $this->actingAs($this->ctx['user'])->post('/simulaciones', [
             'postulante_id' => $this->ctx['postulante']->id,
             'carrera_usil_id' => $this->ctx['carrera']->id,
             'metodo' => 'manual',
             'filas' => [[
-                'curso_usil_id' => $this->ctx['cursoUsil']->id, 
+                'curso_usil_id' => $this->ctx['cursoUsil']->id,
                 'curso_externo_id' => $externoSinAutorizar->id,
                 'curso_origen_nombre' => 'Física I',
-                'clasificacion' => 'convalidable'
+                'clasificacion' => 'convalidable',
             ]],
         ])->assertStatus(422);
     }

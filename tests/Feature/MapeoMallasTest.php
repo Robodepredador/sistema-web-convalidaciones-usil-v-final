@@ -17,7 +17,6 @@ use App\Models\UnidadNegocio;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -39,7 +38,7 @@ class MapeoMallasTest extends TestCase
 
         [$sw, $mallaSw, $cursosSw] = $this->carreraUsil($fac, 'Software', 'SW', ['Algoritmia Básica', 'Fundamentos de Programación', 'Introducción a Ingeniería de Software'], $especialista);
         [$civil, $mallaCivil, $cursosCivil] = $this->carreraUsil($fac, 'Civil', 'CIV', ['Topografía'], $especialista);
-        
+
         $especialista->carrerasPermitidas()->sync([$sw->id]); // alcance
 
         $tipo = TipoInstitucion::create(['nombre' => 'Universidad']);

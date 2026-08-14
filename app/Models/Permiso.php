@@ -44,7 +44,6 @@ class Permiso extends Model
         'estructura.gestionar' => ['Catálogos', 'Gestionar la estructura institucional'],
         // Mallas oficiales de las instituciones de origen. Permiso propio (y no
         // 'evaluacion.ver') para poder retirárselo a un rol sin quitarle Simulaciones.
-        'mallas_externas.gestionar' => ['Catálogos', 'Registrar mallas oficiales de instituciones externas'],
         // Catálogo de equivalencias: qué curso externo vale por qué curso USIL,
         // registrado una vez por el Especialista, sin importar el expediente.
         // Reservado para la pantalla del especialista (Task B3): todavía sin
@@ -67,7 +66,7 @@ class Permiso extends Model
         // propias y equivalencias contra cualquier institución). No opera
         // expedientes ni simulaciones: eso es del Administrativo.
         Role::ESPECIALISTA => [
-            'dashboard.ver', 'catalogos.gestionar', 'mallas_externas.gestionar',
+            'dashboard.ver', 'catalogos.gestionar',
             'equivalencias.gestionar',
         ],
         // Administrativo de Facultad (antes Coordinador de Carrera): aplica la

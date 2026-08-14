@@ -72,7 +72,7 @@ class RbacTest extends TestCase
 
         $this->actingAs($asesor)->get('/postulantes')->assertOk();
         $this->actingAs($asesor)->get('/simulaciones')->assertForbidden();
-        $this->actingAs($asesor)->get('/equivalencias')->assertForbidden();
+        $this->actingAs($asesor)->get('/equivalencias-catalogo')->assertForbidden();
         // (La denegación de la ruta de revisión se prueba en RevisionFlujoTest, donde ya existe la ruta.)
     }
 
@@ -97,14 +97,15 @@ class RbacTest extends TestCase
     }
 
     /**
-     * El Administrativo ya NO gestiona mallas externas: ese permiso se centralizó
-     * en el Especialista en Convalidaciones, que registra la política una sola vez.
+     * El Administrativo ya NO registra el catálogo de equivalencias: eso se
+     * centralizó en el Especialista, que declara la política una sola vez. El
+     * Administrativo la aplica, y para eso le basta con ver las simulaciones.
      */
-    public function test_administrativo_no_gestiona_mallas_externas(): void
+    public function test_administrativo_no_gestiona_el_catalogo_de_equivalencias(): void
     {
         $administrativo = $this->usuarioConRol(Role::ADMINISTRATIVO);
 
-        $this->actingAs($administrativo)->post('/mallas-externas', [])->assertForbidden();
+        $this->actingAs($administrativo)->get('/equivalencias-catalogo')->assertForbidden();
         $this->actingAs($administrativo)->get('/simulaciones')->assertOk();
     }
 }

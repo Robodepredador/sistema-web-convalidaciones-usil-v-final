@@ -12,7 +12,6 @@ use App\Models\EquivalenciaMalla;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
-use App\Models\MallaExterna;
 use App\Models\Role;
 use App\Models\Simulacion;
 use App\Models\SimulacionDetalle;
@@ -84,12 +83,9 @@ class HistorialEquivalenciasTest extends TestCase
     /** Un curso en la malla oficial de la carrera de origen del fixture. */
     private function cursoExternoDeSenati(): CursoExterno
     {
-        $malla = MallaExterna::create([
-            'carrera_externa_id' => $this->ctx['carExt']->id,
-            'anio' => '2026', 'version' => '1', 'activa' => true,
+        return CursoExterno::create([
+            'carrera_externa_id' => $this->ctx['carExt']->id, 'nombre' => 'Matemática I',
         ]);
-
-        return CursoExterno::create(['malla_externa_id' => $malla->id, 'nombre' => 'Matemática I']);
     }
 
     /** Otro curso dentro de una malla ya creada, para construir criterios divididos. */
@@ -301,7 +297,6 @@ class HistorialEquivalenciasTest extends TestCase
         EquivalenciaMalla::create([
             'curso_externo_id' => $cursoExt->id,
             'curso_usil_id' => $this->ctx['calculo']->id,
-            'malla_externa_id' => $cursoExt->malla_externa_id,
             'malla_usil_id' => $this->ctx['mallaSw']->id,
             'usuario_id' => $this->ctx['admin']->id,
         ]);
@@ -342,7 +337,6 @@ class HistorialEquivalenciasTest extends TestCase
         EquivalenciaMalla::create([
             'curso_externo_id' => $cursoExt->id,
             'curso_usil_id' => $algebra->id,
-            'malla_externa_id' => $cursoExt->malla_externa_id,
             'malla_usil_id' => $this->ctx['mallaSw']->id,
             'usuario_id' => $this->ctx['admin']->id,
         ]);

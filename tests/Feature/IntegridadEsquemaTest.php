@@ -11,7 +11,6 @@ use App\Models\Equivalencia;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
-use App\Models\MallaExterna;
 use App\Models\Postulante;
 use App\Models\Role;
 use App\Models\Simulacion;
@@ -143,26 +142,24 @@ class IntegridadEsquemaTest extends TestCase
         $this->assertSame(2, Postulante::whereNull('email')->count());
     }
 
-    /** Sin version NOT NULL, el índice único de mallas externas admitía duplicados
-     *  exactos: dos NULL nunca chocan entre sí. */
-    public function test_no_se_repite_una_malla_externa_de_la_misma_carrera_y_anio(): void
+    /**
+     * La capa de «malla externa» desapareció del modelo.
+     *
+     * Era una versión de plan de estudios entre la carrera externa y sus cursos,
+     * y dejó de tener función cuando el especialista pasó a acumular nombres de
+     * curso sin importar de qué versión vengan: «Algoritmia Básica» vale igual
+     * si el estudiante la llevó en la malla de 2019 o en la de 2023.
+     */
+    public function test_no_queda_rastro_de_mallas_externas(): void
     {
-        $carrera = CarreraExterna::create([
-            'institucion_id' => InstitucionExterna::create([
-                'tipo_id' => TipoInstitucion::create(['nombre' => 'Universidad'])->id,
-                'nombre' => 'Instituto de Prueba',
-            ])->id,
-            'nombre' => 'Ingeniería de Prueba',
-        ]);
+        $this->assertFalse(Schema::hasTable('mallas_externas'));
+        $this->assertFalse(Schema::hasColumn('cursos_externos', 'malla_externa_id'));
+    }
 
-        MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
-
-        try {
-            MallaExterna::create(['carrera_externa_id' => $carrera->id, 'anio' => 2026]);
-            $this->fail('Debió lanzar QueryException por violar uq_malla_externa_carrera_anio_version.');
-        } catch (QueryException $e) {
-            $this->assertStringContainsString('uq_malla_externa_carrera_anio_version', $e->getMessage());
-        }
+    /** Lo que sí sobrevive es el catálogo: un curso externo pertenece a su carrera. */
+    public function test_el_curso_externo_sigue_colgando_de_su_carrera(): void
+    {
+        $this->assertTrue(Schema::hasColumn('cursos_externos', 'carrera_externa_id'));
     }
 
     /** El catálogo SUNEDU se recarga periódicamente: sin unicidad, cada recarga

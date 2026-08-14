@@ -17,11 +17,6 @@ class CarreraExterna extends Model
         return $this->belongsTo(InstitucionExterna::class, 'institucion_id');
     }
 
-    public function mallas(): HasMany
-    {
-        return $this->hasMany(MallaExterna::class, 'carrera_externa_id');
-    }
-
     public function cursos(): HasMany
     {
         return $this->hasMany(CursoExterno::class, 'carrera_externa_id');

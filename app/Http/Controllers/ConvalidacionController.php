@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Carrera;
 use App\Models\Simulacion;
 use App\Models\SimulacionDetalle;
 use App\Services\AlcanceService;
 use Illuminate\Http\Request;
 
 /**
- * Módulo de Convalidaciones (Historial de Simulaciones).
+ * Módulo de Convalidaciones (Historial y Gestión de Pre-Convalidaciones Oficiales).
  */
 class ConvalidacionController extends Controller
 {
@@ -18,6 +19,8 @@ class ConvalidacionController extends Controller
         $visibles = AlcanceService::carrerasVisibles($request->user());
 
         $q = $request->query('q');
+        $carreraId = $request->query('carrera_id');
+        $estado = $request->query('estado');
         $desde = $request->query('desde');
         $hasta = $request->query('hasta');
 
@@ -28,10 +31,21 @@ class ConvalidacionController extends Controller
             'detalles.cursoUsil',
         ])
             ->when($visibles !== null, fn ($query) => $query->whereIn('carrera_usil_id', $visibles ?: [0]))
+            ->when($carreraId, fn ($query, $v) => $query->where('carrera_usil_id', $v))
+            ->when($estado && $estado !== 'todas', function ($query) use ($estado) {
+                if ($estado === 'validadas') {
+                    $query->where('estado', 'aceptada');
+                } elseif ($estado === 'generadas') {
+                    $query->whereIn('estado', ['generada', 'borrador']);
+                } else {
+                    $query->where('estado', $estado);
+                }
+            })
             ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                 $w->where('nombres', 'like', "%{$q}%")
                     ->orWhere('apellidos', 'like', "%{$q}%")
-                    ->orWhere('numero_documento', 'like', "%{$q}%");
+                    ->orWhere('numero_documento', 'like', "%{$q}%")
+                    ->orWhere('universidad_origen', 'like', "%{$q}%");
             }))
             ->when($desde, fn ($query, $v) => $query->whereDate('created_at', '>=', $v))
             ->when($hasta, fn ($query, $v) => $query->whereDate('created_at', '<=', $v));
@@ -44,7 +58,9 @@ class ConvalidacionController extends Controller
                 'estudiante' => trim("{$s->nombres} {$s->apellidos}") ?: '—',
                 'documento' => $s->numero_documento,
                 'carrera' => $s->carreraUsil?->nombre,
+                'carrera_codigo' => $s->carreraUsil?->codigo,
                 'origen' => $s->universidad_origen,
+                'carrera_origen' => $s->carrera_origen,
                 'metodo' => $s->metodo,
                 'fecha' => optional($s->created_at)->format('d/m/Y H:i'),
                 'estado' => $s->estado,
@@ -56,6 +72,7 @@ class ConvalidacionController extends Controller
                 'cursos' => $s->detalles->map(fn ($d) => [
                     'origen' => $d->curso_origen_nombre,
                     'usil' => $d->cursoUsil?->nombre,
+                    'codigo_usil' => $d->cursoUsil?->codigo,
                     'creditos' => (float) $d->creditos_reconocidos,
                 ])->values(),
             ]);
@@ -64,6 +81,8 @@ class ConvalidacionController extends Controller
         $baseSimQuery = Simulacion::when($visibles !== null, fn ($q) => $q->whereIn('carrera_usil_id', $visibles ?: [0]));
 
         $totalSimulaciones = (clone $baseSimQuery)->count();
+        $totalValidadas = (clone $baseSimQuery)->where('estado', 'aceptada')->count();
+        $carrerasAtendidas = (clone $baseSimQuery)->distinct('carrera_usil_id')->count('carrera_usil_id');
 
         // Calcular créditos promedio
         $creditosTotales = SimulacionDetalle::whereIn('simulacion_id', (clone $baseSimQuery)->pluck('id'))
@@ -73,12 +92,26 @@ class ConvalidacionController extends Controller
 
         $creditosPromedio = $totalSimulaciones > 0 ? round($creditosTotales / $totalSimulaciones, 1) : 0;
 
+        // Carreras para el filtro
+        $carreras = Carrera::when($visibles !== null, fn ($q) => $q->whereIn('id', $visibles ?: [0]))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'codigo']);
+
         return inertia('Convalidaciones/Index', [
             'simulaciones' => $simulaciones,
-            'filtros' => ['q' => $q, 'desde' => $desde, 'hasta' => $hasta],
+            'carreras' => $carreras,
+            'filtros' => [
+                'q' => $q,
+                'carrera_id' => $carreraId,
+                'estado' => $estado,
+                'desde' => $desde,
+                'hasta' => $hasta,
+            ],
             'kpis' => [
                 'total_simulaciones' => $totalSimulaciones,
+                'total_validadas' => $totalValidadas,
                 'creditos_promedio' => $creditosPromedio,
+                'carreras_atendidas' => $carrerasAtendidas,
             ],
         ]);
     }
