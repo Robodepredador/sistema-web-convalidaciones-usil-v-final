@@ -38,7 +38,7 @@ encontró; esta sección dice qué se hizo con cada punto.
 
 ## REVISIÓN DE COHERENCIA CON LA BASE DE DATOS — 18/08/2026
 
-Se reconstruyó el esquema desde cero con las 89 migraciones y se contrastó contra el código.
+Se reconstruyó el esquema desde cero con las 90 migraciones y se contrastó contra el código.
 **El esquema quedó en 34 tablas: 27 de negocio y 7 de infraestructura.**
 
 ### Lo que está sólido

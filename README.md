@@ -26,9 +26,9 @@ El detalle de lo vigente está más abajo, en las tablas de trazabilidad.
 - **Auth:** sesión (Inertia) con tabla `usuarios` y hashing bcrypt en `password_hash`.
 
 ## Contenido entregado
-- `database/migrations/` — 87 migraciones (esquema completo en 3FN, FKs, índices, soft deletes).
+- `database/migrations/` — 90 migraciones (esquema completo en 3FN, FKs, índices, soft deletes).
   Incluye la corrección del defecto **TIESTAMP → TIMESTAMP** en `auditoria_log`.
-- `app/Models/` — 25 modelos Eloquent con relaciones.
+- `app/Models/` — 24 modelos Eloquent con relaciones.
 - `app/Http/Controllers/Auth/` — `LoginController` (RF-38/41/42) y `PasswordController`.
 - `app/Http/Middleware/EnsurePermission.php` — control de acceso por permiso granular (RF-39).
 - `app/Services/AlcanceService.php` — alcance por carrera/facultad (RF-40).
