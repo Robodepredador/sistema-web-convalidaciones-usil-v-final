@@ -36,6 +36,85 @@ encontró; esta sección dice qué se hizo con cada punto.
 
 ---
 
+## REVISIÓN DE COHERENCIA CON LA BASE DE DATOS — 18/08/2026
+
+Se reconstruyó el esquema desde cero con las 89 migraciones y se contrastó contra el código.
+**El esquema quedó en 34 tablas: 27 de negocio y 7 de infraestructura.**
+
+### Lo que está sólido
+
+| Comprobación | Resultado |
+|---|---|
+| Modelos con tabla existente | 24/24 |
+| Claves foráneas | 45, ninguna rota |
+| `$fillable` contra columnas reales | sin discrepancias |
+| Motor y cotejamiento | 34/34 InnoDB + `utf8mb4_unicode_ci`, uniforme |
+| Tablas sin clave primaria | ninguna |
+
+Dos cosas que parecen defectos y no lo son: `mallas_curriculares.activa_unica` y `vigente_flag`
+no aparecen en el código porque son **columnas virtuales generadas** que sostienen índices
+únicos —la regla vive en la base, que es donde debe estar—; y `auditoria_log.actor_id` y
+`registro_id` no tienen clave foránea porque son **polimórficas**.
+
+### Relaciones diamante
+
+Un «diamante» es un camino por el que una fila alcanza al mismo ancestro por dos rutas y nada
+impide que discrepen. Se detectaron 43 convergencias; descartando las que son dos actores
+legítimamente distintos, quedan **siete que sí exigen coincidencia**. No se dedujeron: se
+intentó escribir la incoherencia directamente en la base.
+
+| Diamante | Antes | Ahora |
+|---|---|---|
+| `equivalencias`: carrera externa propagada | 🟢 cerrado | 🟢 cerrado |
+| `postulantes`: institución de origen vs. la de su carrera externa | 🔴 abierto | 🟢 **cerrado** |
+| `simulaciones`: carrera USIL vs. la de su malla | 🔴 abierto | 🟢 **cerrado** |
+| `simulaciones`: carrera externa vs. la del postulante | 🔴 abierto | ⏸️ instantánea deliberada |
+| `postulante_destinos`: carrera vs. `carrera_destino_id` | 🔴 abierto | ⏸️ Fase 2 |
+| `simulacion_detalle`: curso USIL vs. malla de su simulación | 🔴 abierto | ⏸️ Fase 2 |
+| `cursos_usil`: prerrequisito vs. malla | 🔴 abierto | ⏸️ Fase 2 |
+
+Los dos cerrados eran los que más daño hacen: se podía registrar a un postulante «de la UNMSM»
+con una carrera de otra universidad, y **emitir una preconvalidación que decía evaluar la
+carrera A contra la malla de la carrera B** —un documento que firma la universidad—.
+
+Los cuatro restantes se dejaron abiertos **a conciencia**, no por olvido:
+
+- **Instantánea legítima.** El asesor puede corregir la carrera de origen de un postulante ya
+  registrado; la simulación debe conservar contra qué se evaluó. Atarlas bloquearía la
+  corrección o reescribiría el historial en silencio.
+- **`postulante_destinos` es uno-a-muchos**: un postulante puede postular a varias carreras.
+  Atarla obligaría a que todos sus destinos fueran el mismo. Lo que sobra es la columna
+  duplicada `postulantes.carrera_destino_id`, y retirarla toca 39 puntos del código y cuatro
+  pantallas Vue.
+- **`cursos_usil` no tiene `malla_id` propio** (cuelga de `ciclos`), así que esas dos FK
+  exigirían desnormalizar la columna y mantenerla sincronizada: es un cambio de modelo, no una
+  restricción. Hoy lo cubre el código, con prueba propia.
+
+### Normalización — deuda pendiente para Fase 2
+
+`simulaciones` duplica cinco columnas de `postulantes` (`nombres`, `apellidos`,
+`tipo_documento`, `numero_documento`, `email`). **No es una decisión de diseño: es deuda que el
+propio código reconoce.** La migración del 13/08 lo dice literalmente:
+
+> «La Fase 2 elimina esta columna: el tipo de documento es del postulante y no debe duplicarse
+> aquí. Mientras exista, que al menos no mienta.»
+
+Y ya causó un defecto real: los dos ENUM divergían y las simulaciones registraban «DNI» a
+personas con carné de extranjería temporal, de modo que el documento emitido decía algo falso.
+Se reparó el síntoma; la duplicación sigue.
+
+### Lo que se corrigió
+
+- Se retiró **«Plan de Estudios»**, una entidad construida entera que nunca funcionó: su
+  pantalla jamás tuvo ruta, su columna era NULL en el 100% de las filas y ningún seeder la
+  poblaba. Salieron tabla, columna, modelo y relaciones.
+- Se cerraron los dos diamantes descritos con claves foráneas compuestas.
+- Salió `postulantes.pais_residencia` (columna muerta) y dos índices redundantes.
+- **No** se tocaron las columnas del memorándum en `convalidaciones`: la tabla es historial y
+  hay instalaciones con memorandos ya emitidos.
+
+---
+
 ## Veredicto
 
 **El sistema funciona. El paquete que recibiría TI, no.**
