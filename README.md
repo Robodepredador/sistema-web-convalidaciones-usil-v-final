@@ -50,8 +50,8 @@ crear un esqueleto aparte ni copiar archivos dentro.
 **Requisitos:** PHP 8.2+, Composer 2, Node 20+, MySQL 8 en la propia máquina.
 
 ```bash
-git clone https://github.com/Robodepredador/usil_convalidaciones.git
-cd usil_convalidaciones
+git clone https://github.com/Robodepredador/sistema-web-convalidaciones-usil-v-final.git
+cd sistema-web-convalidaciones-usil-v-final
 
 # 1. Dependencias
 composer install
