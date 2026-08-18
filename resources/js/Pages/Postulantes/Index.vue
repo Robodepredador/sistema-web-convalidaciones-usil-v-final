@@ -63,7 +63,7 @@ const resetearAcceso = (p) => {
 // Estado de preconvalidación derivado
 const PRECONV = {
     pendiente:   { label: 'Pendiente',      clase: 'bg-slate-100 text-slate-600 border-slate-200' },
-    atendida:    { label: 'Preconvalidada', clase: 'bg-blue-50 text-[#2E75B6] border-blue-200 font-semibold' },
+    atendida:    { label: 'Preconvalidada', clase: 'bg-blue-50 text-[#0036DC] border-blue-200 font-semibold' },
     convalidada: { label: 'Convalidada',    clase: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold' },
 };
 
@@ -122,16 +122,16 @@ const getIniciales = (nombre) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50/50 p-6 lg:p-10">
+    <div class="min-h-screen bg-[#F4F6F9] p-6 lg:p-10">
         <!-- HERO BANNER INSTITUCIONAL USIL -->
-        <div class="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl shadow-blue-950/10">
+        <div class="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/10 blur-2xl"></div>
-            <div class="pointer-events-none absolute right-1/3 -bottom-16 h-48 w-48 rounded-full bg-blue-400/20 blur-xl"></div>
+            <div class="pointer-events-none absolute right-1/3 -bottom-16 h-48 w-48 rounded-full bg-[#0036DC]/20 blur-xl"></div>
 
             <div class="relative z-10 p-6 sm:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
                     <div class="inline-flex items-center gap-2 px-3.5 py-1 mb-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-xs">
-                        <span class="h-2 w-2 rounded-full bg-blue-300 animate-pulse"></span>
+                        <span class="h-2 w-2 rounded-full bg-[#FFB81C] animate-pulse"></span>
                         <span class="text-xs font-semibold tracking-wider text-blue-100 uppercase">
                             {{ esEjecutivo ? 'AUDITORÍA DE ADMISIÓN · BANDEJA DE VALIDACIÓN' : 'MÓDULO DE SOLICITUDES · TRASLADO EXTERNO' }}
                         </span>
@@ -148,8 +148,8 @@ const getIniciales = (nombre) => {
 
                 <div v-if="!esEjecutivo && puedeCrear" class="flex items-center gap-3 shrink-0">
                     <Link href="/postulantes/crear"
-                          class="inline-flex items-center gap-2 rounded-2xl bg-white text-[#1F3864] hover:bg-blue-50 px-5 py-3 text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
-                        <svg class="h-4 w-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          class="inline-flex items-center gap-2 rounded-2xl bg-white text-[#00205B] hover:bg-blue-50 px-5 py-3 text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+                        <svg class="h-4 w-4 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         <span>Nuevo Postulante</span>
@@ -198,13 +198,13 @@ const getIniciales = (nombre) => {
 
             <!-- Total -->
             <button @click="setRevisionRapida('')"
-                    :class="filtro.revision === '' ? 'ring-2 ring-[#2E75B6] shadow-md bg-blue-50/90 border-blue-300' : 'bg-white border-slate-200/80 hover:border-blue-200 hover:bg-blue-50/40'"
+                    :class="filtro.revision === '' ? 'ring-2 ring-[#0036DC] shadow-md bg-blue-50/90 border-blue-300' : 'bg-white border-slate-200/80 hover:border-blue-200 hover:bg-blue-50/40'"
                     class="rounded-3xl border p-4 text-left transition-all cursor-pointer">
                 <div class="flex items-center justify-between">
                     <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">Total Expedientes</span>
-                    <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                    <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                 </div>
-                <p class="mt-2 text-2xl font-black text-[#1F3864] tabular-nums">{{ stats?.total ?? total }}</p>
+                <p class="mt-2 text-2xl font-black text-[#00205B] tabular-nums">{{ stats?.total ?? total }}</p>
                 <p class="text-[10px] text-slate-500 font-medium">Bandeja general</p>
             </button>
         </div>
@@ -216,7 +216,7 @@ const getIniciales = (nombre) => {
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">Filtrar por revisión:</span>
                     <button @click="setRevisionRapida('')"
-                            :class="filtro.revision === '' ? 'bg-[#1F3864] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'"
+                            :class="filtro.revision === '' ? 'bg-[#00205B] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'"
                             class="rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer">
                         Todos ({{ stats?.total ?? total }})
                     </button>
@@ -240,7 +240,7 @@ const getIniciales = (nombre) => {
                 <!-- KPI Mini Counter -->
                 <div class="flex items-center gap-2 rounded-2xl bg-blue-50/70 border border-blue-100 px-4 py-1.5">
                     <span class="text-xs font-bold text-slate-600">Total en vista:</span>
-                    <span class="text-sm font-extrabold text-[#1F3864]">{{ postulantes.total }} postulantes</span>
+                    <span class="text-sm font-extrabold text-[#00205B]">{{ postulantes.total }} postulantes</span>
                 </div>
             </div>
 
@@ -251,7 +251,7 @@ const getIniciales = (nombre) => {
                     <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Buscar postulante</label>
                     <div class="relative">
                         <input v-model="filtro.q" type="text" placeholder="Nombre, DNI, código, correo…" @keyup.enter="aplicar"
-                               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 focus:outline-hidden transition-all duration-200" />
+                               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 focus:outline-hidden transition-all duration-200" />
                         <svg class="absolute left-3.5 top-3 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
@@ -268,14 +268,14 @@ const getIniciales = (nombre) => {
                 <div>
                     <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Registrado desde</label>
                     <input v-model="filtro.desde" type="date" :max="filtro.hasta || undefined" @keyup.enter="aplicar"
-                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 focus:outline-hidden transition-all duration-200" />
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 focus:outline-hidden transition-all duration-200" />
                 </div>
 
                 <!-- Fecha Hasta -->
                 <div>
                     <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">Registrado hasta</label>
                     <input v-model="filtro.hasta" type="date" :min="filtro.desde || undefined" @keyup.enter="aplicar"
-                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 focus:outline-hidden transition-all duration-200" />
+                           class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 focus:outline-hidden transition-all duration-200" />
                 </div>
             </div>
 
@@ -284,7 +284,7 @@ const getIniciales = (nombre) => {
                 <button @click="limpiar" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600 transition-colors">
                     Limpiar filtros
                 </button>
-                <button @click="aplicar" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] px-5 py-2 text-xs font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg">
+                <button @click="aplicar" class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] px-5 py-2 text-xs font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
                     </svg>
@@ -315,7 +315,7 @@ const getIniciales = (nombre) => {
                             <!-- Postulante info -->
                             <td class="py-3 px-4 min-w-[200px]">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="h-8 w-8 shrink-0 rounded-2xl bg-gradient-to-tr from-[#1F3864] to-[#2E75B6] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+                                    <div class="h-8 w-8 shrink-0 rounded-2xl bg-[#00205B] flex items-center justify-center text-white font-bold text-xs shadow-xs">
                                         {{ getIniciales(p.nombre) }}
                                     </div>
                                     <div class="min-w-0">
@@ -345,7 +345,7 @@ const getIniciales = (nombre) => {
                             <!-- Carrera Destino -->
                             <td class="py-3 px-4 min-w-[180px]">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="h-2 w-2 shrink-0 rounded-full bg-[#2E75B6]"></span>
+                                    <span class="h-2 w-2 shrink-0 rounded-full bg-[#0036DC]"></span>
                                     <span class="font-semibold text-slate-800 leading-snug">{{ p.carrera_destino || '—' }}</span>
                                 </div>
                             </td>
@@ -396,7 +396,7 @@ const getIniciales = (nombre) => {
                                     <template v-if="esEjecutivo">
                                         <Link :href="`/postulantes/${p.id}/editar`"
                                               :class="p.revision === 'pendiente'
-                                                  ? 'bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-white hover:shadow-md hover:-translate-y-0.5 font-extrabold'
+                                                  ? 'bg-[#00205B] hover:bg-[#0036DC] text-white hover:shadow-md hover:-translate-y-0.5 font-extrabold'
                                                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'"
                                               class="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs transition-all shadow-xs">
                                             <svg v-if="p.revision === 'pendiente'" class="h-3.5 w-3.5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -407,7 +407,7 @@ const getIniciales = (nombre) => {
                                     </template>
                                     <template v-else>
                                         <Link :href="`/postulantes/${p.id}/editar`"
-                                              class="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-[#2E75B6] hover:bg-blue-100 px-3 py-1.5 text-xs font-bold transition-all">
+                                              class="inline-flex items-center gap-1 rounded-xl bg-blue-50 text-[#00205B] hover:bg-blue-100 px-3 py-1.5 text-xs font-bold transition-all">
                                             <span>Editar</span>
                                         </Link>
                                         <button v-if="puedeCrear" @click="resetearAcceso(p)" title="Resetear acceso al portal"
@@ -451,7 +451,7 @@ const getIniciales = (nombre) => {
                 <nav v-if="postulantes.last_page > 1" class="flex flex-wrap items-center gap-1.5">
                     <template v-for="(link, i) in postulantes.links" :key="i">
                         <Link v-if="link.url" :href="link.url" preserve-scroll
-                              :class="link.active ? 'bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-white font-bold shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium'"
+                              :class="link.active ? 'bg-[#00205B] text-white font-bold shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium'"
                               class="min-w-[32px] h-8 rounded-xl px-3 flex items-center justify-center text-xs transition-all" v-html="link.label" />
                         <span v-else class="min-w-[32px] h-8 rounded-xl px-3 flex items-center justify-center text-xs text-slate-300 font-medium" v-html="link.label" />
                     </template>
@@ -471,7 +471,7 @@ const getIniciales = (nombre) => {
                     <!-- Panel Drawer -->
                     <div class="relative z-10 flex w-full max-w-2xl flex-col bg-white shadow-2xl transition-transform">
                         <!-- Header Banner -->
-                        <div class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-[#1F3864] to-[#2E75B6] px-6 py-5 text-white">
+                        <div class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] px-6 py-5 text-white">
                             <div>
                                 <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 mb-1.5 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-wider text-blue-100">
                                     Resultado Oficial de Coordinación
@@ -481,7 +481,7 @@ const getIniciales = (nombre) => {
                                     {{ modalDatos.postulante.nombre }} · {{ modalDatos.postulante.codigo }}
                                 </p>
                             </div>
-                            <button @click="cerrarModal" class="rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors">
+                            <button @click="cerrarModal" class="rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors cursor-pointer">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -492,7 +492,7 @@ const getIniciales = (nombre) => {
                         <div class="flex-1 overflow-y-auto p-6 space-y-6">
                             <!-- Spinner de carga -->
                             <div v-if="modalCargando" class="flex flex-col items-center justify-center py-16 text-slate-400">
-                                <svg class="h-8 w-8 animate-spin text-[#2E75B6]" fill="none" viewBox="0 0 24 24">
+                                <svg class="h-8 w-8 animate-spin text-[#0036DC]" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -507,8 +507,8 @@ const getIniciales = (nombre) => {
                             <!-- Datos cargados -->
                             <div v-else-if="modalDatos" class="space-y-6">
                                 <!-- Banner informativo -->
-                                <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-xs text-[#1F3864] flex items-start gap-3">
-                                    <svg class="h-5 w-5 shrink-0 text-[#2E75B6] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-xs text-[#00205B] flex items-start gap-3">
+                                    <svg class="h-5 w-5 shrink-0 text-[#0036DC] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                                     </svg>
                                     <div>
@@ -521,14 +521,14 @@ const getIniciales = (nombre) => {
                                 <div v-for="sim in modalDatos.preconvalidaciones" :key="sim.id" class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs">
                                     <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                                         <div>
-                                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#2E75B6]">{{ sim.carrera }}</span>
+                                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#00205B]">{{ sim.carrera }}</span>
                                             <p class="text-xs text-slate-500 mt-0.5">Fecha: {{ sim.fecha }}</p>
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span v-if="sim.convalidada" class="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-700">
                                                 Convalidada
                                             </span>
-                                            <span v-else class="rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-[11px] font-bold text-[#2E75B6]">
+                                            <span v-else class="rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-[11px] font-bold text-[#00205B]">
                                                 Preconvalidada
                                             </span>
                                         </div>
@@ -538,17 +538,17 @@ const getIniciales = (nombre) => {
                                     <div class="mt-4 grid grid-cols-2 gap-3">
                                         <div class="rounded-2xl bg-slate-50 p-3.5 border border-slate-100 text-center">
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Cursos Convalidados</p>
-                                            <p class="text-xl font-extrabold text-[#1F3864] mt-0.5">{{ sim.convalidados }}</p>
+                                            <p class="text-xl font-extrabold text-[#00205B] mt-0.5">{{ sim.convalidados }}</p>
                                         </div>
                                         <div class="rounded-2xl bg-slate-50 p-3.5 border border-slate-100 text-center">
                                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Créditos Reconocidos</p>
-                                            <p class="text-xl font-extrabold text-[#2E75B6] mt-0.5">{{ sim.creditos }}</p>
+                                            <p class="text-xl font-extrabold text-[#0036DC] mt-0.5">{{ sim.creditos }}</p>
                                         </div>
                                     </div>
 
                                     <!-- Botón expandir detalle de asignaturas -->
                                     <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                        <button @click="toggleDetalle(sim.id)" class="inline-flex items-center gap-1.5 text-xs font-bold text-[#2E75B6] hover:text-[#1F3864] cursor-pointer">
+                                        <button @click="toggleDetalle(sim.id)" class="inline-flex items-center gap-1.5 text-xs font-bold text-[#0036DC] hover:text-[#00205B] cursor-pointer">
                                             <span>{{ detalleAbierto[sim.id] ? 'Ocultar asignaturas' : 'Ver asignaturas convalidadas' }}</span>
                                             <svg :class="detalleAbierto[sim.id] ? 'rotate-180' : ''" class="h-3.5 w-3.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -570,7 +570,7 @@ const getIniciales = (nombre) => {
                                                 <span>Excel Oficial</span>
                                             </a>
                                             <a :href="sim.excel" target="_blank" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-colors">
-                                                <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                                                 </svg>
                                                 <span>Excel ERP</span>
@@ -593,8 +593,8 @@ const getIniciales = (nombre) => {
                                                 <tr v-for="(c, ci) in sim.cursos" :key="ci" class="hover:bg-white transition-colors">
                                                     <td class="py-2.5 px-3 font-medium text-slate-700">{{ c.origen }}</td>
                                                     <td class="py-2.5 px-3 font-mono text-slate-500">{{ c.nota || '—' }}</td>
-                                                    <td class="py-2.5 px-3 font-bold text-[#1F3864]">{{ c.usil }}</td>
-                                                    <td class="py-2.5 px-3 text-right font-extrabold text-[#2E75B6]">{{ c.creditos }}</td>
+                                                    <td class="py-2.5 px-3 font-bold text-[#00205B]">{{ c.usil }}</td>
+                                                    <td class="py-2.5 px-3 text-right font-extrabold text-[#0036DC]">{{ c.creditos }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>

@@ -21,18 +21,18 @@ const fechaHoy = computed(() => {
 
 const COLOR_MAP = {
     blue: {
-        text: 'text-[#1F3864]',
+        text: 'text-[#00205B]',
         bg: 'bg-blue-50/80',
         border: 'border-blue-100',
-        iconBg: 'bg-[#1F3864] text-white',
-        ring: 'ring-blue-400',
+        iconBg: 'bg-[#00205B] text-white',
+        ring: 'ring-[#0036DC]/40',
     },
     amber: {
         text: 'text-amber-700',
         bg: 'bg-amber-50/80',
         border: 'border-amber-200/80',
-        iconBg: 'bg-amber-500 text-white',
-        ring: 'ring-amber-400',
+        iconBg: 'bg-[#FFB81C] text-slate-900',
+        ring: 'ring-[#FFB81C]/50',
     },
     rose: {
         text: 'text-rose-700',
@@ -56,11 +56,11 @@ const COLOR_MAP = {
         ring: 'ring-violet-400',
     },
     indigo: {
-        text: 'text-indigo-700',
-        bg: 'bg-indigo-50/80',
-        border: 'border-indigo-200/80',
-        iconBg: 'bg-indigo-600 text-white',
-        ring: 'ring-indigo-400',
+        text: 'text-[#00205B]',
+        bg: 'bg-blue-50/80',
+        border: 'border-blue-200/80',
+        iconBg: 'bg-[#0036DC] text-white',
+        ring: 'ring-[#0036DC]/40',
     },
     teal: {
         text: 'text-teal-700',
@@ -82,7 +82,7 @@ const ESTADO_BADGE = {
     pendiente: 'bg-amber-50 text-amber-700 border border-amber-200',
     observada: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
     aprobada: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    en_evaluacion: 'bg-blue-50 text-blue-700 border border-blue-200',
+    en_evaluacion: 'bg-blue-50 text-[#00205B] border border-blue-200',
     borrador: 'bg-slate-100 text-slate-600 border border-slate-200',
 };
 
@@ -92,9 +92,9 @@ const getBadge = (estado) => ESTADO_BADGE[estado] ?? 'bg-slate-100 text-slate-60
 <template>
     <div class="w-full pb-12">
         <!-- ======================= HERO HEADER USIL ======================= -->
-        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-20 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-7 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                 <div>
@@ -143,7 +143,7 @@ const getBadge = (estado) => ESTADO_BADGE[estado] ?? 'bg-slate-100 text-slate-60
                 </div>
                 
                 <div class="mt-3 flex items-baseline justify-between">
-                    <p class="text-3xl font-black tabular-nums tracking-tight" :class="COLOR_MAP[k.color]?.text || 'text-[#1F3864]'">
+                    <p class="text-3xl font-black tabular-nums tracking-tight" :class="COLOR_MAP[k.color]?.text || 'text-[#00205B]'">
                         {{ k.valor }}
                     </p>
                 </div>
@@ -157,7 +157,7 @@ const getBadge = (estado) => ESTADO_BADGE[estado] ?? 'bg-slate-100 text-slate-60
         <div class="w-full rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div class="flex items-center gap-2">
-                    <span class="h-2.5 w-2.5 rounded-full bg-[#2E75B6]"></span>
+                    <span class="h-2.5 w-2.5 rounded-full bg-[#0036DC]"></span>
                     <h2 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-700">
                         {{ dashboard.bandeja?.titulo_seccion || 'Bandeja de Trabajo' }}
                     </h2>
@@ -181,7 +181,7 @@ const getBadge = (estado) => ESTADO_BADGE[estado] ?? 'bg-slate-100 text-slate-60
                             </span>
                         </div>
                         <p class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
-                            <span class="font-medium text-[#1F3864]">{{ item.subtitulo }}</span>
+                            <span class="font-medium text-[#00205B]">{{ item.subtitulo }}</span>
                             <template v-if="item.origen">
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">{{ item.origen }}</span>
@@ -205,7 +205,7 @@ const getBadge = (estado) => ESTADO_BADGE[estado] ?? 'bg-slate-100 text-slate-60
                     <!-- Botón de acción directa -->
                     <div v-if="item.accion_url" class="shrink-0 flex items-center sm:self-center self-end">
                         <Link :href="item.accion_url"
-                              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
+                              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
                             <span>{{ item.accion_texto || 'Gestionar' }}</span>
                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />

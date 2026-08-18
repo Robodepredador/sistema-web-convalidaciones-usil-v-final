@@ -4,9 +4,10 @@ Convalidación de cursos por traslado externo. Laravel 11 + Vue 3 (Inertia) sobr
 
 ## Por dónde empezar
 
-1. **`deploy/RUNBOOK.md`** — instalación, actualización y reversión. Empieza por su §1: hay un requisito (PHP 8.2) que, si no se cumple, detiene todo lo demás.
-2. **`docs/Auditoria-Entrega-TI-2026-08-18.md`** — estado técnico y de seguridad al cierre, con lo corregido y lo que queda abierto.
-3. **`docs/Documentación_Final/`** — la documentación funcional y técnica del sistema: Documento Funcional, Documento Técnico, Diccionario de Datos y Manual de Usuario. Se entrega por separado del paquete (ver «Contenido»).
+1. **Manual Técnico de Instalación y Despliegue** (en `docs/Documentación_Final/`) — el tutorial completo, paso a paso, para desplegar desde cero. Si es la primera instalación, empiece aquí.
+2. **`deploy/RUNBOOK.md`** — el mismo procedimiento en versión resumida, dentro del propio proyecto, para tenerlo a mano en el servidor.
+3. **`docs/Auditoria-Entrega-TI-2026-08-18.md`** — estado técnico y de seguridad al cierre, con lo corregido y lo que queda abierto.
+4. **`docs/Documentación_Final/`** — el resto de la documentación: Documento Funcional, Documento Técnico, Diccionario de Datos y Manual de Usuario. Se entrega por separado del paquete (ver «Contenido»).
 
 ## Qué necesita el servidor
 
@@ -44,6 +45,7 @@ La documentación del sistema son cuatro documentos, en `docs/Documentación_Fin
 
 | Documento | Audiencia | Contenido |
 |---|---|---|
+| **Manual Técnico de Instalación y Despliegue** | **TI** | **Empieza por aquí.** Tutorial paso a paso para desplegar desde cero, con diagramas, comandos, salida esperada y solución de problemas. |
 | Documento Funcional | Área usuaria y Gestión Académica | Alcance, actores, 20 requerimientos funcionales, 17 reglas de negocio, 7 casos de uso y matriz de trazabilidad. |
 | Documento Técnico | Desarrollo y sistemas | Arquitectura, modelo de datos, requerimientos no funcionales, pruebas y despliegue. |
 | Diccionario de Datos | Desarrollo y sistemas | Las 27 tablas de negocio campo a campo, con relaciones, índices y restricciones. |

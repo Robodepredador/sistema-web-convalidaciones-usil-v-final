@@ -19,9 +19,9 @@ const cards = [
         key: 'sedes',
         unidad: 'sedes registradas',
         icon: ICON.building,
-        gradient: 'from-blue-600 to-indigo-700',
-        badgeBg: 'bg-blue-50 text-blue-700 border-blue-200',
-        footBg: 'bg-blue-50/70 hover:bg-blue-100/80 text-[#1F3864]',
+        gradient: 'from-[#00205B] to-[#0036DC]',
+        badgeBg: 'bg-blue-50 text-[#0036DC] border-blue-200',
+        footBg: 'bg-blue-50/70 hover:bg-blue-100/80 text-[#00205B]',
     },
     {
         label: 'Facultades',
@@ -63,9 +63,9 @@ const cards = [
         key: 'mallas',
         unidad: 'mallas registradas',
         icon: ICON.stack,
-        gradient: 'from-sky-600 to-[#2E75B6]',
-        badgeBg: 'bg-sky-50 text-[#1F3864] border-sky-200',
-        footBg: 'bg-sky-50/70 hover:bg-sky-100/80 text-[#1F3864]',
+        gradient: 'from-[#0B1E3F] to-[#00205B]',
+        badgeBg: 'bg-sky-50 text-[#00205B] border-sky-200',
+        footBg: 'bg-sky-50/70 hover:bg-sky-100/80 text-[#00205B]',
     },
 ];
 
@@ -75,10 +75,10 @@ const num = (n) => String(n ?? 0).padStart(2, '0');
 <template>
     <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <!-- Decorative blur background -->
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -100,8 +100,8 @@ const num = (n) => String(n ?? 0).padStart(2, '0');
                     <!-- Botón directo a Mallas -->
                     <div class="flex flex-wrap items-center gap-3 shrink-0">
                         <Link href="/mallas"
-                              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-50 px-4 py-2.5 text-xs font-bold text-[#1F3864] shadow-md transition-all duration-300">
-                            <svg class="h-4 w-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-50 px-4 py-2.5 text-xs font-bold text-[#00205B] shadow-md transition-all duration-300">
+                            <svg class="h-4 w-4 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                             </svg>
                             <span>Ir a Mallas Curriculares</span>
@@ -156,7 +156,7 @@ const num = (n) => String(n ?? 0).padStart(2, '0');
                                 <path :d="c.icon" />
                             </svg>
                         </div>
-                        <span class="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-200/60 transition-all duration-300 group-hover:bg-[#1F3864] group-hover:text-white group-hover:border-[#1F3864]">
+                        <span class="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-200/60 transition-all duration-300 group-hover:bg-[#00205B] group-hover:text-white group-hover:border-[#00205B]">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
@@ -164,7 +164,7 @@ const num = (n) => String(n ?? 0).padStart(2, '0');
                     </div>
 
                     <!-- Header and Description -->
-                    <h2 class="mt-5 text-lg font-bold text-[#1F3864] tracking-tight group-hover:text-[#2E75B6] transition-colors">
+                    <h2 class="mt-5 text-lg font-bold text-[#00205B] tracking-tight group-hover:text-[#0036DC] transition-colors">
                         {{ c.label }}
                     </h2>
                     <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">

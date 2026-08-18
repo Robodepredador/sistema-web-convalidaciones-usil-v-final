@@ -165,9 +165,9 @@ const eliminarSimulacion = (s) => {
         <VolverA href="/simulaciones" texto="Volver a Simulaciones" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-20 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-20 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -178,18 +178,18 @@ const eliminarSimulacion = (s) => {
                             </span>
                         </div>
                         <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight flex flex-wrap items-center gap-2">
-                            <span>{{ postulante.institucion || postulante.carrera_externa || '—' }}</span>
-                            <span class="text-blue-300 font-normal">→</span>
-                            <span class="text-white">{{ postulante.carrera_destino || '— sin carrera —' }}</span>
+                            <span>{{ postulante.nombre }}</span>
+                            <span class="font-mono text-sm font-semibold bg-white/15 px-3 py-1 rounded-xl border border-white/15 text-blue-100">
+                                {{ postulante.documento }}
+                            </span>
                         </h1>
-                        <p class="mt-2 text-xs sm:text-sm text-blue-100/90 flex flex-wrap items-center gap-2">
-                            <span class="font-bold text-white">{{ postulante.nombre }}</span>
-                            <span class="text-blue-300">•</span>
-                            <span class="font-mono bg-white/10 px-2 py-0.5 rounded-md border border-white/10 text-xs">{{ postulante.documento }}</span>
+                        <p class="mt-2 text-xs sm:text-sm text-blue-100/90 leading-relaxed max-w-xl">
+                            Institución de origen: <b class="text-white">{{ postulante.institucion_origen || 'No especificada' }}</b>
+                            <span v-if="postulante.carrera_origen">· {{ postulante.carrera_origen }}</span>
                         </p>
                     </div>
 
-                    <div v-if="docRecord || docDni" class="flex flex-wrap items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
                         <!-- Récord / Certificado -->
                         <div v-if="docRecord" class="shrink-0 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl p-3 flex items-center gap-3">
                             <div class="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-blue-200 shrink-0">
@@ -290,7 +290,7 @@ const eliminarSimulacion = (s) => {
                             </svg>
                             <input v-model="busqueda" type="text"
                                    placeholder="Nombre de curso, código USIL (ej. M1-01) o curso externo…"
-                                   class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                   class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15" />
                         </div>
                     </div>
 
@@ -298,7 +298,7 @@ const eliminarSimulacion = (s) => {
                     <div>
                         <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Filtrar por Ciclo</label>
                         <select v-model="cicloFiltro"
-                                class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15">
                             <option value="todos">Todos los ciclos</option>
                             <option v-for="c in listaCiclos" :key="c" :value="c">Ciclo {{ c }}</option>
                         </select>
@@ -308,7 +308,7 @@ const eliminarSimulacion = (s) => {
                     <div>
                         <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Estado de Asignación</label>
                         <select v-model="estadoFiltro"
-                                class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15">
                             <option value="todos">Todos los cursos</option>
                             <option value="con_opciones">Con equivalencia en catálogo</option>
                             <option value="convalidados">Convalidados ({{ convalidados.length }})</option>
@@ -321,19 +321,19 @@ const eliminarSimulacion = (s) => {
                 <div v-if="hayFiltrosActivos" class="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-2 text-xs">
                         <span class="text-slate-400 font-medium">Mostrando <b>{{ cursosFiltrados.length }}</b> de <b>{{ cursosMalla.length }}</b> cursos</span>
-                        <span v-if="busqueda" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                        <span v-if="busqueda" class="bg-blue-50 text-[#00205B] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                             "{{ busqueda }}"
                         </span>
-                        <span v-if="cicloFiltro !== 'todos'" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                        <span v-if="cicloFiltro !== 'todos'" class="bg-blue-50 text-[#00205B] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                             Ciclo {{ cicloFiltro }}
                         </span>
-                        <span v-if="estadoFiltro !== 'todos'" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                        <span v-if="estadoFiltro !== 'todos'" class="bg-blue-50 text-[#00205B] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                             {{ estadoFiltro === 'con_opciones' ? 'Con equivalencia' : estadoFiltro === 'convalidados' ? 'Convalidados' : 'Pendientes' }}
                         </span>
                     </div>
 
                     <button type="button" @click="limpiarFiltros"
-                            class="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors">
+                            class="text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors">
                         Limpiar filtros
                     </button>
                 </div>
@@ -341,7 +341,7 @@ const eliminarSimulacion = (s) => {
 
             <!-- Matriz de Cursos Agrupados -->
             <div class="mb-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-                <div class="flex items-center justify-between bg-[#1F3864] px-6 py-4 text-white">
+                <div class="flex items-center justify-between bg-[#00205B] px-6 py-4 text-white">
                     <div class="flex items-center gap-2.5">
                         <svg class="w-5 h-5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
@@ -364,7 +364,7 @@ const eliminarSimulacion = (s) => {
                     <div class="divide-y divide-slate-100">
                         <div v-for="curso in grupo.cursos" :key="curso.id" 
                              class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-6 hover:bg-slate-50/70 transition-colors">
-                            <div class="sm:w-5/12 min-w-0">
+                             <div class="sm:w-5/12 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                                         {{ curso.codigo }}
@@ -378,7 +378,7 @@ const eliminarSimulacion = (s) => {
                             
                             <div class="w-full sm:w-7/12">
                                 <select v-if="curso.opciones?.length" v-model="seleccion[curso.id]" 
-                                        class="w-full text-sm font-semibold rounded-xl border-slate-200 py-2.5 px-3 focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-all cursor-pointer" 
+                                        class="w-full text-sm font-semibold rounded-xl border-slate-200 py-2.5 px-3 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all cursor-pointer" 
                                         :class="seleccion[curso.id] ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold shadow-2xs' : 'text-slate-800'">
                                     <option :value="null">— No convalidar / No asignar —</option>
                                     <option v-for="opc in curso.opciones" :key="opc.id" :value="opc.id">{{ opc.nombre }}</option>
@@ -396,7 +396,7 @@ const eliminarSimulacion = (s) => {
 
                 <!-- Estado vacío al filtrar cursos -->
                 <div v-if="cursosFiltrados.length === 0" class="p-12 text-center">
-                    <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#2E75B6] mx-auto">
+                    <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#0036DC] mx-auto">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
@@ -415,13 +415,13 @@ const eliminarSimulacion = (s) => {
                 <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Observaciones y Sustento Académico</label>
                 <textarea v-model="observaciones" rows="3" 
                           placeholder="Añade comentarios o consideraciones especiales para esta simulación…"
-                          class="w-full rounded-2xl border-slate-200 text-xs font-medium focus:border-[#2E75B6] focus:ring-[#2E75B6] p-3"></textarea>
+                          class="w-full rounded-2xl border-slate-200 text-xs font-medium focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 p-3"></textarea>
             </div>
 
             <!-- Botones de Acción -->
             <div class="flex items-center gap-3">
                 <button @click="guardar" :disabled="procesando" type="button"
-                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg disabled:opacity-50 transition-all">
+                        class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-lg disabled:opacity-50 transition-all">
                     <svg v-if="!procesando" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                     </svg>
@@ -442,13 +442,13 @@ const eliminarSimulacion = (s) => {
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="s in simulacionesPrevias" :key="s.id" class="hover:bg-slate-50/70 transition-colors">
                             <td class="px-6 py-3.5 text-slate-700 font-medium">
-                                <span class="font-bold text-[#1F3864]">#{{ s.id }}</span> · {{ s.fecha }}
+                                <span class="font-bold text-[#00205B]">#{{ s.id }}</span> · {{ s.fecha }}
                             </td>
                             <td class="px-6 py-3.5 text-slate-600 font-semibold">{{ s.carrera }}</td>
                             <td class="px-6 py-3.5 text-right space-x-3">
-                                <Link :href="`/simulaciones/${s.id}/editar`" class="font-bold text-[#2E75B6] hover:underline">Editar</Link>
+                                <Link :href="`/simulaciones/${s.id}/editar`" class="font-bold text-[#0036DC] hover:underline">Editar</Link>
                                 <Link :href="`/simulaciones/${s.id}`" class="font-bold text-slate-600 hover:underline">Ver</Link>
-                                <button type="button" @click="eliminarSimulacion(s)" class="font-bold text-red-600 hover:underline">Eliminar</button>
+                                <button type="button" @click="eliminarSimulacion(s)" class="font-bold text-rose-600 hover:underline">Eliminar</button>
                             </td>
                         </tr>
                     </tbody>

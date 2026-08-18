@@ -104,7 +104,7 @@ const logout = () => router.post('/logout');
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 relative">
+    <div class="min-h-screen bg-[#F4F6F9] relative">
         <!-- ======================= POP-UP TOAST FLOTANTE ======================= -->
         <Transition
             enter-active-class="transition duration-300 ease-out"
@@ -115,10 +115,10 @@ const logout = () => router.post('/logout');
             leave-to-class="translate-y-[-16px] opacity-0 scale-95">
             <div v-if="toastVisible"
                  class="fixed top-5 right-5 z-50 flex items-start gap-3 w-88 max-w-[calc(100vw-2.5rem)] rounded-2xl bg-white p-4 shadow-2xl border"
-                 :class="toastTipo === 'ok' ? 'border-emerald-200 ring-4 ring-emerald-500/10' : 'border-red-200 ring-4 ring-red-500/10'"
+                 :class="toastTipo === 'ok' ? 'border-emerald-200 ring-4 ring-emerald-500/10' : 'border-rose-200 ring-4 ring-rose-500/10'"
                  role="alert">
                 <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
-                      :class="toastTipo === 'ok' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-red-500 to-rose-600'">
+                      :class="toastTipo === 'ok' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-rose-500 to-red-600'">
                     <svg v-if="toastTipo === 'ok'" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                     </svg>
@@ -129,7 +129,7 @@ const logout = () => router.post('/logout');
 
                 <div class="min-w-0 flex-1">
                     <p class="text-xs font-bold uppercase tracking-wider"
-                       :class="toastTipo === 'ok' ? 'text-emerald-800' : 'text-red-800'">
+                       :class="toastTipo === 'ok' ? 'text-emerald-800' : 'text-rose-800'">
                         {{ toastTipo === 'ok' ? 'Operación exitosa' : 'Atención requerida' }}
                     </p>
                     <p class="mt-0.5 text-xs font-medium text-slate-700 leading-snug break-words">
@@ -148,19 +148,19 @@ const logout = () => router.post('/logout');
 
         <!-- Barra lateral -->
         <aside :class="menuMovil ? 'translate-x-0' : '-translate-x-full'"
-               class="fixed inset-y-0 left-0 z-40 flex w-52 transform flex-col bg-[#00205B] text-white transition-transform duration-200 md:translate-x-0 shadow-lg">
-            <div class="flex h-14 items-center gap-2.5 border-b border-white/10 px-3.5">
+               class="fixed inset-y-0 left-0 z-40 flex w-52 transform flex-col bg-[#00205B] text-white transition-transform duration-200 md:translate-x-0 shadow-xl border-r border-[#00195A]">
+            <div class="flex h-14 items-center gap-2.5 border-b border-white/10 px-3.5 bg-[#00195A]/50">
                 <img :src="logoImg" alt="USIL" class="h-8 w-auto object-contain rounded-lg bg-white p-0.5 shadow-xs shrink-0" />
                 <div class="leading-tight min-w-0">
-                    <span class="block text-xs font-bold tracking-tight truncate">Convalidaciones</span>
-                    <span class="block text-[10px] text-blue-200 truncate">USIL · Gestión Académica</span>
+                    <span class="block text-xs font-bold tracking-tight truncate text-white">Convalidaciones</span>
+                    <span class="block text-[10px] text-blue-200 truncate font-medium">USIL · Gestión Académica</span>
                 </div>
             </div>
 
             <nav class="flex-1 space-y-0.5 overflow-y-auto p-2">
                 <Link v-for="item in nav" :key="item.href" :href="item.href" @click="menuMovil = false"
-                      :class="activo(item.href) ? 'bg-white/15 text-white font-bold' : 'text-blue-100/90 hover:bg-white/10 font-medium'"
-                      class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors">
+                      :class="activo(item.href) ? 'bg-white/15 text-white font-bold shadow-inner' : 'text-blue-100/90 hover:bg-white/10 font-medium'"
+                      class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs transition-colors">
                     <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8"
                          stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                         <path :d="item.icon" />
@@ -169,8 +169,9 @@ const logout = () => router.post('/logout');
                 </Link>
             </nav>
 
-            <div class="border-t border-white/10 p-2.5 text-[10px] text-blue-200/80">
-                Simulaciones · USIL
+            <div class="border-t border-white/10 p-2.5 text-[10px] text-blue-200/80 bg-[#00195A]/30 flex items-center justify-between">
+                <span>Simulaciones · USIL</span>
+                <span class="h-1.5 w-1.5 rounded-full bg-[#FFB81C]"></span>
             </div>
         </aside>
 

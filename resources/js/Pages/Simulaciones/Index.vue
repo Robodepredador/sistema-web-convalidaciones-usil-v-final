@@ -30,10 +30,10 @@ const limpiar = () => {
 <template>
     <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <!-- Decorative blur background -->
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-20 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-20 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -95,7 +95,7 @@ const limpiar = () => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
                         <input v-model="filtro.q" @keyup.enter="aplicar" type="search" placeholder="Nombre, apellido o documento…"
-                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15" />
                     </div>
                 </div>
 
@@ -107,20 +107,20 @@ const limpiar = () => {
                 <div>
                     <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Solicitado desde</label>
                     <input v-model="filtro.desde" type="date" :max="filtro.hasta || undefined" @keyup.enter="aplicar"
-                           class="w-full rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                           class="w-full rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15" />
                 </div>
 
                 <div>
                     <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Solicitado hasta</label>
                     <input v-model="filtro.hasta" type="date" :min="filtro.desde || undefined" @keyup.enter="aplicar"
-                           class="w-full rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                           class="w-full rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15" />
                 </div>
             </div>
 
             <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <button @click="aplicar" type="button"
-                            class="inline-flex items-center gap-1.5 rounded-xl bg-[#2E75B6] px-5 py-2 text-xs font-bold text-white hover:bg-[#1F3864] transition-colors shadow-2xs">
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-[#00205B] px-5 py-2 text-xs font-bold text-white hover:bg-[#0036DC] transition-colors shadow-2xs">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
@@ -156,7 +156,7 @@ const limpiar = () => {
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="p in postulantes.data" :key="p.destino_id" class="hover:bg-slate-50/70 transition-colors group">
                             <td class="px-4 py-3 min-w-[200px]">
-                                <div class="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-[#2E75B6] transition-colors leading-tight">{{ p.nombre }}</div>
+                                <div class="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-[#0036DC] transition-colors leading-tight">{{ p.nombre }}</div>
                                 <div class="font-mono text-[11px] text-slate-400 mt-0.5">{{ p.codigo }}</div>
                             </td>
                             <td class="px-4 py-3 text-slate-600 font-mono font-medium whitespace-nowrap">
@@ -169,18 +169,18 @@ const limpiar = () => {
                                 <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ p.carrera_externa }}</div>
                             </td>
                             <td class="px-4 py-3 min-w-[160px]">
-                                <span class="font-bold text-[#1F3864] leading-snug">{{ p.carrera_destino || '—' }}</span>
+                                <span class="font-bold text-[#00205B] leading-snug">{{ p.carrera_destino || '—' }}</span>
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-slate-500 font-medium">{{ p.solicitado || '—' }}</td>
                             <td class="px-4 py-3 text-center whitespace-nowrap">
                                 <span class="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-bold"
-                                      :class="p.simulaciones_count > 0 ? 'bg-blue-50 text-[#2E75B6] border border-blue-100' : 'bg-slate-100 text-slate-500'">
+                                      :class="p.simulaciones_count > 0 ? 'bg-blue-50 text-[#00205B] border border-blue-100' : 'bg-slate-100 text-slate-500'">
                                     {{ p.simulaciones_count }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <Link :href="`/simulaciones/simular/${p.id}?carrera=${p.carrera_destino_id}`"
-                                      class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
+                                      class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
                                     <span>Simular</span>
                                     <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -190,7 +190,7 @@ const limpiar = () => {
                         </tr>
                         <tr v-if="!postulantes.data.length">
                             <td colspan="7" class="px-6 py-16 text-center text-slate-400">
-                                <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#2E75B6] mx-auto">
+                                <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#0036DC] mx-auto">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                                     </svg>
@@ -212,7 +212,7 @@ const limpiar = () => {
                 <nav v-if="postulantes.last_page > 1" class="flex flex-wrap items-center gap-1">
                     <template v-for="(link, idx) in postulantes.links" :key="idx">
                         <Link v-if="link.url" :href="link.url" preserve-scroll
-                              :class="link.active ? 'bg-[#1F3864] text-white shadow-2xs font-bold' : 'text-slate-600 hover:bg-slate-100 font-semibold'"
+                              :class="link.active ? 'bg-[#00205B] text-white shadow-2xs font-bold' : 'text-slate-600 hover:bg-slate-100 font-semibold'"
                               class="min-w-[34px] rounded-xl px-2.5 py-1.5 text-center text-xs border border-slate-200 bg-white" v-html="link.label" />
                         <span v-else class="min-w-[34px] cursor-not-allowed rounded-xl px-2.5 py-1.5 text-center text-xs text-slate-300 border border-slate-100 bg-slate-50" v-html="link.label" />
                     </template>

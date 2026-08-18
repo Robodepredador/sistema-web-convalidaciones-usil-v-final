@@ -85,7 +85,7 @@ const limpiar = () => { texto.value = ''; emit('update:modelValue', ''); abierto
     <div class="relative">
         <input :value="texto" @input="onInput" @focus="onFocus" @blur="onBlur" @keydown="onKeydown"
                :disabled="disabled" :placeholder="placeholder" autocomplete="off"
-               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 transition-all" />
+               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 disabled:cursor-not-allowed disabled:bg-slate-50 transition-all" />
         <button v-if="texto && !disabled" type="button" @mousedown.prevent="limpiar"
                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-300 hover:text-slate-500">
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
@@ -96,25 +96,25 @@ const limpiar = () => { texto.value = ''; emit('update:modelValue', ''); abierto
             
             <!-- Botón destacado superior si no hay coincidencias directas -->
             <button v-if="mostrarCrear && !filtradas.length" type="button" @mousedown.prevent="crear"
-                    class="flex w-full items-center gap-2.5 px-3.5 py-3 text-left font-bold text-[#1F3864] bg-blue-50/90 hover:bg-blue-100 border-b border-blue-100 transition-colors">
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#2E75B6] text-white text-xs font-black shadow-2xs">+</span>
-                <span class="truncate">Registrar «<strong class="text-[#2E75B6]">{{ texto.trim() }}</strong>» como nueva carrera</span>
+                    class="flex w-full items-center gap-2.5 px-3.5 py-3 text-left font-bold text-[#00205B] bg-blue-50/90 hover:bg-blue-100 border-b border-blue-100 transition-colors">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#00205B] text-white text-xs font-black shadow-2xs">+</span>
+                <span class="truncate">Registrar «<strong class="text-[#0036DC]">{{ texto.trim() }}</strong>» como nueva opción</span>
             </button>
 
             <ul v-if="filtradas.length">
                 <li v-for="(o, i) in filtradas" :key="String(o.value)" @mousedown.prevent="seleccionar(o)"
-                    :class="[i === activo ? 'bg-blue-50/80 text-[#1F3864]' : 'hover:bg-slate-50', String(o.value) === String(modelValue) ? 'font-bold text-[#1F3864] bg-blue-50/40' : 'text-slate-700']"
+                    :class="[i === activo ? 'bg-blue-50/80 text-[#00205B]' : 'hover:bg-slate-50', String(o.value) === String(modelValue) ? 'font-bold text-[#00205B] bg-blue-50/40' : 'text-slate-700']"
                     class="cursor-pointer px-3.5 py-2 transition-colors flex items-center justify-between">
                     <span class="truncate">{{ o.label }}</span>
-                    <span v-if="String(o.value) === String(modelValue)" class="text-[#2E75B6] text-xs font-bold">✓</span>
+                    <span v-if="String(o.value) === String(modelValue)" class="text-[#0036DC] text-xs font-bold">✓</span>
                 </li>
             </ul>
 
             <!-- Botón al pie si hay coincidencias parciales pero se quiere registrar como nuevo -->
             <button v-if="mostrarCrear && filtradas.length" type="button" @mousedown.prevent="crear"
-                    class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-bold text-[#1F3864] bg-blue-50/80 hover:bg-blue-100/90 border-t border-slate-100 transition-colors">
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#2E75B6] text-white text-xs font-black shadow-2xs">+</span>
-                <span class="truncate">Registrar «<strong class="text-[#2E75B6]">{{ texto.trim() }}</strong>» como nueva carrera</span>
+                    class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-bold text-[#00205B] bg-blue-50/80 hover:bg-blue-100/90 border-t border-slate-100 transition-colors">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#00205B] text-white text-xs font-black shadow-2xs">+</span>
+                <span class="truncate">Registrar «<strong class="text-[#0036DC]">{{ texto.trim() }}</strong>» como nueva opción</span>
             </button>
 
             <p v-else-if="!filtradas.length && !mostrarCrear && !allowFree" class="px-3.5 py-3 text-center text-slate-400 font-medium">

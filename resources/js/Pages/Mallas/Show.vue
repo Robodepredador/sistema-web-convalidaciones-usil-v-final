@@ -126,8 +126,8 @@ const ciclosVista = computed(() => props.ciclos
 
 // Paleta visual suave para ciclos
 const PALETA = [
-    { badge: 'bg-[#1F3864] text-white', light: 'bg-blue-50/70 border-blue-100', tx: 'text-[#1F3864]' },
-    { badge: 'bg-[#2E75B6] text-white', light: 'bg-sky-50/70 border-sky-100', tx: 'text-[#2E75B6]' },
+    { badge: 'bg-[#00205B] text-white', light: 'bg-blue-50/70 border-blue-100', tx: 'text-[#00205B]' },
+    { badge: 'bg-[#0036DC] text-white', light: 'bg-sky-50/70 border-sky-100', tx: 'text-[#0036DC]' },
     { badge: 'bg-indigo-600 text-white', light: 'bg-indigo-50/70 border-indigo-100', tx: 'text-indigo-700' },
     { badge: 'bg-teal-700 text-white', light: 'bg-teal-50/70 border-teal-100', tx: 'text-teal-800' },
     { badge: 'bg-emerald-700 text-white', light: 'bg-emerald-50/70 border-emerald-100', tx: 'text-emerald-800' },
@@ -156,10 +156,10 @@ const alternarTodos = () => {
         <VolverA href="/mallas" texto="Mallas curriculares" />
 
         <!-- HERO HEADER INTEGRADO CON MICRO-KPIS COMPACTOS -->
-        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] p-6 sm:p-8 text-white shadow-xl">
+        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] p-6 sm:p-8 text-white shadow-xl">
             <!-- Decorative blur background -->
             <div class="absolute -top-24 -right-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
 
             <div class="relative z-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -205,8 +205,8 @@ const alternarTodos = () => {
                         </a>
 
                         <Link :href="`/mallas/${malla.id}/editar`"
-                              class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-xs font-bold text-[#1F3864] hover:bg-blue-50 transition-all shadow-md">
-                            <svg class="w-4 h-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-xs font-bold text-[#00205B] hover:bg-blue-50 transition-all shadow-md">
+                            <svg class="w-4 h-4 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                             </svg>
                             Editar
@@ -296,29 +296,29 @@ const alternarTodos = () => {
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607Z" /></svg>
                     </span>
                     <input v-model="buscar" type="text" placeholder="Buscar por código o nombre…"
-                           class="w-full rounded-xl border-slate-200 py-1.5 pl-9 pr-3 text-xs focus:border-[#2E75B6] focus:ring-2 focus:ring-[#2E75B6]/20 transition-all" />
+                           class="w-full rounded-xl border-slate-200 py-1.5 pl-9 pr-3 text-xs focus:border-[#0036DC] focus:ring-2 focus:ring-[#0036DC]/20 transition-all" />
                 </div>
 
                 <!-- Filtros rápidos tipo select -->
-                <select v-model="filtroTipo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                <select v-model="filtroTipo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#0036DC] focus:ring-[#0036DC]">
                     <option value="">Todos los tipos</option>
                     <option value="obligatorio">Obligatorios</option>
                     <option value="electivo">Electivos</option>
                 </select>
 
-                <select v-model="filtroCiclo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                <select v-model="filtroCiclo" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#0036DC] focus:ring-[#0036DC]">
                     <option value="">Todos los ciclos</option>
                     <option v-for="c in ciclos" :key="c.id" :value="c.numero">Ciclo {{ c.numero }}</option>
                 </select>
 
-                <select v-if="mencionesDisponibles.length" v-model="filtroMencion" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                <select v-if="mencionesDisponibles.length" v-model="filtroMencion" class="rounded-xl border-slate-200 py-1.5 px-3 text-xs focus:border-[#0036DC] focus:ring-[#0036DC]">
                     <option value="">Todas las menciones</option>
                     <option value="__reg">Solo plan regular</option>
                     <option v-for="m in mencionesDisponibles" :key="m" :value="m">{{ m }}</option>
                 </select>
 
                 <button v-if="hayFiltro" @click="limpiarFiltros"
-                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#2E75B6] hover:bg-blue-50 transition-colors">
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#0036DC] hover:bg-blue-50 transition-colors">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     Limpiar
                 </button>
@@ -335,7 +335,7 @@ const alternarTodos = () => {
                 </button>
 
                 <button v-if="puedeAgregarCiclo" @click="agregarCiclo"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1F3864] text-xs font-bold text-white hover:bg-[#2E75B6] transition-all shadow-xs">
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00205B] text-xs font-bold text-white hover:bg-[#0036DC] transition-all shadow-xs">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                     + Nuevo Ciclo
                 </button>
@@ -356,7 +356,7 @@ const alternarTodos = () => {
                                 {{ ciclo.numero }}
                             </span>
                             <div>
-                                <span class="text-sm font-bold text-slate-800 group-hover:text-[#1F3864] transition-colors">
+                                <span class="text-sm font-bold text-slate-800 group-hover:text-[#00205B] transition-colors">
                                     Ciclo {{ ciclo.numero }}
                                 </span>
                                 <span class="text-xs text-slate-400 ml-2">
@@ -366,13 +366,13 @@ const alternarTodos = () => {
                             <svg class="h-4 w-4 text-slate-400 transition-transform duration-200 ml-1"
                                  :class="colapsados.has(ciclo.id) ? '' : 'rotate-180'"
                                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                             </svg>
                         </button>
 
                         <div class="flex items-center gap-2">
                             <button @click="nuevoCurso(ciclo)"
-                                    class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-xs font-bold text-[#2E75B6] hover:bg-[#2E75B6] hover:text-white transition-all">
+                                    class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-xs font-bold text-[#0036DC] hover:bg-[#0036DC] hover:text-white transition-all">
                                 <span class="text-sm leading-none">+</span> Agregar curso
                             </button>
                             <button v-if="!ciclo.cursos.length" @click="eliminarCiclo(ciclo)"
@@ -386,7 +386,7 @@ const alternarTodos = () => {
                     <!-- Lista Compacta de Asignaturas en Fila de Alta Densidad -->
                     <div v-show="!colapsados.has(ciclo.id)" class="divide-y divide-slate-100">
                         <div v-if="!ciclo.cursos.length" class="px-4 py-6 text-center text-xs text-slate-400">
-                            No hay cursos en este ciclo. Usa <button @click="nuevoCurso(ciclo)" class="font-bold text-[#2E75B6] hover:underline">+ Agregar curso</button> para comenzar.
+                            No hay cursos en este ciclo. Usa <button @click="nuevoCurso(ciclo)" class="font-bold text-[#0036DC] hover:underline">+ Agregar curso</button> para comenzar.
                         </div>
 
                         <div v-for="curso in ciclo.cursos" :key="curso.id"
@@ -394,10 +394,10 @@ const alternarTodos = () => {
                             
                             <!-- Código y Nombre del Curso (Clickable para abrir Drawer) -->
                             <div @click="verCurso(curso)" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
-                                <span class="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0 group-hover:bg-blue-100 group-hover:text-[#1F3864] transition-colors">
+                                <span class="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0 group-hover:bg-blue-100 group-hover:text-[#00205B] transition-colors">
                                     {{ curso.codigo || 'S/C' }}
                                 </span>
-                                <span class="text-xs sm:text-sm font-semibold text-slate-800 truncate group-hover:text-[#2E75B6] transition-colors">
+                                <span class="text-xs sm:text-sm font-semibold text-slate-800 truncate group-hover:text-[#0036DC] transition-colors">
                                     {{ curso.nombre }}
                                 </span>
                                 <span v-if="curso.mencion" class="hidden md:inline-flex px-2 py-0.2 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700">
@@ -412,19 +412,19 @@ const alternarTodos = () => {
                                     {{ curso.es_electivo ? 'Electivo' : 'Obligatorio' }}
                                 </span>
 
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-50 text-[#2E75B6]">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-50 text-[#0036DC]">
                                     {{ curso.creditos }} cr
                                 </span>
 
                                 <!-- Botones de Acción Rápida -->
                                 <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                                     <button @click.stop="verCurso(curso)"
-                                            class="p-1 rounded-md text-slate-400 hover:text-[#2E75B6] hover:bg-blue-50 transition-colors"
+                                            class="p-1 rounded-md text-slate-400 hover:text-[#0036DC] hover:bg-blue-50 transition-colors"
                                             title="Ver ficha completa">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </button>
                                     <button @click.stop="editarCurso(curso)"
-                                            class="p-1 rounded-md text-slate-400 hover:text-[#2E75B6] hover:bg-blue-50 transition-colors"
+                                            class="p-1 rounded-md text-slate-400 hover:text-[#0036DC] hover:bg-blue-50 transition-colors"
                                             title="Editar curso">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
                                     </button>
@@ -442,7 +442,7 @@ const alternarTodos = () => {
         </div>
 
         <div v-else class="rounded-3xl border-2 border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-400">
-            Esta malla aún no tiene ciclos configurados. Haz clic en <button @click="agregarCiclo" class="font-bold text-[#2E75B6] hover:underline">“+ Nuevo Ciclo”</button> para empezar.
+            Esta malla aún no tiene ciclos configurados. Haz clic en <button @click="agregarCiclo" class="font-bold text-[#0036DC] hover:underline">“+ Nuevo Ciclo”</button> para empezar.
         </div>
 
         <!-- DRAWER MODERNO Y ELEGANTE DE DETALLE / FORMULARIO -->
@@ -458,7 +458,7 @@ const alternarTodos = () => {
                         <!-- Header del Drawer -->
                         <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
                             <div>
-                                <span class="font-mono text-xs font-bold text-[#2E75B6] bg-blue-50 px-2 py-0.5 rounded-md">
+                                <span class="font-mono text-xs font-bold text-[#0036DC] bg-blue-50 px-2 py-0.5 rounded-md">
                                     {{ cursoSel.codigo || 'SIN CÓDIGO' }}
                                 </span>
                                 <h2 class="text-lg font-bold text-slate-900 mt-1 leading-snug">{{ cursoSel.nombre }}</h2>
@@ -478,10 +478,10 @@ const alternarTodos = () => {
                         <!-- Pestañas del Drawer -->
                         <div class="flex gap-4 border-b border-slate-100 text-xs font-bold uppercase tracking-wider mt-4">
                             <button v-for="t in tabs" :key="t.id" @click="tab = t.id"
-                                    :class="tab === t.id ? 'border-[#2E75B6] text-[#1F3864]' : 'border-transparent text-slate-400 hover:text-slate-600'"
+                                    :class="tab === t.id ? 'border-[#0036DC] text-[#00205B]' : 'border-transparent text-slate-400 hover:text-slate-600'"
                                     class="-mb-px pb-2.5 border-b-2 transition-colors">
                                 {{ t.label }}
-                                <span v-if="t.id === 'convalidaciones' && cursoSel.convalidaciones?.length" class="ml-1 rounded-full bg-blue-100 text-[#2E75B6] px-1.5 py-0.2 text-[10px]">
+                                <span v-if="t.id === 'convalidaciones' && cursoSel.convalidaciones?.length" class="ml-1 rounded-full bg-blue-100 text-[#0036DC] px-1.5 py-0.2 text-[10px]">
                                     {{ cursoSel.convalidaciones.length }}
                                 </span>
                             </button>
@@ -523,7 +523,7 @@ const alternarTodos = () => {
                                 <span class="text-slate-400 block font-medium mb-2 uppercase tracking-wider">Competencias Desarrolladas</span>
                                 <div v-if="cursoSel.competencias?.length" class="flex flex-wrap gap-1.5">
                                     <span v-for="(comp, i) in cursoSel.competencias" :key="i"
-                                          class="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1 font-semibold text-[#2E75B6]">
+                                          class="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1 font-semibold text-[#0036DC]">
                                         {{ comp }}
                                     </span>
                                 </div>
@@ -573,7 +573,7 @@ const alternarTodos = () => {
                             Eliminar asignatura
                         </button>
                         <button @click="editarCurso(cursoSel)"
-                                class="px-5 py-2 rounded-xl bg-[#1F3864] text-white text-xs font-bold hover:bg-[#2E75B6] transition-all shadow-xs">
+                                class="px-5 py-2 rounded-xl bg-[#00205B] text-white text-xs font-bold hover:bg-[#0036DC] transition-all shadow-xs">
                             Editar asignatura
                         </button>
                     </div>
@@ -596,13 +596,13 @@ const alternarTodos = () => {
                                 <div>
                                     <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Código</label>
                                     <input v-model="form.codigo" type="text" placeholder="INF101"
-                                           class="w-full rounded-xl border-slate-300 text-xs font-mono uppercase focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                           class="w-full rounded-xl border-slate-300 text-xs font-mono uppercase focus:border-[#0036DC] focus:ring-[#0036DC]" />
                                     <p v-if="form.errors.codigo" class="text-red-600 text-[10px] mt-1">{{ form.errors.codigo }}</p>
                                 </div>
                                 <div class="col-span-2">
                                     <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Créditos</label>
                                     <input v-model="form.creditos" type="number" step="0.5" min="0" placeholder="4.0"
-                                           class="w-full rounded-xl border-slate-300 text-xs font-bold focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                           class="w-full rounded-xl border-slate-300 text-xs font-bold focus:border-[#0036DC] focus:ring-[#0036DC]" />
                                     <p v-if="form.errors.creditos" class="text-red-600 text-[10px] mt-1">{{ form.errors.creditos }}</p>
                                 </div>
                             </div>
@@ -610,7 +610,7 @@ const alternarTodos = () => {
                             <div>
                                 <label class="mb-1 block font-bold text-slate-600 uppercase tracking-wider text-[11px]">Nombre de la Asignatura</label>
                                 <input v-model="form.nombre" type="text" placeholder="Ej. Algoritmos y Estructuras de Datos"
-                                       class="w-full rounded-xl border-slate-300 text-xs focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                       class="w-full rounded-xl border-slate-300 text-xs focus:border-[#0036DC] focus:ring-[#0036DC]" />
                                 <p v-if="form.errors.nombre" class="text-red-600 text-[10px] mt-1">{{ form.errors.nombre }}</p>
                             </div>
 
@@ -666,7 +666,7 @@ const alternarTodos = () => {
                             </div>
 
                             <label class="flex items-center gap-2 text-xs font-bold text-slate-700 p-2 rounded-xl bg-slate-50 cursor-pointer">
-                                <input v-model="form.es_electivo" type="checkbox" class="rounded border-slate-300 text-[#2E75B6] focus:ring-[#2E75B6]" />
+                                <input v-model="form.es_electivo" type="checkbox" class="rounded border-slate-300 text-[#0036DC] focus:ring-[#0036DC]" />
                                 Asignatura de carácter electivo
                             </label>
 
@@ -675,7 +675,7 @@ const alternarTodos = () => {
                                     Cancelar
                                 </button>
                                 <button type="submit" :disabled="form.processing"
-                                        class="px-6 py-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-white text-xs font-bold shadow-md hover:shadow transition-all disabled:opacity-60">
+                                        class="px-6 py-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white text-xs font-bold shadow-md hover:shadow transition-all disabled:opacity-60">
                                     {{ panel === 'new' ? 'Agregar asignatura' : 'Guardar cambios' }}
                                 </button>
                             </div>

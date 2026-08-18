@@ -2,6 +2,8 @@
 
 Procedimiento de instalación, actualización y reversión sobre **Apache 2.4 + PHP 8.2 + MySQL 8**, sin contenedores.
 
+> **¿Primera instalación?** Este runbook es la versión condensada, para tener a mano en el servidor. El **Manual Técnico de Instalación y Despliegue** (`docs/Documentación_Final/`) cubre lo mismo paso a paso, con diagramas, la salida esperada de cada comando y una sección de problemas frecuentes.
+
 > Este runbook describía un despliegue con Docker Compose. Se reescribió el 10/08/2026 al confirmarse que TI no dispone de Docker: un procedimiento que nadie puede ejecutar es peor que ninguno. Con él salieron del proyecto `docker/`, ambos `docker-compose*.yml` y la configuración de Railway.
 
 ---
@@ -123,7 +125,7 @@ php artisan storage:link
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
-`db:seed` deja el sistema operable: 8 perfiles con su matriz de permisos, 206 instituciones de origen licenciadas por SUNEDU, 9 facultades y 40 programas de USIL, sedes y modalidades. **No crea cuentas demo con `APP_ENV=production`.**
+`db:seed` deja el sistema operable: 5 perfiles con sus 12 permisos, 206 instituciones de origen licenciadas por SUNEDU, 9 facultades y 40 programas de USIL, sedes y modalidades. **No crea cuentas demo con `APP_ENV=production`.**
 
 > **El administrador inicial se crea con una contraseña aleatoria que se imprime UNA vez, en esa salida.** Anótela antes de cerrar la terminal. Si se pierde, se regenera con `php artisan usuario:password admin@usil.edu.pe`.
 

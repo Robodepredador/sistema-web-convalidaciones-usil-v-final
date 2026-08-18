@@ -18,7 +18,7 @@ const props = defineProps({
 const emit = defineEmits(['confirmar', 'cancelar']);
 
 const TONO = {
-    primario: 'bg-[#1F3864] hover:bg-[#2E75B6] text-white',
+    primario: 'bg-[#00205B] hover:bg-[#0036DC] text-white',
     exito: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     aviso: 'bg-amber-600 hover:bg-amber-700 text-white',
     peligro: 'bg-rose-600 hover:bg-rose-700 text-white',
@@ -75,7 +75,7 @@ const atraparTab = (e) => {
                     <div :class="[
                         tono === 'exito' ? 'bg-emerald-100 text-emerald-600' :
                         tono === 'peligro' ? 'bg-rose-100 text-rose-600' :
-                        tono === 'aviso' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-[#1F3864]'
+                        tono === 'aviso' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-[#00205B]'
                     ]" class="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs">
                         <svg v-if="tono === 'exito'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />

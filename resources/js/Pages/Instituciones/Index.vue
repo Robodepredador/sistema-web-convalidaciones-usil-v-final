@@ -59,10 +59,10 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
 <template>
     <div class="w-full pb-12">
         <!-- Banner Header Hero -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl">
             <!-- Decorative background elements -->
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
             <div class="absolute -bottom-10 -left-10 w-48 h-48 bg-white opacity-5 rounded-full blur-xl"></div>
             
             <div class="relative z-10 px-8 py-10 sm:p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
@@ -83,8 +83,8 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
 
                 <div class="flex items-center gap-3 w-full lg:w-auto">
                     <Link href="/instituciones/crear"
-                          class="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#1F3864] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-white/30">
-                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          class="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#00205B] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-white/30">
+                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         Nueva institución
@@ -99,7 +99,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
             <div class="lg:col-span-9 bg-white rounded-3xl border border-slate-200/70 p-6 shadow-sm relative z-20">
                 <div class="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#2E75B6] flex items-center justify-center">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#0036DC] flex items-center justify-center">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                             </svg>
@@ -107,7 +107,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                         <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Filtros de Búsqueda</h2>
                     </div>
                     <div v-if="tieneFiltrosActivos" class="flex items-center gap-1.5">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#2E75B6]">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0036DC]">
                             Filtros aplicados
                         </span>
                     </div>
@@ -129,7 +129,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                         </span>
                         <input v-model="filtro.buscar" @keyup.enter="aplicar" type="search"
                                placeholder="Ej. Pontificia Universidad Católica, Senati, UPC…"
-                               class="w-full rounded-xl border-slate-300 pl-9 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-colors" />
+                               class="w-full rounded-xl border-slate-300 pl-9 text-sm focus:border-[#0036DC] focus:ring-[#0036DC] transition-colors" />
                     </div>
                 </div>
 
@@ -140,7 +140,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             Tipo
                         </label>
                         <select v-model="filtro.tipo_id"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-colors">
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#0036DC] focus:ring-[#0036DC] transition-colors">
                             <option value="">Todos los tipos</option>
                             <option v-for="t in tipos" :key="t.id" :value="t.id">{{ t.nombre }}</option>
                         </select>
@@ -151,7 +151,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             Gestión
                         </label>
                         <select v-model="filtro.gestion"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-colors">
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#0036DC] focus:ring-[#0036DC] transition-colors">
                             <option value="">Todas</option>
                             <option value="publica">Pública</option>
                             <option value="privada">Privada</option>
@@ -163,7 +163,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             País
                         </label>
                         <select v-model="filtro.pais"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-colors">
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#0036DC] focus:ring-[#0036DC] transition-colors">
                             <option value="">Todos los países</option>
                             <option v-for="p in paises" :key="p" :value="p">{{ p }}</option>
                         </select>
@@ -174,7 +174,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             Estado
                         </label>
                         <select v-model="filtro.estado"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-colors">
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-[#0036DC] focus:ring-[#0036DC] transition-colors">
                             <option value="">Todos</option>
                             <option value="activa">Activas</option>
                             <option value="inactiva">Inactivas</option>
@@ -191,7 +191,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                         Limpiar
                     </button>
                     <button @click="aplicar"
-                            class="inline-flex items-center gap-2 rounded-xl bg-[#2E75B6] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#1F3864] transition-all duration-200 hover:shadow">
+                            class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#0036DC] transition-all duration-200 hover:shadow">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
@@ -202,7 +202,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
 
             <!-- Tarjeta Resumen KPI (3 cols) -->
             <div class="lg:col-span-3 flex flex-col">
-                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] p-6 text-white shadow-md h-full flex flex-col justify-between">
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] p-6 text-white shadow-md h-full flex flex-col justify-between">
                     <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-white/10 rounded-full blur-xl"></div>
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -254,13 +254,13 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             <!-- Nombre -->
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-2xl bg-blue-50/80 border border-blue-100 flex items-center justify-center text-[#2E75B6] shrink-0 group-hover:scale-105 transition-transform">
+                                    <div class="w-10 h-10 rounded-2xl bg-blue-50/80 border border-blue-100 flex items-center justify-center text-[#0036DC] shrink-0 group-hover:scale-105 transition-transform">
                                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                         </svg>
                                     </div>
                                     <div>
-                                        <Link :href="`/instituciones/${i.id}/editar`" class="font-bold text-slate-800 hover:text-[#2E75B6] transition-colors leading-snug block">
+                                        <Link :href="`/instituciones/${i.id}/editar`" class="font-bold text-slate-800 hover:text-[#0036DC] transition-colors leading-snug block">
                                             {{ i.nombre }}
                                         </Link>
                                         <span class="text-xs text-slate-400 font-mono">ID #{{ i.id }}</span>
@@ -317,7 +317,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                             <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                                 <div class="flex items-center justify-end gap-2">
                                     <Link :href="`/instituciones/${i.id}/editar`"
-                                          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-[#2E75B6] hover:text-white font-bold transition-all shadow-2xs"
+                                          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-[#0036DC] hover:text-white font-bold transition-all shadow-2xs"
                                           title="Editar institución y carreras">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
@@ -341,7 +341,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
 
                         <tr v-if="!instituciones.data?.length">
                             <td colspan="7" class="px-6 py-16 text-center">
-                                <div class="w-16 h-16 rounded-full bg-blue-50 text-[#2E75B6] flex items-center justify-center mx-auto mb-3">
+                                <div class="w-16 h-16 rounded-full bg-blue-50 text-[#0036DC] flex items-center justify-center mx-auto mb-3">
                                     <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
@@ -367,7 +367,7 @@ const activar = (i) => router.patch(`/instituciones/${i.id}/activar`, {}, { pres
                 <nav v-if="instituciones.last_page > 1" class="flex flex-wrap items-center gap-1.5">
                     <template v-for="(link, idx) in instituciones.links" :key="idx">
                         <Link v-if="link.url" :href="link.url" preserve-scroll
-                              :class="link.active ? 'bg-[#1F3864] text-white font-bold shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 font-medium'"
+                              :class="link.active ? 'bg-[#00205B] text-white font-bold shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 font-medium'"
                               class="min-w-[36px] h-9 rounded-xl px-3 flex items-center justify-center text-xs transition-all"
                               v-html="link.label" />
                         <span v-else class="min-w-[36px] h-9 rounded-xl px-3 flex items-center justify-center text-xs text-slate-300 bg-white border border-slate-100 cursor-not-allowed select-none"

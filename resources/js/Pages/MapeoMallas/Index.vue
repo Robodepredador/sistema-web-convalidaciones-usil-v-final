@@ -84,10 +84,10 @@ const irA = (p) => {
 <template>
     <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <!-- Decorative blur background -->
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-20 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-20 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -107,8 +107,8 @@ const irA = (p) => {
                     </div>
 
                     <Link href="/equivalencias-catalogo/crear"
-                          class="group inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-bold text-[#1F3864] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl shrink-0">
-                        <svg class="w-4 h-4 text-[#2E75B6] transition-transform duration-300 group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          class="group inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-bold text-[#00205B] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl shrink-0">
+                        <svg class="w-4 h-4 text-[#0036DC] transition-transform duration-300 group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         <span>Nuevo mapeo</span>
@@ -153,7 +153,7 @@ const irA = (p) => {
                         </svg>
                         <input v-model="busqueda" type="text"
                                placeholder="Institución, carrera, plan…"
-                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-[#0036DC]" />
                     </div>
                 </div>
 
@@ -161,7 +161,7 @@ const irA = (p) => {
                 <div>
                     <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Institución de Origen</label>
                     <select v-model="institucionFiltro"
-                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC]">
                         <option value="todas">Todas las instituciones</option>
                         <option v-for="inst in listaInstituciones" :key="inst" :value="inst">{{ inst }}</option>
                     </select>
@@ -171,7 +171,7 @@ const irA = (p) => {
                 <div>
                     <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Carrera USIL (Destino)</label>
                     <select v-model="carreraUsilFiltro"
-                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC]">
                         <option value="todas">Todas las carreras USIL</option>
                         <option v-for="c in listaCarrerasUsil" :key="c" :value="c">{{ c }}</option>
                     </select>
@@ -181,7 +181,7 @@ const irA = (p) => {
                 <div>
                     <label class="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-700">Tipo de Institución</label>
                     <select v-model="tipoFiltro"
-                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                            class="w-full rounded-xl border-slate-200 py-2 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC]">
                         <option value="todos">Todos los tipos</option>
                         <option v-for="t in listaTipos" :key="t" :value="t">{{ t }}</option>
                     </select>
@@ -192,16 +192,16 @@ const irA = (p) => {
             <div v-if="hayFiltrosActivos" class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <span class="text-slate-400 font-medium">Mostrando {{ mapeosFiltrados.length }} de {{ mapeos.length }} mapeos</span>
-                    <span v-if="busqueda" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                    <span v-if="busqueda" class="bg-blue-50 text-[#0036DC] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                         Texto: "{{ busqueda }}"
                     </span>
-                    <span v-if="institucionFiltro !== 'todas'" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                    <span v-if="institucionFiltro !== 'todas'" class="bg-blue-50 text-[#0036DC] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                         {{ institucionFiltro }}
                     </span>
-                    <span v-if="carreraUsilFiltro !== 'todas'" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                    <span v-if="carreraUsilFiltro !== 'todas'" class="bg-blue-50 text-[#0036DC] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                         {{ carreraUsilFiltro }}
                     </span>
-                    <span v-if="tipoFiltro !== 'todos'" class="bg-blue-50 text-[#2E75B6] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
+                    <span v-if="tipoFiltro !== 'todos'" class="bg-blue-50 text-[#0036DC] px-2.5 py-0.5 rounded-lg font-semibold text-[11px]">
                         {{ tipoFiltro }}
                     </span>
                 </div>
@@ -222,7 +222,7 @@ const irA = (p) => {
                     <div class="flex-1 grid gap-4 md:grid-cols-2">
                         <!-- Origen -->
                         <div class="flex items-start gap-3.5">
-                            <div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 text-[#2E75B6] flex items-center justify-center border border-blue-100/60 shadow-2xs mt-0.5">
+                            <div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 text-[#0036DC] flex items-center justify-center border border-blue-100/60 shadow-2xs mt-0.5">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.315 48.315 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
                                 </svg>
@@ -237,27 +237,27 @@ const irA = (p) => {
                                     </span>
                                 </div>
                                 <h3 class="font-extrabold text-slate-800 text-sm leading-tight">{{ m.institucion }}</h3>
-                                <p class="text-xs font-semibold text-[#2E75B6] mt-0.5">{{ m.carrera_externa }}</p>
+                                <p class="text-xs font-semibold text-[#0036DC] mt-0.5">{{ m.carrera_externa }}</p>
                             </div>
                         </div>
 
                         <!-- Destino USIL -->
                         <div class="flex items-start gap-3.5 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-4">
-                            <div class="h-10 w-10 shrink-0 rounded-2xl bg-blue-50/70 text-[#1F3864] flex items-center justify-center border border-blue-100/60 shadow-2xs mt-0.5">
+                            <div class="h-10 w-10 shrink-0 rounded-2xl bg-blue-50/70 text-[#00205B] flex items-center justify-center border border-blue-100/60 shadow-2xs mt-0.5">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5Zm0 0v-3.675A55.378 55.378 0 0112 8.443" />
                                 </svg>
                             </div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-1.5 mb-1">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-[#1F3864]">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-[#00205B]">
                                         USIL Destino
                                     </span>
                                     <span class="text-[10px] font-mono text-slate-500">
                                         {{ m.plan_usil }}
                                     </span>
                                 </div>
-                                <h3 class="font-extrabold text-[#1F3864] text-sm leading-tight">{{ m.carrera_usil }}</h3>
+                                <h3 class="font-extrabold text-[#00205B] text-sm leading-tight">{{ m.carrera_usil }}</h3>
                                 <p v-if="m.facultad_usil" class="text-xs text-slate-500 mt-0.5">{{ m.facultad_usil }}</p>
                             </div>
                         </div>
@@ -269,12 +269,12 @@ const irA = (p) => {
                         <div class="min-w-[140px]">
                             <div class="flex items-center justify-between text-xs font-bold mb-1">
                                 <span class="text-slate-700">{{ m.cursos_con_equivalencia }} cursos USIL</span>
-                                <span class="text-[#2E75B6] font-mono" v-if="m.total_cursos_malla">
+                                <span class="text-[#0036DC] font-mono" v-if="m.total_cursos_malla">
                                     {{ Math.round((m.cursos_con_equivalencia / m.total_cursos_malla) * 100) }}%
                                 </span>
                             </div>
                             <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                                <div class="h-full rounded-full bg-gradient-to-r from-[#2E75B6] to-emerald-400"
+                                <div class="h-full rounded-full bg-gradient-to-r from-[#0036DC] to-emerald-400"
                                      :style="{ width: (m.total_cursos_malla ? Math.min(100, Math.round((m.cursos_con_equivalencia / m.total_cursos_malla) * 100)) : 10) + '%' }"></div>
                             </div>
                             <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
@@ -285,7 +285,7 @@ const irA = (p) => {
 
                         <!-- CTA Continuar Mapeo -->
                         <Link :href="`/equivalencias-catalogo/crear?carrera_externa_id=${m.carrera_externa_id}&carrera_usil_id=${m.carrera_usil_id}`"
-                              class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-50 text-xs font-bold text-[#2E75B6] hover:bg-[#2E75B6] hover:text-white transition-all shadow-2xs group-hover:bg-[#1F3864] group-hover:text-white shrink-0">
+                              class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-50 text-xs font-bold text-[#0036DC] hover:bg-[#0036DC] hover:text-white transition-all shadow-2xs group-hover:bg-[#00205B] group-hover:text-white shrink-0">
                             <span>Gestionar</span>
                             <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -298,7 +298,7 @@ const irA = (p) => {
             <!-- Estado Vacío -->
             <div v-if="mapeosFiltrados.length === 0"
                  class="bg-white rounded-3xl border border-slate-200/80 p-12 text-center shadow-xs">
-                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#2E75B6] mx-auto">
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#0036DC] mx-auto">
                     <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
@@ -312,7 +312,7 @@ const irA = (p) => {
                     Restablecer filtros
                 </button>
                 <Link v-else href="/equivalencias-catalogo/crear"
-                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1F3864] text-xs font-bold text-white hover:bg-[#2E75B6] transition-all shadow-md">
+                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#00205B] text-xs font-bold text-white hover:bg-[#0036DC] transition-all shadow-md">
                     + Crear mi primer mapeo
                 </Link>
             </div>
@@ -330,7 +330,7 @@ const irA = (p) => {
                         ‹
                     </button>
                     <button v-for="p in totalPaginas" :key="p" type="button" @click="irA(p)"
-                            :class="p === paginaActual ? 'bg-[#1F3864] text-white shadow-2xs' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
+                            :class="p === paginaActual ? 'bg-[#00205B] text-white shadow-2xs' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'"
                             class="h-8 min-w-[2rem] px-2 rounded-xl text-xs font-bold">
                         {{ p }}
                     </button>

@@ -52,9 +52,9 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
         <VolverA href="/simulaciones" texto="Volver a Simulaciones" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-20 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-20 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -74,8 +74,8 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
                     </div>
 
                     <a :href="urlExcel"
-                       class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-bold text-[#1F3864] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl shrink-0">
-                        <svg class="h-4 w-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                       class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-bold text-[#00205B] shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-50 hover:shadow-xl shrink-0">
+                        <svg class="h-4 w-4 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                         </svg>
                         <span>Descargar Excel</span>
@@ -113,7 +113,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
                         <input v-model="filtro.q" @keyup.enter="aplicar" type="search" placeholder="Nombre de origen o de la malla USIL…"
-                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                               class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15" />
                     </div>
                 </div>
 
@@ -132,7 +132,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
             <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <label class="flex cursor-pointer items-start gap-2.5">
                     <input v-model="filtro.solo_divergentes" @change="aplicar" type="checkbox"
-                           class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#2E75B6] focus:ring-[#2E75B6] cursor-pointer" />
+                           class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#00205B] focus:ring-[#0036DC] cursor-pointer" />
                     <div>
                         <span class="text-xs font-bold text-slate-800 block">Solo cursos con criterio dividido</span>
                         <span class="text-[11px] text-slate-400 block">
@@ -143,7 +143,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
 
                 <div class="flex items-center gap-2 shrink-0">
                     <button @click="aplicar" type="button"
-                            class="inline-flex items-center gap-1.5 rounded-xl bg-[#2E75B6] px-5 py-2 text-xs font-bold text-white hover:bg-[#1F3864] transition-colors shadow-2xs">
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-[#00205B] px-5 py-2 text-xs font-bold text-white hover:bg-[#0036DC] transition-colors shadow-2xs">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
@@ -180,12 +180,12 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
                                 <div class="text-[11px] text-slate-400 font-medium">{{ f.carrera_externa }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="font-bold text-[#1F3864]">{{ f.curso_usil }}</div>
+                                <div class="font-bold text-[#00205B]">{{ f.curso_usil }}</div>
                                 <div class="font-mono text-[10px] text-slate-400">{{ f.codigo_usil }}</div>
                             </td>
                             <td class="px-6 py-4 text-slate-600 font-medium">{{ f.carrera_usil }}</td>
                             <td v-if="divergentes" class="px-6 py-4 text-center">
-                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#1F3864] border border-blue-100">
+                                <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#00205B] border border-blue-100">
                                     {{ f.criterios }}
                                 </span>
                             </td>
@@ -204,7 +204,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
                         </tr>
                         <tr v-if="!filas.data.length">
                             <td :colspan="divergentes ? 7 : 6" class="px-6 py-16 text-center">
-                                <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#2E75B6] mx-auto">
+                                <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#0036DC] mx-auto">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                                     </svg>
@@ -230,7 +230,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
                 <nav v-if="filas.last_page > 1" class="flex flex-wrap items-center gap-1">
                     <template v-for="(link, idx) in filas.links" :key="idx">
                         <Link v-if="link.url" :href="link.url" preserve-scroll
-                              :class="link.active ? 'bg-[#1F3864] text-white shadow-2xs font-bold' : 'text-slate-600 hover:bg-slate-100 font-semibold'"
+                              :class="link.active ? 'bg-[#00205B] text-white shadow-2xs font-bold' : 'text-slate-600 hover:bg-slate-100 font-semibold'"
                               class="min-w-[34px] rounded-xl px-2.5 py-1.5 text-center text-xs border border-slate-200 bg-white" v-html="link.label" />
                         <span v-else class="min-w-[34px] cursor-not-allowed rounded-xl px-2.5 py-1.5 text-center text-xs text-slate-300 border border-slate-100 bg-slate-50" v-html="link.label" />
                     </template>

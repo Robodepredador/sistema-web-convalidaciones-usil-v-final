@@ -419,9 +419,9 @@ const enviar = (comoBorrador = false) => {
         </div>
 
         <!-- HERO HEADER BANNER -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
@@ -469,7 +469,7 @@ const enviar = (comoBorrador = false) => {
             <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
                 <div>
                     <div class="flex items-center gap-2.5">
-                        <h2 class="text-base font-extrabold text-[#1F3864]">Revisión de Admisión (Ejecutivo Comercial)</h2>
+                        <h2 class="text-base font-extrabold text-[#00205B]">Revisión de Admisión (Ejecutivo Comercial)</h2>
                         <span v-if="revision.estado === 'aprobada'" class="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase">
                             {{ revision.provisional ? 'Aprobada Provisional' : 'Aprobada' }}
                         </span>
@@ -543,7 +543,7 @@ const enviar = (comoBorrador = false) => {
                                     <Link href="/postulantes" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-900 px-3.5 py-1.5 text-xs font-extrabold shadow-2xs transition-colors">
                                         <span>Volver al Listado</span>
                                     </Link>
-                                    <Link v-if="puede('evaluacion.ver')" href="/simulaciones" class="inline-flex items-center gap-1.5 rounded-xl bg-[#1F3864] hover:bg-[#214378] text-white px-3.5 py-1.5 text-xs font-extrabold shadow-2xs transition-colors">
+                                    <Link v-if="puede('evaluacion.ver')" href="/simulaciones" class="inline-flex items-center gap-1.5 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white px-3.5 py-1.5 text-xs font-extrabold shadow-2xs transition-colors">
                                         <span>Ir a Simulaciones</span>
                                     </Link>
                                 </div>
@@ -587,7 +587,7 @@ const enviar = (comoBorrador = false) => {
                                     Actualiza los datos o reemplaza los documentos requeridos abajo y luego pulsa reevaluar.
                                 </p>
                                 <button type="button" @click="abrirModalReenviar" :disabled="revProcesando"
-                                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] text-white px-5 py-2.5 text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer">
+                                        class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white px-5 py-2.5 text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                                     </svg>
@@ -671,7 +671,7 @@ const enviar = (comoBorrador = false) => {
                             <!-- Botón de reemplazo / subida rápida -->
                             <button type="button" @click="dispararSeleccionDoc('dni')" :disabled="subiendoDoc['dni']"
                                     class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs">
-                                <svg v-if="subiendoDoc['dni']" class="h-3.5 w-3.5 animate-spin text-[#2E75B6]" fill="none" viewBox="0 0 24 24">
+                                <svg v-if="subiendoDoc['dni']" class="h-3.5 w-3.5 animate-spin text-[#0036DC]" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -718,7 +718,7 @@ const enviar = (comoBorrador = false) => {
                             <!-- Botón de reemplazo / subida rápida -->
                             <button type="button" @click="dispararSeleccionDoc('certificado')" :disabled="subiendoDoc['certificado']"
                                     class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs">
-                                <svg v-if="subiendoDoc['certificado']" class="h-3.5 w-3.5 animate-spin text-[#2E75B6]" fill="none" viewBox="0 0 24 24">
+                                <svg v-if="subiendoDoc['certificado']" class="h-3.5 w-3.5 animate-spin text-[#0036DC]" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -754,7 +754,7 @@ const enviar = (comoBorrador = false) => {
                             </label>
                             <textarea v-model="obs.observaciones" rows="3"
                                       placeholder="Escribe el motivo del cambio de dictamen o las observaciones que deben subsanarse…"
-                                      class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-800 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 focus:outline-hidden transition-all"></textarea>
+                                      class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-800 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/20 focus:outline-hidden transition-all"></textarea>
                             <p v-if="errorRevision" class="mt-1 text-xs font-bold text-rose-600">{{ errorRevision }}</p>
                         </div>
 
@@ -779,7 +779,7 @@ const enviar = (comoBorrador = false) => {
                         </label>
                         <textarea v-model="obs.observaciones" rows="3"
                                   :placeholder="faltantes.length ? 'Si vas a aprobar provisionalmente, indica el sustento o declaración jurada. Si vas a observar, detalla qué debe subsanarse…' : 'Opcional: ingresa indicaciones para coordinación o motivos de observación…'"
-                                  class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 focus:outline-hidden transition-all"></textarea>
+                                  class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/20 focus:outline-hidden transition-all"></textarea>
                         <p v-if="errorRevision" class="mt-1 text-xs font-bold text-rose-600">{{ errorRevision }}</p>
                     </div>
 
@@ -792,10 +792,11 @@ const enviar = (comoBorrador = false) => {
                         <button type="button" @click="aprobar" :disabled="revProcesando"
                                 :class="faltantes.length ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'"
                                 class="inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold shadow-md transition-all cursor-pointer">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            <svg v-if="revProcesando" class="h-3.5 w-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span>{{ faltantes.length ? 'Aprobar Provisionalmente' : 'Aprobar Expediente y Enviar a Evaluación' }}</span>
+                            <span>{{ faltantes.length ? 'Aprobar con Documentos Pendientes' : 'Aprobar Expediente Completo' }}</span>
                         </button>
                     </div>
                 </div>
@@ -808,10 +809,10 @@ const enviar = (comoBorrador = false) => {
         <div v-if="preconvalidaciones.length" class="mb-8 rounded-3xl border border-blue-200/80 bg-blue-50/40 p-6 sm:p-8 shadow-xs">
             <div class="flex items-center justify-between border-b border-blue-100 pb-4 mb-4">
                 <div>
-                    <h2 class="text-base font-extrabold text-[#1F3864]">Evaluación Curricular Emitida por Coordinación</h2>
+                    <h2 class="text-base font-extrabold text-[#00205B]">Evaluación Curricular Emitida por Coordinación</h2>
                     <p class="text-xs text-slate-500 mt-0.5">El postulante visualiza estos resultados en su portal.</p>
                 </div>
-                <span class="rounded-full bg-blue-100 border border-blue-200 px-3.5 py-1 text-xs font-extrabold text-[#1F3864]">
+                <span class="rounded-full bg-blue-100 border border-blue-200 px-3.5 py-1 text-xs font-extrabold text-[#00205B]">
                     {{ preconvalidaciones.length }} evaluación(es) realizada(s)
                 </span>
             </div>
@@ -820,7 +821,7 @@ const enviar = (comoBorrador = false) => {
                 <div v-for="sim in preconvalidaciones" :key="sim.id" class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
                         <div>
-                            <span class="text-xs font-extrabold text-[#1F3864]">{{ sim.carrera }}</span>
+                            <span class="text-xs font-extrabold text-[#00205B]">{{ sim.carrera }}</span>
                             <p class="text-[11px] text-slate-500 mt-0.5">{{ sim.fecha }}</p>
                         </div>
                         <div class="flex items-center gap-1.5">
@@ -832,11 +833,11 @@ const enviar = (comoBorrador = false) => {
 
                     <div class="mt-3 flex items-center justify-between text-xs">
                         <span class="text-slate-600">Convalidados: <strong class="text-slate-800">{{ sim.convalidados }}</strong></span>
-                        <span class="text-slate-600">Créditos: <strong class="text-[#2E75B6]">{{ sim.creditos }}</strong></span>
+                        <span class="text-slate-600">Créditos: <strong class="text-[#0036DC]">{{ sim.creditos }}</strong></span>
                     </div>
 
                     <div class="mt-3 pt-3 border-t border-slate-100">
-                        <button @click="toggleDetalle(sim.id)" class="text-xs font-bold text-[#2E75B6] hover:underline cursor-pointer">
+                        <button @click="toggleDetalle(sim.id)" class="text-xs font-bold text-[#0036DC] hover:underline cursor-pointer">
                             {{ detalleAbierto[sim.id] ? 'Ocultar asignaturas' : 'Ver asignaturas convalidadas' }}
                         </button>
                         <div v-if="detalleAbierto[sim.id]" class="mt-3 space-y-1.5 max-h-48 overflow-y-auto">
@@ -845,7 +846,7 @@ const enviar = (comoBorrador = false) => {
                                     <p class="font-bold text-slate-800">{{ c.usil }}</p>
                                     <p class="text-slate-500 text-[10px]">{{ c.origen }}</p>
                                 </div>
-                                <span class="font-bold text-[#2E75B6] shrink-0">{{ c.creditos }} cr.</span>
+                                <span class="font-bold text-[#0036DC] shrink-0">{{ c.creditos }} cr.</span>
                             </div>
                         </div>
                     </div>
@@ -860,19 +861,19 @@ const enviar = (comoBorrador = false) => {
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <button v-for="p in PASOS" :key="p.n" type="button" @click="irA(p.n)"
                         :class="[
-                            paso === p.n ? 'bg-gradient-to-br from-[#1F3864] to-[#2E75B6] text-white shadow-md' :
-                            p.n < paso ? 'bg-blue-50/70 border border-blue-200/80 text-[#1F3864]' : 'bg-slate-50 border border-slate-200/60 text-slate-500'
+                            paso === p.n ? 'bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] text-white shadow-md' :
+                            p.n < paso ? 'bg-blue-50/70 border border-blue-200/80 text-[#00205B]' : 'bg-slate-50 border border-slate-200/60 text-slate-500'
                         ]"
                         class="flex flex-col items-start rounded-2xl p-4 text-left transition-all hover:scale-[1.02] cursor-pointer">
                     <div class="flex items-center justify-between w-full mb-1">
-                        <span :class="paso === p.n ? 'bg-white/20 text-white' : (p.n < paso ? 'bg-[#2E75B6] text-white' : 'bg-slate-200 text-slate-600')"
+                        <span :class="paso === p.n ? 'bg-white/20 text-white' : (p.n < paso ? 'bg-[#00205B] text-white' : 'bg-slate-200 text-slate-600')"
                               class="h-6 w-6 rounded-full flex items-center justify-center text-xs font-extrabold">
                             <svg v-if="p.n < paso" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                             </svg>
                             <span v-else>{{ p.n }}</span>
                         </span>
-                        <span v-if="paso === p.n" class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Activo</span>
+                        <span v-if="paso === p.n" class="text-[10px] font-bold uppercase tracking-wider text-[#FFB81C]">Activo</span>
                     </div>
                     <p class="text-xs font-bold leading-tight">{{ p.label }}</p>
                     <p class="text-[10px] opacity-80 mt-0.5 truncate w-full">{{ p.desc }}</p>
@@ -891,15 +892,15 @@ const enviar = (comoBorrador = false) => {
                 <div v-show="paso === 1" class="space-y-8">
                     <!-- Sección 1: Documento -->
                     <div>
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-4 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-4 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>1.1 Documento de Identidad</span>
                         </h3>
                         <div class="grid gap-6 sm:grid-cols-2">
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Tipo de Documento</label>
                                 <select v-model="form.tipo_documento" :disabled="form.sin_documento"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 transition-all">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all">
                                     <option value="DNI">DNI (Documento Nacional de Identidad)</option>
                                     <option value="CE">Carné de Extranjería (CE)</option>
                                     <option value="PASAPORTE">Pasaporte</option>
@@ -913,7 +914,7 @@ const enviar = (comoBorrador = false) => {
                                 </label>
                                 <input v-model="form.numero_documento" type="text" :maxlength="reglaDoc.max" :placeholder="reglaDoc.hint"
                                        :disabled="form.sin_documento"
-                                       :class="err('numero_documento') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('numero_documento') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('numero_documento')" class="mt-1 text-xs font-bold text-red-600">{{ err('numero_documento') }}</p>
                             </div>
@@ -921,7 +922,7 @@ const enviar = (comoBorrador = false) => {
 
                         <!-- Checkbox Sin Documento -->
                         <div class="mt-3 flex items-center gap-2">
-                            <input v-model="form.sin_documento" type="checkbox" id="sin_doc" class="h-4 w-4 rounded-md text-[#2E75B6] focus:ring-[#2E75B6]" />
+                            <input v-model="form.sin_documento" type="checkbox" id="sin_doc" class="h-4 w-4 rounded-md text-[#00205B] focus:ring-[#0036DC]" />
                             <label for="sin_doc" class="text-xs text-slate-600 font-medium cursor-pointer">
                                 No cuenta con documento oficial temporalmente (se autogenerará un código provisional).
                             </label>
@@ -930,15 +931,15 @@ const enviar = (comoBorrador = false) => {
 
                     <!-- Sección 2: Datos Personales -->
                     <div class="border-t border-slate-100 pt-6">
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-4 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-4 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>1.2 Datos Personales</span>
                         </h3>
                         <div class="grid gap-6 sm:grid-cols-3">
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Nombres <span class="text-red-500">*</span></label>
                                 <input v-model="form.nombres" type="text" placeholder="Ej. Ana María"
-                                       :class="err('nombres') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('nombres') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('nombres')" class="mt-1 text-xs font-bold text-red-600">{{ err('nombres') }}</p>
                             </div>
@@ -946,7 +947,7 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Apellido Paterno <span class="text-red-500">*</span></label>
                                 <input v-model="form.apellido_paterno" type="text" placeholder="Ej. Pérez"
-                                       :class="err('apellido_paterno') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('apellido_paterno') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('apellido_paterno')" class="mt-1 text-xs font-bold text-red-600">{{ err('apellido_paterno') }}</p>
                             </div>
@@ -954,7 +955,7 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Apellido Materno</label>
                                 <input v-model="form.apellido_materno" type="text" placeholder="Ej. García"
-                                       :class="err('apellido_materno') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('apellido_materno') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('apellido_materno')" class="mt-1 text-xs font-bold text-red-600">{{ err('apellido_materno') }}</p>
                             </div>
@@ -964,10 +965,10 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Fecha de Nacimiento</label>
                                 <input v-model="form.fecha_nacimiento" type="date" :max="maxNacimiento"
-                                       :class="err('fecha_nacimiento') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('fecha_nacimiento') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('fecha_nacimiento')" class="mt-1 text-xs font-bold text-red-600">{{ err('fecha_nacimiento') }}</p>
-                                <p v-else-if="form.fecha_nacimiento && !isNaN(edad(form.fecha_nacimiento))" class="mt-1 text-[11px] font-bold text-[#2E75B6]">
+                                <p v-else-if="form.fecha_nacimiento && !isNaN(edad(form.fecha_nacimiento))" class="mt-1 text-[11px] font-bold text-[#0036DC]">
                                     Edad calculada: {{ edad(form.fecha_nacimiento) }} años
                                 </p>
                             </div>
@@ -975,7 +976,7 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Género</label>
                                 <select v-model="form.genero"
-                                        :class="err('genero') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                        :class="err('genero') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                         class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all">
                                     <option value="">Selecciona género…</option>
                                     <option v-for="g in GENEROS" :key="g.value" :value="g.value">{{ g.label }}</option>
@@ -986,7 +987,7 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Nacionalidad</label>
                                 <select v-model="form.nacionalidad"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 transition-all">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all">
                                     <option v-for="n in NACIONALIDADES" :key="n" :value="n">{{ n }}</option>
                                 </select>
                             </div>
@@ -995,15 +996,15 @@ const enviar = (comoBorrador = false) => {
 
                     <!-- Sección 3: Contacto -->
                     <div class="border-t border-slate-100 pt-6">
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-4 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-4 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>1.3 Información de Contacto</span>
                         </h3>
                         <div class="grid gap-6 sm:grid-cols-2">
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Correo Electrónico <span class="text-red-500">*</span></label>
                                 <input v-model="form.email" type="email" placeholder="postulante@ejemplo.com"
-                                       :class="err('email') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('email') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('email')" class="mt-1 text-xs font-bold text-red-600">{{ err('email') }}</p>
                                 <p class="mt-1 text-[11px] text-slate-500">Se utilizará para remitir las credenciales de acceso al portal.</p>
@@ -1012,7 +1013,7 @@ const enviar = (comoBorrador = false) => {
                             <div>
                                 <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Teléfono Móvil</label>
                                 <input v-model="form.telefono" type="text" placeholder="Ej. +51 999 888 777"
-                                       :class="err('telefono') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('telefono') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('telefono')" class="mt-1 text-xs font-bold text-red-600">{{ err('telefono') }}</p>
                             </div>
@@ -1025,8 +1026,8 @@ const enviar = (comoBorrador = false) => {
                 <!-- ──────────────────────────────────────────────────────────── -->
                 <div v-show="paso === 2" class="space-y-6">
                     <div>
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-2 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-2 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>Institución y Carrera de Origen</span>
                         </h3>
                         <p class="text-xs text-slate-500 mb-6">Selecciona la casa de estudios y el programa formativo del cual procede el postulante.</p>
@@ -1055,7 +1056,7 @@ const enviar = (comoBorrador = false) => {
                                                   placeholder="Selecciona o escribe para registrar nueva…" />
                                     <div class="flex items-center justify-between pt-0.5">
                                         <button type="button" @click="abrirModalNuevaCarrera"
-                                                class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2E75B6] hover:text-[#1F3864] hover:underline cursor-pointer">
+                                                class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#0036DC] hover:text-[#00205B] hover:underline cursor-pointer">
                                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                             </svg>
@@ -1080,8 +1081,8 @@ const enviar = (comoBorrador = false) => {
                 <!-- ──────────────────────────────────────────────────────────── -->
                 <div v-show="paso === 3" class="space-y-6">
                     <div>
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-2 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-2 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>Programa Académico Destino en USIL</span>
                         </h3>
                         <p class="text-xs text-slate-500 mb-6">Indica el ciclo de postulación y una o más carreras de interés del postulante.</p>
@@ -1092,7 +1093,7 @@ const enviar = (comoBorrador = false) => {
                                     Ciclo de Postulación <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="form.ciclo_postulacion" type="text" placeholder="Ej. 2026-1"
-                                       :class="err('ciclo_postulacion') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                                       :class="err('ciclo_postulacion') ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15'"
                                        class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all" />
                                 <p v-if="err('ciclo_postulacion')" class="mt-1 text-xs font-bold text-red-600">{{ err('ciclo_postulacion') }}</p>
                             </div>
@@ -1114,7 +1115,7 @@ const enviar = (comoBorrador = false) => {
                             <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-700">Carreras seleccionadas ({{ form.carrera_destino_ids.length }}):</label>
                             <div v-if="carrerasDestinoSel.length" class="flex flex-wrap gap-2.5">
                                 <div v-for="c in carrerasDestinoSel" :key="c.id"
-                                     class="inline-flex items-center gap-2 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-2 text-xs font-bold text-[#1F3864]">
+                                     class="inline-flex items-center gap-2 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-2 text-xs font-bold text-[#00205B]">
                                     <span>{{ c.nombre }}</span>
                                     <button type="button" @click="quitarDestino(c.id)" class="text-blue-400 hover:text-rose-600 transition-colors">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -1132,7 +1133,7 @@ const enviar = (comoBorrador = false) => {
                         <div class="mt-6">
                             <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Observaciones Generales</label>
                             <textarea v-model="form.observaciones" rows="3" placeholder="Información adicional relevante sobre el traslado…"
-                                      class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 transition-all"></textarea>
+                                      class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all"></textarea>
                         </div>
                     </div>
                 </div>
@@ -1142,33 +1143,33 @@ const enviar = (comoBorrador = false) => {
                 <!-- ──────────────────────────────────────────────────────────── -->
                 <div v-show="paso === 4" class="space-y-6">
                     <div>
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-2 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-2 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>Carga de Expediente Documental Esencial</span>
                         </h3>
                         <p class="text-xs text-slate-500 mb-6">Para emitir la preconvalidación académica, adjunta el documento de identidad y el récord de notas o certificado oficial.</p>
 
                         <div class="grid gap-6 sm:grid-cols-2">
                             <!-- DNI / Documento -->
-                            <div class="rounded-3xl border border-slate-200/80 bg-slate-50/50 p-5 hover:bg-white hover:border-[#2E75B6]/50 transition-all">
+                            <div class="rounded-3xl border border-slate-200/80 bg-slate-50/50 p-5 hover:bg-white hover:border-[#0036DC]/50 transition-all">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                                    <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-800">Copia de Documento de Identidad</label>
                                 </div>
                                 <p class="text-[11px] text-slate-500 mb-4">DNI, CE o Pasaporte legible (PDF o imagen hasta 5MB).</p>
                                 <input type="file" @change="archivo('dni', $event)" accept=".pdf,.jpg,.jpeg,.png"
-                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-[#1F3864] file:to-[#2E75B6] file:text-white hover:file:opacity-90 file:transition-opacity cursor-pointer" />
+                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#00205B] hover:file:bg-[#0036DC] file:text-white file:transition-colors cursor-pointer" />
                             </div>
 
                             <!-- Certificado de Estudios / Récord Académico -->
-                            <div class="rounded-3xl border border-slate-200/80 bg-slate-50/50 p-5 hover:bg-white hover:border-[#2E75B6]/50 transition-all">
+                            <div class="rounded-3xl border border-slate-200/80 bg-slate-50/50 p-5 hover:bg-white hover:border-[#0036DC]/50 transition-all">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
                                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-800">Certificado Oficial o Récord de Notas</label>
                                 </div>
                                 <p class="text-[11px] text-slate-500 mb-4">Historial de asignaturas, notas y créditos de origen (PDF hasta 5MB).</p>
                                 <input type="file" @change="archivo('certificado', $event)" accept=".pdf,.jpg,.jpeg,.png"
-                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gradient-to-r file:from-[#1F3864] file:to-[#2E75B6] file:text-white hover:file:opacity-90 file:transition-opacity cursor-pointer" />
+                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#00205B] hover:file:bg-[#0036DC] file:text-white file:transition-colors cursor-pointer" />
                             </div>
 
                             <!-- Documentos Complementarios / Sílabos (Opcional) -->
@@ -1207,8 +1208,8 @@ const enviar = (comoBorrador = false) => {
                 <!-- ──────────────────────────────────────────────────────────── -->
                 <div v-show="paso === 5" class="space-y-6">
                     <div>
-                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#1F3864] mb-2 flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-[#00205B] mb-2 flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>Resumen de la Solicitud y Consentimiento</span>
                         </h3>
                         <p class="text-xs text-slate-500 mb-6">Verifica la información registrada antes de proceder a la creación o actualización.</p>
@@ -1217,20 +1218,20 @@ const enviar = (comoBorrador = false) => {
                         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200/60">
                                 <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Postulante</p>
-                                <p class="text-sm font-extrabold text-[#1F3864] mt-1">{{ form.nombres }} {{ form.apellido_paterno }} {{ form.apellido_materno }}</p>
+                                <p class="text-sm font-extrabold text-[#00205B] mt-1">{{ form.nombres }} {{ form.apellido_paterno }} {{ form.apellido_materno }}</p>
                                 <p class="text-xs text-slate-600 mt-0.5">{{ form.sin_documento ? 'Documento Provisional' : `${form.tipo_documento}: ${form.numero_documento}` }}</p>
                                 <p class="text-xs text-slate-500 mt-0.5">{{ form.email }}</p>
                             </div>
 
                             <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200/60">
                                 <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Procedencia</p>
-                                <p class="text-sm font-extrabold text-[#1F3864] mt-1">{{ institucionNombre }}</p>
+                                <p class="text-sm font-extrabold text-[#00205B] mt-1">{{ institucionNombre }}</p>
                                 <p class="text-xs text-slate-600 mt-0.5">{{ carreraOrigenNombre }}</p>
                             </div>
 
                             <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200/60 sm:col-span-2 lg:col-span-1">
                                 <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Destino USIL</p>
-                                <p class="text-sm font-extrabold text-[#1F3864] mt-1">Ciclo {{ form.ciclo_postulacion }}</p>
+                                <p class="text-sm font-extrabold text-[#00205B] mt-1">Ciclo {{ form.ciclo_postulacion }}</p>
                                 <p class="text-xs text-slate-600 mt-0.5">{{ carreraDestinoNombre }}</p>
                             </div>
                         </div>
@@ -1239,9 +1240,9 @@ const enviar = (comoBorrador = false) => {
                         <div class="mt-6 rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
                             <div class="flex items-start gap-3">
                                 <input v-model="form.consentimiento_datos" type="checkbox" id="consentimiento"
-                                       class="mt-1 h-4 w-4 rounded-md text-[#2E75B6] focus:ring-[#2E75B6]" />
+                                       class="mt-1 h-4 w-4 rounded-md text-[#00205B] focus:ring-[#0036DC]" />
                                 <label for="consentimiento" class="text-xs text-slate-700 leading-relaxed cursor-pointer">
-                                    <strong class="text-[#1F3864]">Autorización expresa de tratamiento de datos personales:</strong>
+                                    <strong class="text-[#00205B]">Autorización expresa de tratamiento de datos personales:</strong>
                                     Declaro que el postulante ha sido informado y autoriza el tratamiento de sus datos personales conforme a la Ley N° 29733 y el Art. 15 del Reglamento de Admisión USIL, a efectos de su evaluación académica y convalidación.
                                 </label>
                             </div>
@@ -1273,7 +1274,7 @@ const enviar = (comoBorrador = false) => {
 
                         <!-- Botón Siguiente -->
                         <button v-if="paso < ULTIMO_PASO" type="button" @click="siguiente"
-                                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-white hover:shadow-md px-6 py-2.5 text-xs font-bold transition-all">
+                                class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white hover:shadow-md px-6 py-2.5 text-xs font-bold transition-all">
                             <span>Siguiente</span>
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -1282,7 +1283,7 @@ const enviar = (comoBorrador = false) => {
 
                         <!-- Botón Final Registrar / Guardar -->
                         <button v-else type="submit" :disabled="form.processing"
-                                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] text-white shadow-lg hover:shadow-xl px-7 py-2.5 text-xs font-bold transition-all disabled:opacity-60">
+                                class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white shadow-lg hover:shadow-xl px-7 py-2.5 text-xs font-bold transition-all disabled:opacity-60">
                             <svg v-if="form.processing" class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1311,7 +1312,7 @@ const enviar = (comoBorrador = false) => {
                 <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="modalReenviarAbierto = false"></div>
                 <div class="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 z-10 animate-in fade-in zoom-in-95 duration-200">
                     <div class="flex items-start gap-4">
-                        <div class="h-11 w-11 rounded-2xl bg-blue-100 text-[#1F3864] flex items-center justify-center shrink-0 shadow-xs">
+                        <div class="h-11 w-11 rounded-2xl bg-blue-100 text-[#00205B] flex items-center justify-center shrink-0 shadow-xs">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                             </svg>
@@ -1328,7 +1329,7 @@ const enviar = (comoBorrador = false) => {
                         </label>
                         <textarea v-model="notaSubsanacion" rows="3"
                                   placeholder="Describe qué se corrigió o regularizó (ej. «Se adjuntó nuevo certificado sellado y se corrigió el apellido paterno»)…"
-                                  class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 transition-all"></textarea>
+                                  class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all"></textarea>
                         <p class="mt-1 text-[11px] text-slate-500">Esta nota será leída por el Ejecutivo Comercial al reevaluar el expediente.</p>
                     </div>
 
@@ -1338,7 +1339,7 @@ const enviar = (comoBorrador = false) => {
                             Cancelar
                         </button>
                         <button type="button" @click="confirmarReenviar" :disabled="revProcesando"
-                                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] text-white px-6 py-2.5 text-xs font-extrabold shadow-md hover:shadow-lg transition-all disabled:opacity-60 cursor-pointer">
+                                class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white px-6 py-2.5 text-xs font-extrabold shadow-md hover:shadow-lg transition-all disabled:opacity-60 cursor-pointer">
                             <svg v-if="revProcesando" class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1379,7 +1380,7 @@ const enviar = (comoBorrador = false) => {
                             </label>
                             <input v-model="nuevaCarreraNombre" type="text" placeholder="Ej. Ingeniería Mecatrónica Automotriz"
                                    autofocus required
-                                   class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 transition-all" />
+                                   class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#0036DC] focus:ring-3 focus:ring-[#0036DC]/15 transition-all" />
                         </div>
 
                         <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
@@ -1388,7 +1389,7 @@ const enviar = (comoBorrador = false) => {
                                 Cancelar
                             </button>
                             <button type="submit" :disabled="guardandoNuevaCarrera || !nuevaCarreraNombre.trim()"
-                                    class="inline-flex items-center gap-1.5 rounded-xl bg-[#1F3864] hover:bg-[#16294a] text-white px-4 py-2 text-xs font-semibold shadow-xs transition-colors disabled:opacity-60 cursor-pointer">
+                                    class="inline-flex items-center gap-1.5 rounded-xl bg-[#00205B] hover:bg-[#0036DC] text-white px-4 py-2 text-xs font-semibold shadow-xs transition-colors disabled:opacity-60 cursor-pointer">
                                 <svg v-if="guardandoNuevaCarrera" class="h-3.5 w-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

@@ -231,10 +231,10 @@ aplicarPreseleccion();
         <VolverA href="/equivalencias-catalogo" texto="Catálogo de equivalencias" />
 
         <!-- HERO HEADER BANNER USIL -->
-        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <!-- Decorative blur background -->
             <div class="absolute -top-24 -right-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-8">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -293,7 +293,7 @@ aplicarPreseleccion();
                 <!-- SECCIÓN 1: CARRERA USIL DESTINO -->
                 <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs">
                     <div class="flex items-center gap-3 mb-5 pb-3.5 border-b border-slate-100">
-                        <span class="w-7 h-7 rounded-xl bg-blue-50 text-[#1F3864] font-bold text-xs flex items-center justify-center border border-blue-100">
+                        <span class="w-7 h-7 rounded-xl bg-blue-50 text-[#00205B] font-bold text-xs flex items-center justify-center border border-blue-100">
                             1
                         </span>
                         <div>
@@ -306,7 +306,7 @@ aplicarPreseleccion();
                         <div>
                             <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Facultad</label>
                             <select v-model="facultadId" @change="onFacultad"
-                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC]">
                                 <option value="">Seleccione una facultad…</option>
                                 <option v-for="f in facultades" :key="f.id" :value="f.id">{{ f.nombre }}</option>
                             </select>
@@ -314,7 +314,7 @@ aplicarPreseleccion();
                         <div>
                             <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Carrera USIL</label>
                             <select v-model="carreraUsilId" @change="reiniciarMapeo" :disabled="!facultadId"
-                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6] disabled:bg-slate-50 disabled:text-slate-400">
+                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC] disabled:bg-slate-50 disabled:text-slate-400">
                                 <option value="">Seleccione una carrera…</option>
                                 <option v-for="c in carrerasUsil" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                             </select>
@@ -325,7 +325,7 @@ aplicarPreseleccion();
                 <!-- SECCIÓN 2: CARRERA DE ORIGEN EXTERNA -->
                 <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs">
                     <div class="flex items-center gap-3 mb-5 pb-3.5 border-b border-slate-100">
-                        <span class="w-7 h-7 rounded-xl bg-blue-50 text-[#1F3864] font-bold text-xs flex items-center justify-center border border-blue-100">
+                        <span class="w-7 h-7 rounded-xl bg-blue-50 text-[#00205B] font-bold text-xs flex items-center justify-center border border-blue-100">
                             2
                         </span>
                         <div>
@@ -338,7 +338,7 @@ aplicarPreseleccion();
                         <div>
                             <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Universidad o Instituto</label>
                             <select v-model="institucionId" @change="onInstitucion"
-                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC]">
                                 <option value="">Seleccione una institución…</option>
                                 <option v-for="i in instituciones" :key="i.id" :value="i.id">{{ i.nombre }}</option>
                             </select>
@@ -346,7 +346,7 @@ aplicarPreseleccion();
                         <div>
                             <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Carrera Externa</label>
                             <select v-model="carreraExternaId" @change="reiniciarMapeo" :disabled="!institucionId"
-                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#2E75B6] focus:ring-[#2E75B6] disabled:bg-slate-50 disabled:text-slate-400">
+                                    class="w-full rounded-xl border-slate-300 py-2.5 text-xs font-medium text-slate-800 focus:border-[#0036DC] focus:ring-[#0036DC] disabled:bg-slate-50 disabled:text-slate-400">
                                 <option value="">Seleccione carrera de origen…</option>
                                 <option v-for="c in carrerasExternas" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                             </select>
@@ -357,7 +357,7 @@ aplicarPreseleccion();
 
             <div class="flex justify-end">
                 <button @click="empezarMapeo" :disabled="!carreraUsilId || !carreraExternaId || cargando"
-                        class="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-xs font-bold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50">
+                        class="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-[#00205B] hover:bg-[#0036DC] text-xs font-bold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50">
                     <svg v-if="cargando" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <span>{{ cargando ? 'Cargando malla…' : 'Empezar a mapear →' }}</span>
                 </button>
@@ -375,13 +375,13 @@ aplicarPreseleccion();
                     </svg>
                     <input v-model="busqueda" type="text"
                            placeholder="Buscar curso USIL o equivalente (código, nombre)…"
-                           class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                           class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-[#0036DC]" />
                 </div>
 
                 <!-- Filtros rápidos de estado -->
                 <div class="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
                     <button type="button" @click="filtroEstado = 'todos'"
-                            :class="filtroEstado === 'todos' ? 'bg-white text-[#1F3864] font-bold shadow-2xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                            :class="filtroEstado === 'todos' ? 'bg-white text-[#00205B] font-bold shadow-2xs' : 'text-slate-600 hover:text-slate-900 font-medium'"
                             class="px-3 py-1.5 rounded-lg text-xs transition-all">
                         Todos ({{ cursosUsil.length }})
                     </button>
@@ -401,7 +401,7 @@ aplicarPreseleccion();
                 <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                     <span>Ciclo:</span>
                     <select v-model="cicloSeleccionado"
-                            class="rounded-xl border-slate-200 py-1.5 pl-2.5 pr-8 text-xs font-bold text-slate-700 focus:border-[#2E75B6] focus:ring-[#2E75B6]">
+                            class="rounded-xl border-slate-200 py-1.5 pl-2.5 pr-8 text-xs font-bold text-slate-700 focus:border-[#0036DC] focus:ring-[#0036DC]">
                         <option value="todos">Todos los ciclos</option>
                         <option v-for="n in ciclosDisponibles" :key="n" :value="n">Ciclo {{ n }}</option>
                     </select>
@@ -416,7 +416,7 @@ aplicarPreseleccion();
                     <!-- Encabezado de Ciclo -->
                     <div class="bg-slate-50/90 px-6 py-3 border-b border-slate-200/70 flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">
                                 Ciclo {{ grupo.numero }}
                             </h3>
@@ -424,7 +424,7 @@ aplicarPreseleccion();
                         </div>
                         
                         <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold"
-                             :class="grupo.mapeadosCiclo === grupo.totalCiclo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-[#2E75B6] border border-blue-100'">
+                             :class="grupo.mapeadosCiclo === grupo.totalCiclo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-[#0036DC] border border-blue-100'">
                             <span>{{ grupo.mapeadosCiclo }} de {{ grupo.totalCiclo }} mapeados</span>
                         </div>
                     </div>
@@ -474,7 +474,7 @@ aplicarPreseleccion();
                                     <button v-if="cursoAbierto !== c.id"
                                             @click="cursoAbierto = c.id; nombreExterno = ''; estaEnFoco = false"
                                             type="button"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-[#2E75B6] hover:bg-[#2E75B6] hover:text-white transition-all text-xs font-bold shadow-2xs">
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 text-[#0036DC] hover:bg-[#0036DC] hover:text-white transition-all text-xs font-bold shadow-2xs">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                         </svg>
@@ -494,7 +494,7 @@ aplicarPreseleccion();
                                                @blur="setTimeout(() => estaEnFoco = false, 180)"
                                                @keydown.enter="agregarOpcion(c.id)"
                                                autofocus
-                                               class="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
+                                               class="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#0036DC] focus:ring-[#0036DC]" />
 
                                         <!-- Autocompletado Dropdown -->
                                         <div v-if="estaEnFoco && resultadosAutocompletar.length > 0"
@@ -502,7 +502,7 @@ aplicarPreseleccion();
                                             <button v-for="rc in resultadosAutocompletar" :key="rc.id"
                                                     @mousedown.prevent="seleccionarAutocompletado(rc)"
                                                     type="button"
-                                                    class="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#2E75B6] border-b border-slate-50 last:border-0 flex items-center justify-between">
+                                                    class="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#0036DC] border-b border-slate-50 last:border-0 flex items-center justify-between">
                                                 <span>{{ rc.nombre }}</span>
                                                 <span v-if="rc.creditos" class="text-[10px] text-slate-400">({{ rc.creditos }} cr.)</span>
                                             </button>
@@ -510,7 +510,7 @@ aplicarPreseleccion();
                                     </div>
 
                                     <button type="button" @click="agregarOpcion(c.id)"
-                                            class="px-4 py-2 rounded-xl bg-[#1F3864] text-xs font-bold text-white hover:bg-[#2E75B6] transition-colors shadow-2xs">
+                                            class="px-4 py-2 rounded-xl bg-[#00205B] text-xs font-bold text-white hover:bg-[#0036DC] transition-colors shadow-2xs">
                                         Guardar
                                     </button>
                                     <button type="button" @click="cursoAbierto = null"
@@ -537,7 +537,7 @@ aplicarPreseleccion();
             <!-- Footer de Acciones -->
             <div class="flex items-center justify-end pt-3">
                 <button type="button" @click="router.get('/equivalencias-catalogo')"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1F3864] text-xs font-bold text-white hover:bg-[#2E75B6] transition-all shadow-xs">
+                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#00205B] text-xs font-bold text-white hover:bg-[#0036DC] transition-all shadow-xs">
                     Volver al catálogo
                 </button>
             </div>

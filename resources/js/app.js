@@ -18,5 +18,5 @@ createInertiaApp({
             .component('Link', Link)
             .mount(el);
     },
-    progress: { color: '#2E75B6' },
+    progress: { color: '#0036DC' },
 });

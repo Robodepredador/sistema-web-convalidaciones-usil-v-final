@@ -31,9 +31,9 @@ const eliminar = (s) => {
         <VolverA href="/estructura" texto="Volver a Estructura Institucional" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
-        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1E3F] via-[#00205B] to-[#012085] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
-            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#0036DC] opacity-25 rounded-full blur-2xl"></div>
 
             <div class="relative z-10 p-6 sm:p-10">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
@@ -55,8 +55,8 @@ const eliminar = (s) => {
                     <!-- Botón Crear y Contador Header -->
                     <div class="flex flex-wrap items-center gap-3 shrink-0">
                         <Link href="/estructura/sedes/crear"
-                              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-50 px-5 py-3 text-xs font-bold text-[#1F3864] shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-                            <svg class="h-4 w-4 text-[#2E75B6]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-50 px-5 py-3 text-xs font-bold text-[#00205B] shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+                            <svg class="h-4 w-4 text-[#0036DC]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                             <span>Nueva sede</span>
@@ -92,13 +92,13 @@ const eliminar = (s) => {
                             </svg>
                         </div>
                         <input v-model="filtro.q" type="text" placeholder="Código, nombre o dirección de sede…" @keyup.enter="aplicar"
-                               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:border-[#2E75B6] focus:bg-white focus:outline-hidden focus:ring-3 focus:ring-blue-100 transition-all duration-200" />
+                               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:border-[#0036DC] focus:bg-white focus:outline-hidden focus:ring-3 focus:ring-[#0036DC]/20 transition-all duration-200" />
                     </div>
                 </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Estado operativo</label>
                     <select v-model="filtro.estado" @change="aplicar"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-[#2E75B6] focus:bg-white focus:outline-hidden focus:ring-3 focus:ring-blue-100 transition-all duration-200">
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-800 focus:border-[#0036DC] focus:bg-white focus:outline-hidden focus:ring-3 focus:ring-[#0036DC]/20 transition-all duration-200">
                         <option value="">Todos los estados</option>
                         <option value="activo">Solo Activas</option>
                         <option value="inactivo">Solo Inactivas</option>
@@ -107,7 +107,7 @@ const eliminar = (s) => {
             </div>
             <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
                 <div class="flex items-center gap-2">
-                    <button @click="aplicar" class="inline-flex items-center gap-2 rounded-xl bg-[#1F3864] hover:bg-[#2E75B6] px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors">
+                    <button @click="aplicar" class="inline-flex items-center gap-2 rounded-xl bg-[#00205B] hover:bg-[#0036DC] px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
@@ -145,7 +145,7 @@ const eliminar = (s) => {
                             </td>
                             <td class="px-5 py-4 text-slate-600">{{ s.direccion || '—' }}</td>
                             <td class="px-5 py-4 text-center">
-                                <span class="inline-flex items-center justify-center rounded-xl bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#1F3864] border border-blue-100">
+                                <span class="inline-flex items-center justify-center rounded-xl bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#00205B] border border-blue-100">
                                     {{ s.facultades_count }}
                                 </span>
                             </td>
@@ -159,7 +159,7 @@ const eliminar = (s) => {
                             <td class="px-5 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <Link :href="`/estructura/sedes/${s.id}/editar`"
-                                          class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#2E75B6] shadow-2xs hover:border-[#2E75B6] hover:bg-blue-50/50 transition-all">
+                                          class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#0036DC] shadow-2xs hover:border-[#0036DC] hover:bg-blue-50/50 transition-all">
                                         Editar
                                     </Link>
                                     <button @click="cambiarEstado(s)"
@@ -194,7 +194,7 @@ const eliminar = (s) => {
                 <nav v-if="sedes.last_page > 1" class="flex flex-wrap items-center gap-1">
                     <template v-for="(link, i) in sedes.links" :key="i">
                         <Link v-if="link.url" :href="link.url" preserve-scroll
-                              :class="link.active ? 'bg-[#1F3864] text-white shadow-xs font-bold' : 'text-slate-600 hover:bg-white bg-slate-100/70'"
+                              :class="link.active ? 'bg-[#00205B] text-white shadow-xs font-bold' : 'text-slate-600 hover:bg-white bg-slate-100/70'"
                               class="min-w-[32px] rounded-lg px-2.5 py-1.5 text-center text-xs transition-colors" v-html="link.label" />
                         <span v-else class="min-w-[32px] rounded-lg px-2.5 py-1.5 text-center text-xs text-slate-300" v-html="link.label" />
                     </template>

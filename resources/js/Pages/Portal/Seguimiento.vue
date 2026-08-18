@@ -153,7 +153,7 @@ const ESTADO_SIM = {
                 <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
                     <div>
                         <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                            <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                            <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                             <span>Seguimiento del Proceso de Convalidación</span>
                         </h3>
                         <p class="text-xs text-slate-500 mt-0.5">Etapas oficiales desde el registro hasta el dictamen académico.</p>
@@ -165,7 +165,7 @@ const ESTADO_SIM = {
                         <li v-for="(t, i) in timeline" :key="i"
                             :class="[
                                 t.estado === 'completado' ? 'border-emerald-200 bg-emerald-50/40' :
-                                t.estado === 'actual' ? 'border-[#2E75B6] bg-blue-50/50 ring-2 ring-blue-100' :
+                                t.estado === 'actual' ? 'border-[#0036DC] bg-blue-50/50 ring-2 ring-[#0036DC]/20' :
                                 t.estado === 'rechazado' ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200 bg-slate-50/40'
                             ]"
                             class="relative rounded-2xl border p-4 sm:p-5 transition-all flex flex-col justify-between">
@@ -173,7 +173,7 @@ const ESTADO_SIM = {
                                 <div class="flex items-center justify-between gap-2 mb-3">
                                     <span :class="{
                                         'bg-emerald-600 text-white': t.estado === 'completado',
-                                        'bg-[#1F3864] text-white': t.estado === 'actual',
+                                        'bg-[#00205B] text-white': t.estado === 'actual',
                                         'bg-slate-200 text-slate-500': t.estado === 'pendiente',
                                         'bg-rose-600 text-white': t.estado === 'rechazado',
                                     }" class="flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold shadow-2xs">
@@ -210,7 +210,7 @@ const ESTADO_SIM = {
                 <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
                     <div>
                         <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100 mb-4">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#1F3864]">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#00205B]">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
                                 </svg>
@@ -225,10 +225,10 @@ const ESTADO_SIM = {
                             <div v-for="(d, i) in (destinos.length ? destinos : [{ carrera: postulante.carrera_destino || '—' }])" :key="i"
                                  class="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100/80 flex items-center justify-between">
                                 <div class="flex items-center gap-2.5">
-                                    <span class="h-2 w-2 rounded-full bg-[#2E75B6]"></span>
+                                    <span class="h-2 w-2 rounded-full bg-[#0036DC]"></span>
                                     <span class="text-xs font-bold text-slate-900">{{ d.carrera }}</span>
                                 </div>
-                                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white border border-blue-200/60 text-[#1F3864]">
+                                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white border border-blue-200/60 text-[#00205B]">
                                     USIL
                                 </span>
                             </div>
@@ -310,7 +310,7 @@ const ESTADO_SIM = {
                                     <span class="block text-[10px] font-bold uppercase text-slate-400">Cursos</span>
                                     <span class="font-extrabold text-slate-800 text-sm">{{ s.cursos }}</span>
                                 </div>
-                                <div class="rounded-xl bg-[#1F3864] text-white px-4 py-2 text-center shadow-xs">
+                                <div class="rounded-xl bg-[#00205B] text-white px-4 py-2 text-center shadow-xs">
                                     <span class="block text-[10px] font-bold uppercase text-blue-200">Créditos Reconocidos</span>
                                     <span class="font-black text-sm sm:text-base">{{ s.creditos }} cr.</span>
                                 </div>
@@ -334,7 +334,7 @@ const ESTADO_SIM = {
                                             <span class="text-emerald-600 font-bold">✓</span>
                                             <span>{{ c.usil }}</span>
                                         </td>
-                                        <td class="py-2.5 px-4 text-right font-mono font-bold text-[#1F3864]">{{ c.creditos }}</td>
+                                        <td class="py-2.5 px-4 text-right font-mono font-bold text-[#00205B]">{{ c.creditos }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -360,7 +360,7 @@ const ESTADO_SIM = {
 
                 <!-- EMPTY STATE ELEGANTE (CUANDO AÚN ESTÁ EN EVALUACIÓN) -->
                 <div v-else class="text-center py-10 px-4 rounded-2xl bg-slate-50/60 border border-dashed border-slate-200">
-                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-[#1F3864] mb-3 shadow-2xs">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-[#00205B] mb-3 shadow-2xs">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>

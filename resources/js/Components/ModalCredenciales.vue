@@ -175,8 +175,8 @@ const cerrar = () => {
                             Cerrar
                         </button>
                         <button type="button" @click="copiarTodo"
-                                :class="copiadoTotal ? 'bg-slate-900' : 'bg-[#1F3864] hover:bg-[#16294a]'"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-colors">
+                                :class="copiadoTotal ? 'bg-slate-900' : 'bg-[#00205B] hover:bg-[#0036DC]'"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-colors shadow-2xs">
                             <svg v-if="copiadoTotal" class="h-3.5 w-3.5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                             </svg>
