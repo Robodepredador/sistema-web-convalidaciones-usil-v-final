@@ -85,12 +85,12 @@ class RbacTest extends TestCase
         $this->actingAs($ejecutivo)->get('/simulaciones')->assertForbidden();
     }
 
-    /** El Administrativo ve solicitudes (nuevo: RF-40 ya no se lo impide) pero no las gestiona: eso es de Admisión. */
+    /** El Administrativo no tiene acceso a postulantes (módulo exclusivo de Admisión). */
     public function test_administrativo_no_gestiona_postulantes(): void
     {
         $administrativo = $this->usuarioConRol(Role::ADMINISTRATIVO);
 
-        $this->actingAs($administrativo)->get('/postulantes')->assertOk();
+        $this->actingAs($administrativo)->get('/postulantes')->assertForbidden();
         $this->actingAs($administrativo)->post('/postulantes', [])->assertForbidden();
         // Pero conserva su módulo de evaluación.
         $this->actingAs($administrativo)->get('/simulaciones')->assertOk();

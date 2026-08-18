@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Middleware\EnsurePermission;
-use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PostulanteDebeCambiarPassword;
 use Illuminate\Foundation\Application;
@@ -27,9 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Si algún día se pone un proxy o balanceador delante, hay que declararlo
         // aquí con sus IP reales (ver deploy/RUNBOOK.md, §9).
 
-        // RF-39 / RBAC: control de acceso por rol.
+        // RF-39 / RBAC: control de acceso por PERMISO, no por rol. El alias
+        // 'role' => EnsureRole se retiró: ninguna ruta lo usaba —el control real
+        // es `permission:` más el alcance por carrera de AlcanceService— y su
+        // propia documentación seguía apuntando a un rol, 'Administrador', que
+        // se renombró a 'Superusuario' hace tiempo.
         $middleware->alias([
-            'role' => EnsureRole::class,
             'permission' => EnsurePermission::class,
             'postulante.cambiar' => PostulanteDebeCambiarPassword::class,
         ]);

@@ -1,12 +1,17 @@
 <script setup>
 import { Link, usePage, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import ModalCredenciales from '../Components/ModalCredenciales.vue';
+import logoImg from '../../images/usil_logo.jpg';
 
 const page = usePage();
 const usuario = computed(() => page.props.auth?.user ?? null);
 const flash = computed(() => page.props.flash?.status ?? null);
 const flashError = computed(() => page.props.flash?.error ?? null);
 const erroresValidacion = computed(() => Object.values(page.props.errors ?? {}).filter(Boolean));
+const credencialesFlash = computed(() => page.props.flash?.credenciales_generadas ?? null);
+
+const modalCredencialesVisible = ref(false);
 
 // Toast Pop-up flotante con temporizador y botón de cierre
 const toastVisible = ref(false);
@@ -37,6 +42,13 @@ watch([flash, flashError, erroresValidacion], ([nuevoOk, nuevoErr, nuevosErrores
         mostrarToast(nuevoErr, 'error');
     } else if (nuevosErrores?.length) {
         mostrarToast(`Revisa la información: ${nuevosErrores.length} campo(s) requieren corrección.`, 'error');
+    }
+}, { immediate: true });
+
+// Escuchar si el servidor devolvió credenciales generadas de forma transaccional
+watch(credencialesFlash, (nuevo) => {
+    if (nuevo && nuevo.password_temporal) {
+        modalCredencialesVisible.value = true;
     }
 }, { immediate: true });
 
@@ -136,29 +148,29 @@ const logout = () => router.post('/logout');
 
         <!-- Barra lateral -->
         <aside :class="menuMovil ? 'translate-x-0' : '-translate-x-full'"
-               class="fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col bg-[#1F3864] text-white transition-transform duration-200 md:translate-x-0">
-            <div class="flex h-16 items-center gap-3 border-b border-white/10 px-5">
-                <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/15 text-sm font-bold">U</div>
-                <div class="leading-tight">
-                    <span class="block text-sm font-semibold">Convalidaciones</span>
-                    <span class="block text-xs text-blue-200">USIL · Gestión Académica</span>
+               class="fixed inset-y-0 left-0 z-40 flex w-52 transform flex-col bg-[#00205B] text-white transition-transform duration-200 md:translate-x-0 shadow-lg">
+            <div class="flex h-14 items-center gap-2.5 border-b border-white/10 px-3.5">
+                <img :src="logoImg" alt="USIL" class="h-8 w-auto object-contain rounded-lg bg-white p-0.5 shadow-xs shrink-0" />
+                <div class="leading-tight min-w-0">
+                    <span class="block text-xs font-bold tracking-tight truncate">Convalidaciones</span>
+                    <span class="block text-[10px] text-blue-200 truncate">USIL · Gestión Académica</span>
                 </div>
             </div>
 
-            <nav class="flex-1 space-y-1 overflow-y-auto p-3">
+            <nav class="flex-1 space-y-0.5 overflow-y-auto p-2">
                 <Link v-for="item in nav" :key="item.href" :href="item.href" @click="menuMovil = false"
-                      :class="activo(item.href) ? 'bg-white/15 text-white' : 'text-blue-100 hover:bg-white/10'"
-                      class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors">
-                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.6"
+                      :class="activo(item.href) ? 'bg-white/15 text-white font-bold' : 'text-blue-100/90 hover:bg-white/10 font-medium'"
+                      class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors">
+                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8"
                          stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                         <path :d="item.icon" />
                     </svg>
-                    {{ item.label }}
+                    <span class="leading-snug truncate">{{ item.label }}</span>
                 </Link>
             </nav>
 
-            <div class="border-t border-white/10 p-3 text-xs text-blue-200">
-                Sistema de Simulaciones · USIL
+            <div class="border-t border-white/10 p-2.5 text-[10px] text-blue-200/80">
+                Simulaciones · USIL
             </div>
         </aside>
 
@@ -166,34 +178,41 @@ const logout = () => router.post('/logout');
         <div v-if="menuMovil" @click="menuMovil = false" class="fixed inset-0 z-30 bg-black/40 md:hidden"></div>
 
         <!-- Contenido -->
-        <div class="md:pl-64">
-            <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
+        <div class="md:pl-52">
+            <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
                 <button @click="menuMovil = true"
-                        class="rounded-md p-2 text-slate-500 hover:bg-slate-100 md:hidden" aria-label="Abrir menú">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                        class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 md:hidden" aria-label="Abrir menú">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" :d="ICON.menu" />
                     </svg>
                 </button>
 
                 <div class="ml-auto flex items-center gap-3">
                     <div class="hidden text-right leading-tight sm:block">
-                        <span class="block text-sm font-medium text-slate-700">{{ usuario?.nombre }}</span>
-                        <span class="block text-xs text-slate-400">{{ usuario?.rol }}</span>
+                        <span class="block text-xs font-bold text-slate-800">{{ usuario?.nombre }}</span>
+                        <span class="block text-[11px] text-slate-500">{{ usuario?.rol }}</span>
                     </div>
-                    <div class="grid h-9 w-9 place-items-center rounded-full bg-[#1F3864] text-sm font-semibold text-white">
+                    <div class="grid h-8 w-8 place-items-center rounded-full bg-[#00205B] text-xs font-bold text-white shadow-2xs">
                         {{ iniciales }}
                     </div>
                     <button @click="logout"
-                            class="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors">
                         Cerrar sesión
                     </button>
                 </div>
             </header>
 
-            <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+            <main class="w-full p-4 sm:p-5 lg:p-6 max-w-full">
                 <slot />
             </main>
         </div>
+
+        <!-- ======================= MODAL DE CREDENCIALES GENERADAS ======================= -->
+        <ModalCredenciales
+            v-model="modalCredencialesVisible"
+            :credenciales="credencialesFlash || {}"
+            @cerrar="modalCredencialesVisible = false"
+        />
     </div>
 </template>
 

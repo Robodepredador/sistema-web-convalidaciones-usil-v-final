@@ -8,7 +8,7 @@ use App\Models\Ciclo;
 use App\Models\Convalidacion;
 use App\Models\CursoExterno;
 use App\Models\CursoUsil;
-use App\Models\EquivalenciaMalla;
+use App\Models\Equivalencia;
 use App\Models\Facultad;
 use App\Models\InstitucionExterna;
 use App\Models\MallaCurricular;
@@ -294,10 +294,11 @@ class HistorialEquivalenciasTest extends TestCase
     {
         $cursoExt = $this->cursoExternoDeSenati();
 
-        EquivalenciaMalla::create([
+        Equivalencia::create([
+            'carrera_externa_id' => $cursoExt->carrera_externa_id,
             'curso_externo_id' => $cursoExt->id,
             'curso_usil_id' => $this->ctx['calculo']->id,
-            'malla_usil_id' => $this->ctx['mallaSw']->id,
+            'origen' => 'manual',
             'usuario_id' => $this->ctx['admin']->id,
         ]);
 
@@ -334,10 +335,11 @@ class HistorialEquivalenciasTest extends TestCase
         $cursoExt = $this->cursoExternoDeSenati();
 
         // El coordinador declaró Álgebra; los expedientes resolvieron Cálculo.
-        EquivalenciaMalla::create([
+        Equivalencia::create([
+            'carrera_externa_id' => $cursoExt->carrera_externa_id,
             'curso_externo_id' => $cursoExt->id,
             'curso_usil_id' => $algebra->id,
-            'malla_usil_id' => $this->ctx['mallaSw']->id,
+            'origen' => 'manual',
             'usuario_id' => $this->ctx['admin']->id,
         ]);
         $this->equivalencia('Matemática I', $this->ctx['calculo'], $this->ctx['sw'], $this->ctx['mallaSw']);

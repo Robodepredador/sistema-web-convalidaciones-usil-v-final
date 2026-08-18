@@ -26,7 +26,7 @@ const enviar = () => form.post('/mallas/importar/previsualizar', { forceFormData
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/mallas" texto="Mallas curriculares" />
 
         <!-- Header -->

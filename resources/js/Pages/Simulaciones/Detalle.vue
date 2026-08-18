@@ -70,8 +70,8 @@ const descargarExcelOficial = () => descargarArchivo(`/simulaciones/${props.simu
 // Búsqueda en la tabla de cursos
 const busquedaDetalle = ref('');
 
-// La tabla principal lista los cursos con equivalencia USIL.
-const todasFilasConvalidadas = computed(() => props.detalles.filter((d) => d.curso_usil));
+// La tabla principal lista los cursos con equivalencia USIL seleccionados y convalidables.
+const todasFilasConvalidadas = computed(() => props.detalles.filter((d) => d.curso_usil && (d.clasificacion === 'convalidable' || d.curso_externo)));
 const filasConvalidadas = computed(() => {
     const q = busquedaDetalle.value.trim().toLowerCase();
     if (!q) return todasFilasConvalidadas.value;
@@ -80,21 +80,22 @@ const filasConvalidadas = computed(() => {
         (d.curso_usil || '').toLowerCase().includes(q)
     );
 });
-const convalidados = computed(() => props.detalles.filter((d) => d.curso_usil && !d.excluido).length);
+const convalidados = computed(() => todasFilasConvalidadas.value.filter((d) => !d.excluido).length);
 
-// El resto del récord
+// El resto del récord (cursos no convalidables o desaprobados)
 const MOTIVO = {
     desaprobado: 'Desaprobado',
     no_convalidable: 'No convalidable',
     convalidable: 'Sin curso USIL asignado',
 };
-const filasRestantes = computed(() => props.detalles.filter((d) => !d.curso_usil));
+const filasRestantes = computed(() => props.detalles.filter((d) => d.clasificacion !== 'convalidable' && d.curso_externo));
 const sinAsignar = computed(() => filasRestantes.value.filter((d) => d.clasificacion === 'convalidable').length);
+const totalEvaluados = computed(() => todasFilasConvalidadas.value.length + filasRestantes.value.length);
 const verRestantes = ref(false);
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/simulaciones" texto="Volver a Simulaciones" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
@@ -148,8 +149,8 @@ const verRestantes = ref(false);
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6">
                     <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
                         <div class="text-[11px] font-semibold text-blue-100 uppercase tracking-wider">Cursos Evaluados</div>
-                        <div class="text-2xl font-extrabold text-white mt-1">{{ detalles.length }}</div>
-                        <div class="text-[10px] text-blue-200/80 mt-0.5">Récord de origen</div>
+                        <div class="text-2xl font-extrabold text-white mt-1">{{ totalEvaluados }}</div>
+                        <div class="text-[10px] text-blue-200/80 mt-0.5">Récord seleccionado</div>
                     </div>
                     <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/10">
                         <div class="text-[11px] font-semibold text-blue-100 uppercase tracking-wider">Convalidados</div>
@@ -276,7 +277,7 @@ const verRestantes = ref(false);
             <button type="button" @click="verRestantes = !verRestantes"
                     class="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-slate-50/70 transition-colors">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
-                    <span>Cursos que no convalidan</span>
+                    <span>Asignaturas no convalidables</span>
                     <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">{{ filasRestantes.length }}</span>
                 </span>
                 <svg class="h-4 w-4 text-slate-400 transition-transform duration-300" :class="verRestantes ? 'rotate-180' : ''"
@@ -338,7 +339,7 @@ const verRestantes = ref(false);
                     <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    <span>Excel</span>
+                    <span>Excel ERP</span>
                 </button>
             </div>
         </div>

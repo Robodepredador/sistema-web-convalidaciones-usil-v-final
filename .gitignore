@@ -11,6 +11,9 @@
 /backups
 /scripts/_*.txt
 /docs/_*.txt
+# Manuales y capturas de la entrega: 21 MB de .docx e imágenes que se entregan
+# aparte, no por el repositorio. Decisión del 18/08/2026.
+/docs/Documentación_Final
 .env
 .env.backup
 .phpunit.result.cache

@@ -106,7 +106,7 @@ class NotaMinimaTest extends TestCase
     /** Una fila marcada como desaprobada sigue registrándose (queda como constancia). */
     public function test_registra_el_curso_desaprobado_clasificado_como_tal(): void
     {
-        $this->guardar(['nota_origen' => '08', 'clasificacion' => 'desaprobado', 'curso_usil_id' => null])->assertOk();
+        $this->guardar(['nota_origen' => '08', 'clasificacion' => 'desaprobado'])->assertOk();
 
         $d = Simulacion::first()->detalles()->firstOrFail();
         $this->assertSame('desaprobado', $d->clasificacion);

@@ -26,7 +26,12 @@ watch(mensaje, (m) => {
 // seleccion holds the mapping: curso_usil_id -> curso_externo_id
 const seleccion = reactive({});
 props.cursosMalla.forEach(c => {
-    seleccion[c.id] = null;
+    // Si solo hay 1 curso convalidable en el catálogo para este curso USIL y es nueva simulación, se preselecciona por defecto
+    if (!editando && c.opciones?.length === 1) {
+        seleccion[c.id] = c.opciones[0].id;
+    } else {
+        seleccion[c.id] = null;
+    }
 });
 
 if (props.edicion?.filas?.length) {
@@ -36,6 +41,16 @@ if (props.edicion?.filas?.length) {
         }
     });
 }
+
+const docRecord = computed(() => {
+    return props.documentos?.find(d => d.tipo === 'certificado' || d.tipo === 'record')
+        || props.documentos?.[0]
+        || null;
+});
+
+const docDni = computed(() => {
+    return props.documentos?.find(d => d.tipo === 'dni') || null;
+});
 
 // Filtros y búsqueda reactivos en la matriz de cursos
 const busqueda = ref('');
@@ -95,19 +110,22 @@ const creditosValidados = computed(() => {
 const guardar = () => {
     if (!props.tieneMalla) return;
     
-    const filas = props.cursosMalla.map(c => {
-        const extId = seleccion[c.id];
-        const externo = extId ? c.opciones?.find(o => o.id === extId) : null;
-        
-        return {
-            curso_usil_id: c.id,
-            curso_externo_id: extId || null,
-            curso_origen_nombre: externo ? externo.nombre : null,
-            creditos_origen: externo ? externo.creditos : null,
-            clasificacion: extId ? 'convalidable' : null,
-            origen: 'manual'
-        };
-    });
+    // Solo enviamos los cursos de la malla que hayan sido seleccionados para convalidar
+    const filas = props.cursosMalla
+        .filter(c => seleccion[c.id])
+        .map(c => {
+            const extId = seleccion[c.id];
+            const externo = c.opciones?.find(o => o.id === extId);
+            
+            return {
+                curso_usil_id: c.id,
+                curso_externo_id: extId || null,
+                curso_origen_nombre: externo ? externo.nombre : null,
+                creditos_origen: externo ? externo.creditos : null,
+                clasificacion: 'convalidable',
+                origen: 'manual'
+            };
+        });
 
     const payload = {
         postulante_id: props.postulante.id,
@@ -143,7 +161,7 @@ const eliminarSimulacion = (s) => {
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/simulaciones" texto="Volver a Simulaciones" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
@@ -171,17 +189,35 @@ const eliminarSimulacion = (s) => {
                         </p>
                     </div>
 
-                    <div v-if="documentos?.length" class="shrink-0 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl p-3.5 flex items-center gap-3">
-                        <div class="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-blue-200">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                            </svg>
+                    <div v-if="docRecord || docDni" class="flex flex-wrap items-center gap-3">
+                        <!-- Récord / Certificado -->
+                        <div v-if="docRecord" class="shrink-0 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl p-3 flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-blue-200 shrink-0">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0 max-w-[200px]">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Récord / Certificado</div>
+                                <a v-if="docRecord.url" :href="docRecord.url" target="_blank" rel="noopener"
+                                   class="block truncate text-xs font-bold text-white hover:underline" :title="docRecord.nombre">{{ docRecord.nombre }}</a>
+                                <span v-else class="block truncate text-xs font-bold text-white">{{ docRecord.nombre }}</span>
+                            </div>
                         </div>
-                        <div class="min-w-0 max-w-[200px]">
-                            <div class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Récord Académico</div>
-                            <a v-if="documentos[0].url" :href="documentos[0].url" target="_blank" rel="noopener"
-                               class="block truncate text-xs font-bold text-white hover:underline">{{ documentos[0].nombre }}</a>
-                            <span v-else class="block truncate text-xs font-bold text-white">{{ documentos[0].nombre }}</span>
+
+                        <!-- DNI -->
+                        <div v-if="docDni && docDni.id !== docRecord?.id" class="shrink-0 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl p-3 flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-blue-200 shrink-0">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0 max-w-[170px]">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-blue-200">Doc. Identidad</div>
+                                <a v-if="docDni.url" :href="docDni.url" target="_blank" rel="noopener"
+                                   class="block truncate text-xs font-bold text-white hover:underline" :title="docDni.nombre">{{ docDni.nombre }}</a>
+                                <span v-else class="block truncate text-xs font-bold text-white">{{ docDni.nombre }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -305,50 +341,50 @@ const eliminarSimulacion = (s) => {
 
             <!-- Matriz de Cursos Agrupados -->
             <div class="mb-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-                <div class="flex items-center justify-between bg-[#1F3864] px-6 py-3.5 text-white">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex items-center justify-between bg-[#1F3864] px-6 py-4 text-white">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
                         </svg>
-                        <span class="font-extrabold text-xs tracking-wider uppercase">Matriz de Homologación de Malla</span>
+                        <span class="font-extrabold text-sm sm:text-base tracking-wider uppercase">Matriz de Homologación de Malla</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="rounded-xl bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-bold text-blue-100 uppercase tracking-wider">
+                        <span class="rounded-xl bg-white/10 border border-white/20 px-3.5 py-1 text-xs font-bold text-blue-100 uppercase tracking-wider">
                             {{ cursosFiltrados.length }} cursos mostrados
                         </span>
                     </div>
                 </div>
                 
                 <div v-for="grupo in gruposUsil" :key="grupo.numero">
-                    <div class="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-xs px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-y border-slate-200/60 flex items-center justify-between">
+                    <div class="sticky top-0 z-[1] bg-slate-50/95 backdrop-blur-xs px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-600 border-y border-slate-200/60 flex items-center justify-between">
                         <span>Ciclo {{ grupo.numero }}</span>
-                        <span class="text-slate-400 font-mono font-normal">{{ grupo.cursos.length }} cursos</span>
+                        <span class="text-slate-500 font-mono font-semibold">{{ grupo.cursos.length }} cursos</span>
                     </div>
                     
                     <div class="divide-y divide-slate-100">
                         <div v-for="curso in grupo.cursos" :key="curso.id" 
-                             class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3.5 px-6 hover:bg-slate-50/70 transition-colors">
+                             class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 px-6 hover:bg-slate-50/70 transition-colors">
                             <div class="sm:w-5/12 min-w-0">
-                                <div class="flex items-center gap-2 mb-0.5">
-                                    <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                                         {{ curso.codigo }}
                                     </span>
-                                    <span class="text-[10px] font-semibold text-slate-400">
+                                    <span class="text-xs font-semibold text-slate-500">
                                         {{ curso.creditos }} cr.
                                     </span>
                                 </div>
-                                <p class="text-xs font-bold text-slate-800 leading-tight">{{ curso.curso }}</p>
+                                <p class="text-sm sm:text-base font-bold text-slate-900 leading-snug">{{ curso.curso }}</p>
                             </div>
                             
                             <div class="w-full sm:w-7/12">
                                 <select v-if="curso.opciones?.length" v-model="seleccion[curso.id]" 
-                                        class="w-full text-xs font-medium rounded-xl border-slate-200 py-2 focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-all" 
-                                        :class="seleccion[curso.id] ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold shadow-2xs' : 'text-slate-700'">
-                                    <option :value="null">— Selecciona el curso externo aprobado —</option>
+                                        class="w-full text-sm font-semibold rounded-xl border-slate-200 py-2.5 px-3 focus:border-[#2E75B6] focus:ring-[#2E75B6] transition-all cursor-pointer" 
+                                        :class="seleccion[curso.id] ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold shadow-2xs' : 'text-slate-800'">
+                                    <option :value="null">— No convalidar / No asignar —</option>
                                     <option v-for="opc in curso.opciones" :key="opc.id" :value="opc.id">{{ opc.nombre }}</option>
                                 </select>
-                                <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-[11px] text-slate-400 flex items-center gap-2">
-                                    <svg class="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <div v-else class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-2.5 text-xs font-medium text-slate-400 flex items-center gap-2.5">
+                                    <svg class="h-4 w-4 shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                     </svg>
                                     <span>Sin equivalencias autorizadas en el catálogo</span>

@@ -48,7 +48,7 @@ const sinFiltros = computed(() => !filtro.q && !filtro.institucion_id && !filtro
 </script>
 
 <template>
-    <div class="max-w-6xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/simulaciones" texto="Volver a Simulaciones" class="mb-4" />
 
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->

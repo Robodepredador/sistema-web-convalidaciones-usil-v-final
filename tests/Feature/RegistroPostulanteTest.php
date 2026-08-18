@@ -170,6 +170,34 @@ class RegistroPostulanteTest extends TestCase
 
         $this->actingAs($p->fresh(), 'postulante')->get('/portal/')
             ->assertInertia(fn ($page) => $page
-                ->where('timeline.1.detalle', '1 de 5 documentos entregados'));
+                ->where('timeline.1.detalle', '1 de 2 documentos entregados'));
+    }
+
+    /** Subir documento directamente mediante el endpoint de reemplazo rápido sustituye el archivo. */
+    public function test_subir_documento_directo_reemplaza_y_elimina_archivo_anterior(): void
+    {
+        Storage::fake();
+
+        $this->actingAs($this->ctx['asesor'])->post('/postulantes', $this->formulario('10000007', [
+            'certificado' => UploadedFile::fake()->create('record-inicial.pdf', 50, 'application/pdf'),
+        ]));
+
+        $p = Postulante::where('numero_documento', '10000007')->firstOrFail();
+        $docInicial = $p->documentos()->where('tipo', 'certificado')->firstOrFail();
+        $rutaVieja = $docInicial->ruta;
+        Storage::assertExists($rutaVieja);
+
+        // Reemplazo rápido directo mediante endpoint POST /postulantes/{id}/documentos
+        $this->actingAs($this->ctx['asesor'])->post("/postulantes/{$p->id}/documentos", [
+            'tipo' => 'certificado',
+            'archivo' => UploadedFile::fake()->create('record-subsanado-oficial.pdf', 60, 'application/pdf'),
+        ])->assertRedirect();
+
+        $docs = $p->fresh()->documentos()->where('tipo', 'certificado')->get();
+        $this->assertCount(1, $docs);
+        $this->assertSame('record-subsanado-oficial.pdf', $docs->first()->nombre_original);
+        $this->assertNotSame($rutaVieja, $docs->first()->ruta);
+        Storage::assertMissing($rutaVieja);
+        Storage::assertExists($docs->first()->ruta);
     }
 }

@@ -21,8 +21,9 @@ class Permiso extends Model
 
     // -------- Catálogo de permisos (clave => [modulo, descripción]) --------
     public const CATALOGO = [
-        // Panel
-        'dashboard.ver' => ['Panel', 'Ver el panel principal'],
+        // 'dashboard.ver' se retiró: la ruta `/` no lo exigía —el login aterriza
+        // ahí y todo usuario autenticado ve el panel— y los cinco roles lo
+        // tenían. No gateaba nada y desinformaba a quien leyera la matriz.
         // Solicitudes (postulantes / expedientes)
         'solicitudes.ver' => ['Solicitudes', 'Ver solicitudes de convalidación'],
         'solicitudes.crear' => ['Solicitudes', 'Registrar postulantes/solicitudes'],
@@ -53,6 +54,10 @@ class Permiso extends Model
         'equivalencias.gestionar' => ['Equivalencias', 'Registrar el catálogo de equivalencias por curso'],
         // Administración
         'usuarios.gestionar' => ['Administración', 'Gestionar usuarios, roles y alcance'],
+        // Sin ruta hoy: la pantalla de Configuración es la del motor de IA, que
+        // se entrega apagado (ver README, «Motor de IA»). El permiso se conserva
+        // —no se retira como 'dashboard.ver'— porque su pantalla existe y vuelve
+        // entera el día que se decida encender la IA.
         'configuracion.gestionar' => ['Administración', 'Configurar parámetros del sistema'],
         // 'auditoria.ver' se retiró: `auditoria_log` se sigue escribiendo, pero no
         // existe pantalla para consultarlo. Un permiso que no se puede ejercer
@@ -66,19 +71,19 @@ class Permiso extends Model
         // propias y equivalencias contra cualquier institución). No opera
         // expedientes ni simulaciones: eso es del Administrativo.
         Role::ESPECIALISTA => [
-            'dashboard.ver', 'catalogos.gestionar',
+            'catalogos.gestionar',
             'equivalencias.gestionar',
         ],
         // Administrativo de Facultad (antes Coordinador de Carrera): aplica la
         // política del Especialista sobre las simulaciones de sus carreras. Ya
-        // no gestiona catálogos ni mallas externas -eso se centralizó arriba.
+        // no gestiona catálogos ni mallas externas ni accede al módulo de postulantes de admisión.
         Role::ADMINISTRATIVO => [
-            'dashboard.ver', 'solicitudes.ver', 'evaluacion.ver', 'evaluacion.editar',
+            'evaluacion.ver', 'evaluacion.editar',
             'convalidacion.ver',
         ],
         // Asesor de Admisión: registra postulantes y sus documentos; no evalúa ni aprueba.
         Role::ASESOR => [
-            'dashboard.ver', 'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar',
+            'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar',
         ],
         // Ejecutivo Comercial de Admisión: revisa, aprueba u observa el expediente
         // de Admisión; puede corregir datos. Ajeno a la cadena de aprobación
@@ -87,7 +92,7 @@ class Permiso extends Model
         // ruta viva, y esa decisión queda para la Task A2 junto con el resto del
         // flujo de revisión de Admisión.
         Role::EJECUTIVO => [
-            'dashboard.ver', 'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar', 'solicitudes.validar',
+            'solicitudes.ver', 'solicitudes.crear', 'solicitudes.editar', 'solicitudes.validar',
         ],
     ];
 }

@@ -57,7 +57,10 @@ class SeguimientoController extends Controller
             // viaja el detalle y no una URL de PDF.
             'simulaciones' => $p->simulaciones->map(function (Simulacion $s) {
                 $vigentes = $s->detalles->where('excluido', false);
-                $convalidados = $vigentes->whereNotNull('curso_usil_id');
+                $convalidados = $vigentes->where('clasificacion', 'convalidable')
+                    ->filter(fn ($d) => ! empty(trim((string) $d->nombre_origen)) || $d->curso_externo_id);
+                $noConvalidables = $vigentes->where('clasificacion', '!=', 'convalidable')
+                    ->filter(fn ($d) => ! empty(trim((string) $d->nombre_origen)));
 
                 return [
                     'id' => $s->id,
@@ -73,7 +76,7 @@ class SeguimientoController extends Controller
                     // Con su motivo: el evaluador está obligado a escribirlo
                     // precisamente porque es lo que ve el postulante (ver la regla
                     // `filas.*.motivo` en SimulacionController::persistirSimulacion).
-                    'no_convalidados' => $vigentes->whereNull('curso_usil_id')->map(fn ($d) => [
+                    'no_convalidados' => $noConvalidables->map(fn ($d) => [
                         'origen' => $d->nombre_origen,
                         'motivo' => $d->motivo ?: 'No cumple los criterios de convalidación',
                     ])->values(),

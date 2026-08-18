@@ -24,7 +24,7 @@ class SeguimientoTimeline
         int $docsCount,
         string $revisionEstado,
         bool $tieneSim,
-        int $docsTotal = 5,
+        int $docsTotal = 2,
         bool $provisional = false,
     ): array {
         if ($estado === 'rechazado') {

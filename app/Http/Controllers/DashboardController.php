@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Carrera;
 use App\Models\Convalidacion;
+use App\Models\Equivalencia;
+use App\Models\InstitucionExterna;
+use App\Models\MallaCurricular;
 use App\Models\Postulante;
-use App\Models\PostulanteDestino;
 use App\Models\Role;
 use App\Models\Simulacion;
 use App\Models\User;
@@ -12,8 +15,8 @@ use App\Services\AlcanceService;
 use Illuminate\Http\Request;
 
 /**
- * Panel dinámico según el rol autenticado. Cada perfil ve sus KPIs, su bandeja
- * de pendientes y sus acciones rápidas, siempre dentro de su alcance de datos.
+ * Panel de Inicio dinámico adaptado y especializado según el rol autenticado.
+ * Cada perfil recibe sus KPIs clave, su bandeja de trabajo prioritaria y sus accesos directos de acción.
  */
 class DashboardController extends Controller
 {
@@ -21,143 +24,483 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $rol = $user->rol?->nombre;
-
-        // Base de destinos dentro del alcance del usuario.
         $visibles = AlcanceService::carrerasVisibles($user);
-        $destinos = PostulanteDestino::query()
-            ->when($visibles !== null, fn ($q) => $q->whereIn('carrera_id', $visibles ?: [0]));
-
-        $porEstado = (clone $destinos)->selectRaw('estado_equivalencias, COUNT(*) t')
-            ->groupBy('estado_equivalencias')->pluck('t', 'estado_equivalencias');
-        $c = fn ($e) => (int) ($porEstado[$e] ?? 0);
-        $totalDestinos = (int) $porEstado->sum();
 
         return inertia('Dashboard', [
             'dashboard' => [
                 'rol' => $rol,
+                'nombre_usuario' => $user->nombre,
                 'saludo' => $this->saludo($user),
-                'kpis' => $this->kpis($user, $rol, $c, $totalDestinos, $visibles),
-                'bandeja' => $this->bandeja($destinos, $rol, $user),
-                'acciones' => $this->acciones($user),
+                'subtitulo' => $this->subtitulo($rol),
+                'kpis' => $this->kpis($user, $rol, $visibles),
+                'bandeja' => $this->bandeja($user, $rol, $visibles),
+                'acciones' => $this->acciones($user, $rol),
             ],
         ]);
     }
 
     private function saludo(User $user): string
     {
-        return "Hola, {$user->nombre}";
+        $hora = (int) now()->format('H');
+        $momento = $hora < 12 ? 'Buenos días' : ($hora < 19 ? 'Buenas tardes' : 'Buenas noches');
+
+        return "{$momento}, {$user->nombre}";
     }
 
-    /** KPIs específicos por perfil. */
-    private function kpis(User $user, ?string $rol, callable $c, int $total, ?array $visibles): array
+    private function subtitulo(?string $rol): string
     {
-        $pendientesAsignar = $c('pendiente');
-        $enEvaluacion = $c('asignada') + $c('en_revision') + $c('observada') + $c('devuelta');
-        $aprobadas = $c('aprobada');
+        return match ($rol) {
+            Role::ASESOR => 'Gestión de Postulantes, Registro y Subsanación de Expedientes',
+            Role::EJECUTIVO => 'Mesa de Dictamen, Aprobación y Observación de Expedientes',
+            Role::ESPECIALISTA => 'Gestión de Mallas Curriculares y Catálogo de Equivalencias',
+            Role::ADMINISTRATIVO => 'Simulación y Dictámenes de Convalidación Académica',
+            default => 'Panel Ejecutivo y Control General del Sistema de Convalidaciones',
+        };
+    }
 
+    /** KPIs específicos y de alto valor por perfil. */
+    private function kpis(User $user, ?string $rol, ?array $visibles): array
+    {
         $sims = $this->simsScoped($visibles);
         $convs = $this->convsScoped($visibles);
 
-        switch ($rol) {
-            case Role::ASESOR:
-                $mios = Postulante::where('usuario_id', $user->id);
+        return match ($rol) {
+            Role::ASESOR => [
+                [
+                    'label' => 'Mis Postulantes',
+                    'valor' => Postulante::where('usuario_id', $user->id)->count(),
+                    'detalle' => 'Total registrados por ti',
+                    'color' => 'blue',
+                    'icono' => 'users',
+                ],
+                [
+                    'label' => 'En Revisión',
+                    'valor' => Postulante::where('usuario_id', $user->id)->where('revision_estado', 'pendiente')->count(),
+                    'detalle' => 'Pendientes de dictamen ejecutivo',
+                    'color' => 'amber',
+                    'icono' => 'clock',
+                ],
+                [
+                    'label' => 'Observadas',
+                    'valor' => Postulante::where('usuario_id', $user->id)->where('revision_estado', 'observada')->count(),
+                    'detalle' => 'Requieren tu subsanación',
+                    'color' => 'rose',
+                    'icono' => 'alert',
+                    'destacado' => true,
+                ],
+                [
+                    'label' => 'Aprobadas',
+                    'valor' => Postulante::where('usuario_id', $user->id)->where('revision_estado', 'aprobada')->count(),
+                    'detalle' => 'Enviadas a facultad',
+                    'color' => 'emerald',
+                    'icono' => 'check',
+                ],
+            ],
 
-                return [
-                    ['label' => 'Mis solicitudes', 'valor' => (clone $mios)->count(), 'color' => 'blue'],
-                    ['label' => 'En revisión', 'valor' => (clone $mios)->where('revision_estado', 'pendiente')->count(), 'color' => 'amber'],
-                    ['label' => 'Observadas por corregir', 'valor' => (clone $mios)->where('revision_estado', 'observada')->count(), 'color' => 'orange'],
-                    ['label' => 'Aprobadas', 'valor' => (clone $mios)->where('revision_estado', 'aprobada')->count(), 'color' => 'green'],
-                ];
+            Role::EJECUTIVO => [
+                [
+                    'label' => 'Pendientes de Revisión',
+                    'valor' => Postulante::where('revision_estado', 'pendiente')->count(),
+                    'detalle' => 'Esperando tu dictamen',
+                    'color' => 'amber',
+                    'icono' => 'clock',
+                    'destacado' => true,
+                ],
+                [
+                    'label' => 'Expedientes Observados',
+                    'valor' => Postulante::where('revision_estado', 'observada')->count(),
+                    'detalle' => 'En subsanación por asesores',
+                    'color' => 'rose',
+                    'icono' => 'alert',
+                ],
+                [
+                    'label' => 'Expedientes Aprobados',
+                    'valor' => Postulante::where('revision_estado', 'aprobada')->count(),
+                    'detalle' => 'Listos para simulación en facultad',
+                    'color' => 'emerald',
+                    'icono' => 'check',
+                ],
+                [
+                    'label' => 'Total de Expedientes',
+                    'valor' => Postulante::count(),
+                    'detalle' => 'Bandeja histórica de admisión',
+                    'color' => 'blue',
+                    'icono' => 'folder',
+                ],
+            ],
 
-            case Role::EJECUTIVO:
-                return [
-                    ['label' => 'Por revisar', 'valor' => Postulante::where('revision_estado', 'pendiente')->count(), 'color' => 'amber'],
-                    ['label' => 'Observadas', 'valor' => Postulante::where('revision_estado', 'observada')->count(), 'color' => 'orange'],
-                    ['label' => 'Aprobadas', 'valor' => Postulante::where('revision_estado', 'aprobada')->count(), 'color' => 'green'],
-                    ['label' => 'Solicitudes totales', 'valor' => Postulante::count(), 'color' => 'blue'],
-                ];
+            Role::ESPECIALISTA => [
+                [
+                    'label' => 'Equivalencias Catalogadas',
+                    'valor' => Equivalencia::count(),
+                    'detalle' => 'Mapeos oficiales activos',
+                    'color' => 'indigo',
+                    'icono' => 'arrows',
+                ],
+                [
+                    'label' => 'Instituciones Externas',
+                    'valor' => InstitucionExterna::where('activa', true)->count(),
+                    'detalle' => 'Universidades e institutos',
+                    'color' => 'blue',
+                    'icono' => 'building',
+                ],
+                [
+                    'label' => 'Mallas Curriculares',
+                    'valor' => MallaCurricular::where('activa', true)->count(),
+                    'detalle' => 'Planes USIL homologables',
+                    'color' => 'emerald',
+                    'icono' => 'academic',
+                ],
+                [
+                    'label' => 'Carreras Mapeadas',
+                    'valor' => Carrera::whereHas('mallas')->count(),
+                    'detalle' => 'Con planes curriculares registrados',
+                    'color' => 'violet',
+                    'icono' => 'check',
+                ],
+            ],
 
-            case Role::ADMINISTRATIVO:
-                $asignadasAmi = (clone $this->destinosDe($visibles))->where('asignado_a_id', $user->id)->count();
+            Role::ADMINISTRATIVO => [
+                [
+                    'label' => 'Listos para Simulación',
+                    'valor' => Postulante::where('revision_estado', 'aprobada')
+                        ->whereDoesntHave('simulaciones')
+                        ->when($visibles !== null, fn ($q) => $q->whereIn('carrera_destino_id', $visibles ?: [0]))
+                        ->count(),
+                    'detalle' => 'Aprobados por admisión',
+                    'color' => 'amber',
+                    'icono' => 'clock',
+                    'destacado' => true,
+                ],
+                [
+                    'label' => 'Simulaciones Realizadas',
+                    'valor' => $sims,
+                    'detalle' => 'En tus carreras asignadas',
+                    'color' => 'violet',
+                    'icono' => 'beaker',
+                ],
+                [
+                    'label' => 'Dictámenes Oficiales',
+                    'valor' => $convs,
+                    'detalle' => 'Pre-convalidaciones generadas',
+                    'color' => 'emerald',
+                    'icono' => 'document-check',
+                ],
+                [
+                    'label' => 'Carreras Asignadas',
+                    'valor' => $visibles === null ? Carrera::count() : count($visibles),
+                    'detalle' => 'Alcance de tu facultad',
+                    'color' => 'blue',
+                    'icono' => 'academic',
+                ],
+            ],
 
-                return [
-                    ['label' => 'Solicitudes asignadas', 'valor' => $asignadasAmi, 'color' => 'blue'],
-                    ['label' => 'Evaluaciones pendientes', 'valor' => $enEvaluacion, 'color' => 'amber'],
-                    ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Simulaciones generadas', 'valor' => $sims, 'color' => 'violet'],
-                ];
-
-            default: // Superusuario (y, por ahora, Especialista: ver informe de la Task A1)
-                return [
-                    ['label' => 'Usuarios activos', 'valor' => User::where('activo', true)->count(), 'color' => 'blue'],
-                    ['label' => 'Solicitudes totales', 'valor' => $total, 'color' => 'indigo'],
-                    ['label' => 'En proceso', 'valor' => $enEvaluacion, 'color' => 'amber'],
-                    ['label' => 'Aprobadas', 'valor' => $aprobadas, 'color' => 'green'],
-                    ['label' => 'Simulaciones', 'valor' => $sims, 'color' => 'violet'],
-                    ['label' => 'Convalidaciones', 'valor' => $convs, 'color' => 'teal'],
-                ];
-        }
+            default => [ // Superusuario
+                [
+                    'label' => 'Postulantes Totales',
+                    'valor' => Postulante::count(),
+                    'detalle' => 'Expedientes registrados',
+                    'color' => 'blue',
+                    'icono' => 'users',
+                ],
+                [
+                    'label' => 'En Evaluación',
+                    'valor' => Postulante::where('revision_estado', 'aprobada')->whereDoesntHave('simulaciones')->count(),
+                    'detalle' => 'Listos para simulación en facultad',
+                    'color' => 'amber',
+                    'icono' => 'clock',
+                ],
+                [
+                    'label' => 'Simulaciones Generadas',
+                    'valor' => $sims,
+                    'detalle' => 'Sesiones de homologación',
+                    'color' => 'violet',
+                    'icono' => 'beaker',
+                ],
+                [
+                    'label' => 'Dictámenes Oficiales',
+                    'valor' => $convs,
+                    'detalle' => 'Pre-convalidaciones cerradas',
+                    'color' => 'emerald',
+                    'icono' => 'document-check',
+                ],
+                [
+                    'label' => 'Equivalencias Catalogadas',
+                    'valor' => Equivalencia::count(),
+                    'detalle' => 'Cursos homologados',
+                    'color' => 'indigo',
+                    'icono' => 'arrows',
+                ],
+                [
+                    'label' => 'Usuarios Activos',
+                    'valor' => User::where('activo', true)->count(),
+                    'detalle' => 'Personal con acceso al sistema',
+                    'color' => 'teal',
+                    'icono' => 'user-group',
+                ],
+            ],
+        };
     }
 
-    /** Bandeja de pendientes (hasta 6) relevante al rol. */
-    private function bandeja($destinos, ?string $rol, User $user): array
+    /** Bandeja de trabajo altamente contextual para cada rol. */
+    private function bandeja(User $user, ?string $rol, ?array $visibles): array
     {
-        // Admisión: su bandeja se arma sobre postulantes por estado de revisión.
-        if ($rol === Role::EJECUTIVO) {
-            return $this->bandejaPostulantes(Postulante::where('revision_estado', 'pendiente'));
-        }
         if ($rol === Role::ASESOR) {
-            return $this->bandejaPostulantes(
-                Postulante::where('usuario_id', $user->id)->where('revision_estado', 'observada')
-            );
+            // Prioridad 1: Observadas que requieren subsanación inmediata
+            $observadas = Postulante::where('usuario_id', $user->id)
+                ->where('revision_estado', 'observada')
+                ->with('carreraDestino:id,nombre')
+                ->orderByDesc('updated_at')
+                ->limit(6)->get();
+
+            if ($observadas->isNotEmpty()) {
+                return [
+                    'titulo_seccion' => 'Expedientes Observados que Requieren tu Subsanación',
+                    'tipo' => 'observadas_asesor',
+                    'items' => $observadas->map(fn (Postulante $p) => [
+                        'id' => $p->id,
+                        'titulo' => $p->nombre_completo,
+                        'subtitulo' => $p->carreraDestino?->nombre ?? 'Sin carrera destino',
+                        'observacion' => $p->revision_observaciones,
+                        'estado' => 'observada',
+                        'fecha' => $p->updated_at?->format('d/m/Y H:i'),
+                        'accion_url' => "/postulantes/{$p->id}/editar",
+                        'accion_texto' => 'Subsanar Expediente',
+                    ])->all(),
+                ];
+            }
+
+            // Prioridad 2: Últimos postulantes registrados
+            $ultimos = Postulante::where('usuario_id', $user->id)
+                ->with('carreraDestino:id,nombre')
+                ->orderByDesc('id')
+                ->limit(6)->get();
+
+            return [
+                'titulo_seccion' => 'Tus Expedientes Registrados Recientemente',
+                'tipo' => 'recientes_asesor',
+                'items' => $ultimos->map(fn (Postulante $p) => [
+                    'id' => $p->id,
+                    'titulo' => $p->nombre_completo,
+                    'subtitulo' => $p->carreraDestino?->nombre ?? 'Sin carrera destino',
+                    'documento' => $p->numero_documento,
+                    'estado' => $p->revision_estado,
+                    'fecha' => $p->created_at?->format('d/m/Y H:i'),
+                    'accion_url' => "/postulantes/{$p->id}/editar",
+                    'accion_texto' => 'Ver Detalle',
+                ])->all(),
+            ];
         }
 
-        // Etapas de evaluación: solo expedientes ya aprobados por Admisión.
-        return (clone $destinos)
-            ->whereHas('postulante', fn ($p) => $p->where('revision_estado', 'aprobada'))
-            ->with(['postulante:id,nombres,apellido_paterno,apellido_materno', 'carrera:id,nombre'])
-            ->where('estado_equivalencias', '!=', 'aprobada')
-            ->orderByDesc('id')->limit(6)->get()
-            ->map(fn (PostulanteDestino $d) => [
-                'titulo' => $d->postulante
-                    ? trim("{$d->postulante->apellido_paterno} {$d->postulante->apellido_materno}, {$d->postulante->nombres}")
-                    : '—',
-                'subtitulo' => $d->carrera?->nombre,
-                'estado' => $d->estado_equivalencias,
-                'fecha' => optional($d->created_at)->format('d/m/Y H:i'),
-            ])->all();
-    }
+        if ($rol === Role::EJECUTIVO) {
+            // Bandeja de dictamen: postulantes pendientes de revisión
+            $pendientes = Postulante::where('revision_estado', 'pendiente')
+                ->with(['carreraDestino:id,nombre', 'usuario:id,nombre'])
+                ->orderBy('created_at')
+                ->limit(6)->get();
 
-    /** Bandeja construida sobre postulantes (para los roles de Admisión). */
-    private function bandejaPostulantes($query): array
-    {
-        return $query->with('carreraDestino:id,nombre')->orderByDesc('id')->limit(6)->get()
-            ->map(fn (Postulante $p) => [
+            return [
+                'titulo_seccion' => 'Fila de Expedientes Pendientes de Dictamen',
+                'tipo' => 'pendientes_ejecutivo',
+                'items' => $pendientes->map(fn (Postulante $p) => [
+                    'id' => $p->id,
+                    'titulo' => $p->nombre_completo,
+                    'subtitulo' => $p->carreraDestino?->nombre ?? 'Sin carrera destino',
+                    'asesor' => $p->usuario?->nombre,
+                    'documentos_count' => $p->documentos()->count(),
+                    'estado' => 'pendiente',
+                    'fecha' => $p->created_at?->format('d/m/Y H:i'),
+                    'accion_url' => "/postulantes/{$p->id}/editar",
+                    'accion_texto' => 'Revisar y Dictaminar',
+                ])->all(),
+            ];
+        }
+
+        if ($rol === Role::ESPECIALISTA) {
+            // Bandeja de equivalencias recientes catalogadas
+            $recientes = Equivalencia::with(['cursoUsil:id,nombre,codigo', 'cursoExterno.carreraExterna.institucion:id,nombre'])
+                ->orderByDesc('created_at')
+                ->limit(6)->get();
+
+            return [
+                'titulo_seccion' => 'Últimas Equivalencias Registradas en el Catálogo',
+                'tipo' => 'catalogo_especialista',
+                'items' => $recientes->map(fn (Equivalencia $eq) => [
+                    'id' => $eq->curso_usil_id.'-'.$eq->curso_externo_id,
+                    'titulo' => "{$eq->cursoExterno?->nombre} → {$eq->cursoUsil?->nombre}",
+                    'subtitulo' => $eq->cursoExterno?->carreraExterna?->institucion?->nombre ?? 'Institución externa',
+                    'codigo_usil' => $eq->cursoUsil?->codigo,
+                    'fecha' => $eq->created_at?->format('d/m/Y H:i'),
+                    'accion_url' => '/equivalencias-catalogo',
+                    'accion_texto' => 'Ir al Catálogo',
+                ])->all(),
+            ];
+        }
+
+        if ($rol === Role::ADMINISTRATIVO) {
+            // Expedientes aprobados por admisión listos para simular (pendientes de simulación)
+            $aprobados = Postulante::where('revision_estado', 'aprobada')
+                ->whereDoesntHave('simulaciones')
+                ->when($visibles !== null, fn ($q) => $q->whereIn('carrera_destino_id', $visibles ?: [0]))
+                ->with(['carreraDestino:id,nombre', 'institucionOrigen:id,nombre'])
+                ->orderByDesc('revisado_en')
+                ->limit(6)->get();
+
+            return [
+                'titulo_seccion' => 'Expedientes Aprobados Listos para Simulación en Facultad',
+                'tipo' => 'simulables_administrativo',
+                'items' => $aprobados->map(fn (Postulante $p) => [
+                    'id' => $p->id,
+                    'titulo' => $p->nombre_completo,
+                    'subtitulo' => $p->carreraDestino?->nombre ?? 'Carrera destino',
+                    'origen' => $p->institucionOrigen?->nombre ?? 'Origen externo',
+                    'estado' => $p->estado,
+                    'fecha' => optional($p->revisado_en ?? $p->updated_at)->format('d/m/Y H:i'),
+                    'accion_url' => "/simulaciones/simular/{$p->id}?carrera={$p->carrera_destino_id}",
+                    'accion_texto' => 'Iniciar Simulación',
+                ])->all(),
+            ];
+        }
+
+        // Superusuario / Otros: Últimos expedientes activos del sistema
+        $global = Postulante::with(['carreraDestino:id,nombre', 'usuario:id,nombre'])
+            ->orderByDesc('id')
+            ->limit(6)->get();
+
+        return [
+            'titulo_seccion' => 'Actividad Reciente de Expedientes en el Sistema',
+            'tipo' => 'global_superusuario',
+            'items' => $global->map(fn (Postulante $p) => [
+                'id' => $p->id,
                 'titulo' => $p->nombre_completo,
-                'subtitulo' => $p->carreraDestino?->nombre,
+                'subtitulo' => $p->carreraDestino?->nombre ?? 'Sin carrera destino',
+                'asesor' => $p->usuario?->nombre,
                 'estado' => $p->revision_estado,
-                'fecha' => optional($p->created_at)->format('d/m/Y H:i'),
-            ])->all();
-    }
-
-    /** Acciones rápidas según permisos. */
-    private function acciones(User $user): array
-    {
-        $posibles = [
-            ['label' => 'Solicitudes', 'href' => '/postulantes', 'permiso' => 'solicitudes.ver'],
-            ['label' => 'Catálogo de equivalencias', 'href' => '/equivalencias-catalogo', 'permiso' => 'equivalencias.gestionar'],
-            ['label' => 'Simulaciones', 'href' => '/simulaciones', 'permiso' => 'evaluacion.ver'],
-            ['label' => 'Convalidaciones', 'href' => '/convalidaciones', 'permiso' => 'convalidacion.ver'],
-            ['label' => 'Usuarios', 'href' => '/usuarios', 'permiso' => 'usuarios.gestionar'],
+                'fecha' => $p->created_at?->format('d/m/Y H:i'),
+                'accion_url' => "/postulantes/{$p->id}/editar",
+                'accion_texto' => 'Ver Expediente',
+            ])->all(),
         ];
-
-        return array_values(array_filter($posibles, fn ($a) => $user->puede($a['permiso'])));
     }
 
-    private function destinosDe(?array $visibles)
+    /** Acciones rápidas enriquecidas con iconos, descripciones y destinos precisos. */
+    private function acciones(User $user, ?string $rol): array
     {
-        return PostulanteDestino::query()
-            ->when($visibles !== null, fn ($q) => $q->whereIn('carrera_id', $visibles ?: [0]));
+        $lista = [];
+
+        if ($rol === Role::ASESOR) {
+            $lista[] = [
+                'titulo' => 'Registrar Postulante',
+                'descripcion' => 'Crear nuevo expediente de traslado externo',
+                'href' => '/postulantes/crear',
+                'icono' => 'user-plus',
+                'color' => 'blue',
+            ];
+            $lista[] = [
+                'titulo' => 'Mis Expedientes',
+                'descripcion' => 'Consultar y subsanar postulantes registrados',
+                'href' => '/postulantes',
+                'icono' => 'folder',
+                'color' => 'slate',
+            ];
+        } elseif ($rol === Role::EJECUTIVO) {
+            $lista[] = [
+                'titulo' => 'Revisar Pendientes',
+                'descripcion' => 'Evaluar expedientes pendientes de dictamen',
+                'href' => '/postulantes?revision=pendiente',
+                'icono' => 'clipboard-check',
+                'color' => 'amber',
+            ];
+            $lista[] = [
+                'titulo' => 'Bandeja de Postulantes',
+                'descripcion' => 'Listado general de expedientes de admisión',
+                'href' => '/postulantes',
+                'icono' => 'users',
+                'color' => 'blue',
+            ];
+        } elseif ($rol === Role::ESPECIALISTA) {
+            $lista[] = [
+                'titulo' => 'Catálogo de Equivalencias',
+                'descripcion' => 'Mapear cursos externos con asignaturas USIL',
+                'href' => '/equivalencias-catalogo',
+                'icono' => 'arrows',
+                'color' => 'indigo',
+            ];
+            $lista[] = [
+                'titulo' => 'Mallas Curriculares',
+                'descripcion' => 'Cargar e importar planes de estudio oficiales',
+                'href' => '/mallas',
+                'icono' => 'academic',
+                'color' => 'emerald',
+            ];
+            $lista[] = [
+                'titulo' => 'Instituciones Externas',
+                'descripcion' => 'Administrar universidades e institutos de origen',
+                'href' => '/instituciones',
+                'icono' => 'building',
+                'color' => 'blue',
+            ];
+        } elseif ($rol === Role::ADMINISTRATIVO) {
+            $lista[] = [
+                'titulo' => 'Módulo de Simulaciones',
+                'descripcion' => 'Realizar simulaciones de convalidación',
+                'href' => '/simulaciones',
+                'icono' => 'beaker',
+                'color' => 'violet',
+            ];
+            $lista[] = [
+                'titulo' => 'Pre-Convalidaciones Oficiales',
+                'descripcion' => 'Consultar y descargar dictámenes emitidos',
+                'href' => '/convalidaciones',
+                'icono' => 'document-check',
+                'color' => 'emerald',
+            ];
+        } else { // Superusuario
+            $lista[] = [
+                'titulo' => 'Bandeja de Postulantes',
+                'descripcion' => 'Supervisar todos los expedientes de admisión',
+                'href' => '/postulantes',
+                'icono' => 'users',
+                'color' => 'blue',
+            ];
+            $lista[] = [
+                'titulo' => 'Módulo de Simulaciones',
+                'descripcion' => 'Simulación y homologación de cursos',
+                'href' => '/simulaciones',
+                'icono' => 'beaker',
+                'color' => 'violet',
+            ];
+            $lista[] = [
+                'titulo' => 'Pre-Convalidaciones',
+                'descripcion' => 'Historial de dictámenes y actas emitidas',
+                'href' => '/convalidaciones',
+                'icono' => 'document-check',
+                'color' => 'emerald',
+            ];
+            $lista[] = [
+                'titulo' => 'Catálogo de Equivalencias',
+                'descripcion' => 'Matriz de asignaturas y convalidaciones',
+                'href' => '/equivalencias-catalogo',
+                'icono' => 'arrows',
+                'color' => 'indigo',
+            ];
+            $lista[] = [
+                'titulo' => 'Estructura Institucional',
+                'descripcion' => 'Facultades, carreras y planes de estudio',
+                'href' => '/estructura',
+                'icono' => 'building',
+                'color' => 'slate',
+            ];
+            $lista[] = [
+                'titulo' => 'Gestión de Usuarios',
+                'descripcion' => 'Cuentas de personal, roles y permisos',
+                'href' => '/usuarios',
+                'icono' => 'user-group',
+                'color' => 'teal',
+            ];
+        }
+
+        return $lista;
     }
 
     private function simsScoped(?array $visibles): int

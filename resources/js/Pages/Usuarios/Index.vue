@@ -69,7 +69,7 @@ const rolBadge = (r) =>
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 whitespace-nowrap">
                         <tr>
                             <th class="px-4 py-3 font-semibold">Nombre</th>
                             <th class="px-4 py-3 font-semibold">Correo</th>
@@ -80,17 +80,17 @@ const rolBadge = (r) =>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="u in usuarios.data" :key="u.id" class="hover:bg-slate-50/70">
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 min-w-[180px]">
                                 <span class="font-medium text-slate-800">{{ u.nombre }}</span>
-                                <span v-if="u.primer_acceso" class="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                                <span v-if="u.primer_acceso" class="ml-2 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
                                     Cambio de contraseña pendiente
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-slate-600">{{ u.email }}</td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ u.email }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
                                 <span :class="rolBadge(u.rol)" class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">{{ u.rol }}</span>
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 whitespace-nowrap">
                                 <span :class="u.activo ? 'bg-green-50 text-green-700 ring-green-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
                                       class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset">
                                     <span :class="u.activo ? 'bg-green-500' : 'bg-slate-400'" class="h-1.5 w-1.5 rounded-full"></span>
@@ -98,7 +98,7 @@ const rolBadge = (r) =>
                                 </span>
 
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <Link :href="`/usuarios/${u.id}/edit`"
                                           class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-[#2E75B6] hover:border-[#2E75B6] hover:bg-slate-50">Editar</Link>

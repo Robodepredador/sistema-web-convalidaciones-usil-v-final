@@ -70,7 +70,7 @@ class UsuarioController extends Controller
         $datos = $request->validated();
 
         // Contraseña temporal: el usuario la cambia en el primer acceso (RF-42).
-        $temporal = Str::password(12);
+        $temporal = Str::password(10, symbols: false);
 
         $user = User::create([
             'nombre' => $datos['nombre'],
@@ -85,8 +85,20 @@ class UsuarioController extends Controller
 
         AuditoriaService::registrar('crear', 'usuarios', $user->id, null, ['email' => $user->email]);
 
+        $credenciales = [
+            'tipo' => 'usuario',
+            'titulo' => 'Credenciales del Nuevo Usuario del Sistema',
+            'nombre' => $user->nombre,
+            'identificador' => $user->rol?->nombre ?? 'Personal USIL',
+            'email' => $user->email,
+            'password_temporal' => $temporal,
+            'login_url' => route('login'),
+            'mensaje_ayuda' => 'Usuario registrado con rol asignado. En su primer inicio de sesión se le solicitará cambiar su contraseña.',
+        ];
+
         return redirect()->route('usuarios.index')
-            ->with('status', 'Usuario creado. '.$this->enviarCredenciales($user, $temporal));
+            ->with('status', 'Usuario creado. '.$this->enviarCredenciales($user, $temporal))
+            ->with('credenciales_generadas', $credenciales);
     }
 
     public function edit(User $usuario)
@@ -141,7 +153,7 @@ class UsuarioController extends Controller
     public function resetPassword(User $usuario): RedirectResponse
     {
         // Genera una contraseña temporal y fuerza el cambio en el próximo acceso (RF-42).
-        $temporal = Str::password(12);
+        $temporal = Str::password(10, symbols: false);
 
         $usuario->forceFill([
             'password_hash' => Hash::make($temporal),
@@ -152,8 +164,20 @@ class UsuarioController extends Controller
 
         AuditoriaService::registrar('editar', 'usuarios', $usuario->id, null, ['reset_password' => true]);
 
-        return back()->with('status',
-            'Contraseña restablecida. '.$this->enviarCredenciales($usuario, $temporal));
+        $credenciales = [
+            'tipo' => 'usuario',
+            'titulo' => 'Contraseña Restablecida de Usuario',
+            'nombre' => $usuario->nombre,
+            'identificador' => $usuario->rol?->nombre ?? 'Personal USIL',
+            'email' => $usuario->email,
+            'password_temporal' => $temporal,
+            'login_url' => route('login'),
+            'mensaje_ayuda' => 'Se ha restablecido la clave temporal de acceso al sistema para este usuario.',
+        ];
+
+        return back()
+            ->with('status', 'Contraseña restablecida. '.$this->enviarCredenciales($usuario, $temporal))
+            ->with('credenciales_generadas', $credenciales);
     }
 
     /**

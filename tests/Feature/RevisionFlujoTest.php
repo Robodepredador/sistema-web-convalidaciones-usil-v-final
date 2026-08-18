@@ -36,7 +36,7 @@ class RevisionFlujoTest extends TestCase
             'usuario_id' => $asesor->id,
         ]);
 
-        foreach (['dni', 'certificado', 'silabos', 'constancia', 'solicitud'] as $tipo) {
+        foreach (['dni', 'certificado'] as $tipo) {
             $p->documentos()->create([
                 'tipo' => $tipo, 'nombre_original' => "{$tipo}.pdf",
                 'ruta' => "postulantes/{$p->id}/{$tipo}.pdf", 'tamano' => 1024,

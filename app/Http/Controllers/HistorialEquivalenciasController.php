@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\HistorialEquivalenciasExport;
 use App\Models\Carrera;
-use App\Models\EquivalenciaMalla;
+use App\Models\Equivalencia;
 use App\Services\AlcanceService;
 use App\Services\ConvalidacionEngine;
 use App\Services\HistorialEquivalenciasService;
@@ -89,9 +89,9 @@ class HistorialEquivalenciasController extends Controller
             return null;
         }
 
-        $par = EquivalenciaMalla::with('cursoUsil:id,nombre,codigo')
+        $par = Equivalencia::with('cursoUsil:id,nombre,codigo')
             ->where('curso_externo_id', $datos['curso_externo_id'])
-            ->where('malla_usil_id', $mallaUsil->id)
+            ->whereHas('cursoUsil.ciclo.malla', fn ($q) => $q->where('carrera_id', $datos['carrera_usil_id']))
             ->first();
 
         if (! $par?->cursoUsil) {

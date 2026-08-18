@@ -7,12 +7,11 @@ use App\Models\Carrera;
 use App\Models\Facultad;
 use App\Models\MallaCurricular;
 use App\Models\Modalidad;
-use App\Models\PlanEstudio;
 use App\Models\UnidadNegocio;
 
 /**
  * Módulo: Gestión de la Estructura Institucional.
- * Sede → Facultad → Programa Académico → Modalidad → Plan de Estudios → Malla.
+ * Sede → Facultad → Programa Académico → Modalidad → Malla Curricular.
  */
 class EstructuraController extends Controller
 {
@@ -24,7 +23,6 @@ class EstructuraController extends Controller
                 'facultades' => Facultad::count(),
                 'programas' => Carrera::count(),
                 'modalidades' => Modalidad::count(),
-                'planes' => PlanEstudio::count(),
                 'mallas' => MallaCurricular::count(),
             ],
         ]);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Carrera;
+use App\Models\CursoExterno;
 use App\Models\CursoUsil;
 use App\Models\Equivalencia;
 use App\Models\MallaCurricular;
@@ -345,14 +346,18 @@ class SimulacionController extends Controller
                 abort_unless(in_array((int) $extId, $autorizados, true), 422, 'El curso externo seleccionado no está autorizado para este curso USIL.');
 
                 $datos['filas'][$i]['clasificacion'] = 'convalidable';
+            } elseif (($f['clasificacion'] ?? '') === 'convalidable') {
+                $datos['filas'][$i]['clasificacion'] = 'convalidable';
+            } else {
+                $datos['filas'][$i]['clasificacion'] = ($f['clasificacion'] ?? '') === 'desaprobado' ? 'desaprobado' : 'no_convalidable';
+            }
 
+            if ($datos['filas'][$i]['clasificacion'] === 'convalidable') {
                 $nota = $this->notaNumerica($f['nota_origen'] ?? null);
                 if ($nota !== null && $nota < $notaMinima) {
                     abort(422, "«{$f['curso_origen_nombre']}» tiene nota {$f['nota_origen']}, por debajo de la mínima "
                         ."aprobatoria ({$notaMinima}). Un curso desaprobado no se convalida.");
                 }
-            } else {
-                $datos['filas'][$i]['clasificacion'] = 'no_convalidable';
             }
         }
 
@@ -400,7 +405,7 @@ class SimulacionController extends Controller
                     'clasificacion' => $f['clasificacion'],
                     // Si no convalida, no hay un motivo que el usuario ingrese ahora, pero podemos dejar null
                     'motivo' => $f['motivo'] ?? null,
-                    'creditos_reconocidos' => $f['curso_externo_id'] ? (float) ($creditosUsil[$cid] ?? 0) : 0,
+                    'creditos_reconocidos' => $f['clasificacion'] === 'convalidable' ? (float) ($creditosUsil[$cid] ?? 0) : 0,
                     'excluido' => false,
                     'origen' => $f['origen'] ?? 'manual',
                 ]);
@@ -426,8 +431,7 @@ class SimulacionController extends Controller
             return (float) ($declarada ?? 0);
         }
 
-        // Se ha flexibilizado la nota mínima para permitir el redondeo (e.g. 10.9)
-        return (float) ($declarada ?? self::NOTA_MINIMA_VIGESIMAL);
+        return max(self::NOTA_MINIMA_VIGESIMAL, (float) ($declarada ?? self::NOTA_MINIMA_VIGESIMAL));
     }
 
     /** La nota de origen como número, o null si no lo es («APROBADO», «A», vacío). */
@@ -589,10 +593,10 @@ class SimulacionController extends Controller
             'detalles.cursoUsil.ciclo', 'detalles.cursoExterno',
         ]);
 
-        $convalidados = $simulacion->detalles->filter(fn ($d) => $d->curso_usil_id && ! $d->excluido);
-        $noConvalidables = $simulacion->detalles->filter(fn ($d) => $d->clasificacion === 'no_convalidable'
-            || (! $d->curso_usil_id && $d->clasificacion === 'convalidable'));
-        $desaprobados = $simulacion->detalles->filter(fn ($d) => $d->clasificacion === 'desaprobado');
+        $convalidados = $simulacion->detalles->filter(fn ($d) => $d->curso_usil_id && $d->clasificacion === 'convalidable' && ! $d->excluido && ($d->curso_externo_id || ! empty(trim((string) $d->nombre_origen))));
+        $noConvalidables = $simulacion->detalles->filter(fn ($d) => ($d->clasificacion === 'no_convalidable'
+            || (! $d->curso_usil_id && $d->clasificacion === 'convalidable')) && ! empty(trim((string) $d->nombre_origen)));
+        $desaprobados = $simulacion->detalles->filter(fn ($d) => $d->clasificacion === 'desaprobado' && ! empty(trim((string) $d->nombre_origen)));
 
         return [
             'simulacion' => $simulacion,
@@ -690,7 +694,7 @@ class SimulacionController extends Controller
 
         $mapaEquivalencias = [];
         foreach ($simulacion->detalles as $detalle) {
-            if (! $detalle->curso_usil_id || $detalle->excluido) {
+            if (! $detalle->curso_usil_id || $detalle->excluido || $detalle->clasificacion !== 'convalidable' || empty(trim((string) $detalle->nombre_origen))) {
                 continue;
             }
             $clave = mb_strtolower(trim($detalle->cursoUsil?->nombre ?? ''));
@@ -785,28 +789,80 @@ class SimulacionController extends Controller
         $hojaPreconva->setCellValue('C9', $simulacion->created_at ? $simulacion->created_at->format('d/m/Y') : date('d/m/Y'));
 
         // Cursos convalidados
+        $convalidados = $simulacion->detalles->filter(fn ($d) => $d->curso_usil_id && $d->clasificacion === 'convalidable' && ! $d->excluido && ($d->curso_externo_id || ! empty(trim((string) $d->nombre_origen))));
+
         $filaPreconva = 11;
-        foreach ($simulacion->detalles as $detalle) {
-            if ($detalle->curso_usil_id && ! $detalle->excluido) {
-                $hojaPreconva->setCellValue('A'.$filaPreconva, $detalle->cursoUsil?->ciclo?->numero ?? '');
-                $hojaPreconva->setCellValue('B'.$filaPreconva, $detalle->cursoUsil?->nombre ?? '');
-                $hojaPreconva->setCellValue('C'.$filaPreconva, mb_strtoupper($detalle->nombre_origen ?? ''));
-                $hojaPreconva->setCellValue('D'.$filaPreconva, $detalle->cursoUsil?->creditos ?? '');
-                $filaPreconva++;
+        $totalCreditos = 0;
+        foreach ($convalidados as $detalle) {
+            $cred = (float) ($detalle->creditos_reconocidos ?: ($detalle->cursoUsil?->creditos ?? 0));
+            $hojaPreconva->setCellValue('A'.$filaPreconva, $detalle->cursoUsil?->ciclo?->numero ?? '');
+            $hojaPreconva->setCellValue('B'.$filaPreconva, $detalle->cursoUsil?->nombre ?? '');
+            $hojaPreconva->setCellValue('C'.$filaPreconva, mb_strtoupper($detalle->nombre_origen ?? ''));
+            $hojaPreconva->setCellValue('D'.$filaPreconva, $cred);
+            $totalCreditos += $cred;
+            $filaPreconva++;
+        }
+
+        // Limpiar filas sobrantes en la plantilla si hay menos de 18 cursos (filas 11 a 28)
+        for ($r = $filaPreconva; $r <= 28; $r++) {
+            $hojaPreconva->setCellValue('A'.$r, '');
+            $hojaPreconva->setCellValue('B'.$r, '');
+            $hojaPreconva->setCellValue('C'.$r, '');
+            $hojaPreconva->setCellValue('D'.$r, '');
+        }
+        $hojaPreconva->setCellValue('D29', $totalCreditos);
+
+        // Hoja 2: Cursos no convalidados (sin campo motivo)
+        $hojaNoConva = $libro->getSheetByName('Cursos no convalidados') ?: $libro->getSheet(1);
+        $hojaNoConva->setCellValue('D2', ''); // Eliminar encabezado Motivo
+
+        $listaNoConvalidados = [];
+        $idsExtConv = $convalidados->pluck('curso_externo_id')->filter()->all();
+        $nombresConv = $convalidados->pluck('nombre_origen')->map(fn ($n) => mb_strtolower(trim((string) $n)))->filter()->all();
+
+        // 1. Cursos de la carrera externa del postulante que no fueron convalidados
+        $carreraExtId = $simulacion->carrera_externa_id ?: $postulante?->carrera_externa_id;
+        if ($carreraExtId) {
+            $cursosExternos = CursoExterno::where('carrera_externa_id', $carreraExtId)
+                ->whereNotIn('id', $idsExtConv)
+                ->get();
+            foreach ($cursosExternos as $ce) {
+                if (! in_array(mb_strtolower(trim($ce->nombre)), $nombresConv)) {
+                    $listaNoConvalidados[] = [
+                        'nombre' => $ce->nombre,
+                        'nota' => '',
+                        'creditos' => $ce->creditos ?? '',
+                    ];
+                }
             }
         }
 
-        // Hoja 2: Cursos no convalidados
-        $hojaNoConva = $libro->getSheetByName('Cursos no convalidados') ?: $libro->getSheet(1);
-        $filaNoConva = 3;
-        foreach ($simulacion->detalles as $detalle) {
-            if (! $detalle->curso_usil_id || $detalle->excluido) {
-                $hojaNoConva->setCellValue('A'.$filaNoConva, mb_strtoupper($detalle->nombre_origen ?? ''));
-                $hojaNoConva->setCellValue('B'.$filaNoConva, $detalle->nota_origen ?? '');
-                $hojaNoConva->setCellValue('C'.$filaNoConva, $detalle->creditos_origen ?? '');
-                $hojaNoConva->setCellValue('D'.$filaNoConva, 'No convalidable');
-                $filaNoConva++;
+        // 2. Si hubiera detalles explícitos no convalidables o desaprobados
+        $detallesNoConv = $simulacion->detalles->filter(fn ($d) => ($d->clasificacion !== 'convalidable' || $d->excluido) && ! empty(trim((string) $d->nombre_origen)));
+        foreach ($detallesNoConv as $d) {
+            $nom = mb_strtolower(trim((string) $d->nombre_origen));
+            if (! in_array($nom, $nombresConv)) {
+                $listaNoConvalidados[] = [
+                    'nombre' => $d->nombre_origen,
+                    'nota' => $d->nota_origen ?? '',
+                    'creditos' => $d->creditos_origen ?? '',
+                ];
             }
+        }
+
+        $filaNoConva = 3;
+        foreach ($listaNoConvalidados as $item) {
+            $hojaNoConva->setCellValue('A'.$filaNoConva, mb_strtoupper($item['nombre'] ?? ''));
+            $hojaNoConva->setCellValue('B'.$filaNoConva, $item['nota'] ?? '');
+            $hojaNoConva->setCellValue('C'.$filaNoConva, $item['creditos'] ?? '');
+            $hojaNoConva->setCellValue('D'.$filaNoConva, '');
+            $filaNoConva++;
+        }
+        for ($r = $filaNoConva; $r <= 55; $r++) {
+            $hojaNoConva->setCellValue('A'.$r, '');
+            $hojaNoConva->setCellValue('B'.$r, '');
+            $hojaNoConva->setCellValue('C'.$r, '');
+            $hojaNoConva->setCellValue('D'.$r, '');
         }
 
         $directorio = storage_path('app/temp');

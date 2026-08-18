@@ -152,7 +152,7 @@ const alternarTodos = () => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/mallas" texto="Mallas curriculares" />
 
         <!-- HERO HEADER INTEGRADO CON MICRO-KPIS COMPACTOS -->

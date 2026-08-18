@@ -18,7 +18,7 @@ class ProgramaController extends Controller
     public function index(Request $request)
     {
         $programas = Carrera::with('facultad')
-            ->withCount('planes')
+            ->withCount('mallas')
             ->when($request->q, fn ($x, $v) => $x->where(fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('codigo', 'like', "%{$v}%")))
             ->when($request->facultad_id, fn ($x, $v) => $x->where('facultad_id', $v))
             ->when($request->estado === 'activo', fn ($x) => $x->where('activo', true))
@@ -31,7 +31,7 @@ class ProgramaController extends Controller
                 'facultad' => $c->facultad?->nombre,
                 'nombre' => $c->nombre,
                 'activo' => $c->activo,
-                'planes_count' => $c->planes_count,
+                'mallas_count' => $c->mallas_count,
             ]);
 
         return inertia('Estructura/Programas/Index', [

@@ -27,7 +27,7 @@ class ConvalidacionController extends Controller
         // --- HISTORIAL DE SIMULACIONES ---
         $simulacionesQuery = Simulacion::with([
             'carreraUsil',
-            'detalles' => fn ($query) => $query->where('excluido', false)->whereNotNull('curso_usil_id'),
+            'detalles' => fn ($query) => $query->where('excluido', false)->where('clasificacion', 'convalidable')->whereNotNull('curso_usil_id'),
             'detalles.cursoUsil',
         ])
             ->when($visibles !== null, fn ($query) => $query->whereIn('carrera_usil_id', $visibles ?: [0]))

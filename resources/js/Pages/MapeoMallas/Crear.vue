@@ -227,7 +227,7 @@ aplicarPreseleccion();
 </script>
 
 <template>
-    <div class="max-w-6xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/equivalencias-catalogo" texto="Catálogo de equivalencias" />
 
         <!-- HERO HEADER BANNER USIL -->

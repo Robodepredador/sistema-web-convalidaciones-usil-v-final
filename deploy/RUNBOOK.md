@@ -51,7 +51,7 @@ chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 ```
 
-> `storage/` guarda los documentos de los postulantes (récords, DNI, sílabos) y los PDF de mallas externas. **Debe quedar fuera del alcance del navegador**: solo `public/` se publica. El `DocumentRoot` del paso 4 se encarga de eso.
+> `storage/` guarda los documentos de los postulantes (récords, DNI, sílabos). **Debe quedar fuera del alcance del navegador**: solo `public/` se publica. El `DocumentRoot` del paso 4 se encarga de eso.
 
 ---
 
@@ -65,7 +65,8 @@ Completar **todos** los `__definir__`. Tres avisos que ahorran horas de diagnós
 
 - **`MAIL_*` es obligatorio.** El correo es el único canal por el que se entregan las contraseñas, del personal y de los postulantes. Sin SMTP el sistema avisa en pantalla de que no se envió, pero nadie podrá iniciar sesión. Salida de emergencia: §8.
 - **`SESSION_SECURE_COOKIE`** se entrega en `false`. Con HTTPS activo hay que ponerlo en `true`. Al revés —`true` sirviendo por HTTP— la cookie no viaja y **nadie puede iniciar sesión**, sin ningún mensaje que lo explique.
-- **`APP_KEY` se genera UNA sola vez** y se respalda. Cifra las API keys guardadas en `configuraciones`; regenerarla las vuelve indescifrables y cierra todas las sesiones.
+- **`APP_KEY` se genera UNA sola vez** y se respalda. Regenerarla cierra todas las sesiones abiertas y vuelve ilegible cualquier valor cifrado en la tabla `configuraciones`.
+- **Las variables `IA_PROVEEDOR` / `GEMINI_API_KEY` / `OPENAI_API_KEY` se dejan VACÍAS.** El motor de IA se entrega apagado y el sistema no llama a ningún proveedor externo. No hay ninguna clave que conseguir.
 
 ```bash
 php artisan key:generate      # SOLO en la instalación inicial
@@ -176,10 +177,12 @@ systemctl enable --now convalidaciones-worker
 - [ ] Inicio de sesión con `admin@usil.edu.pe` y **cambio de contraseña forzado**.
 - [ ] `SELECT email FROM usuarios WHERE email LIKE '%.demo@%';` devuelve **0 filas**.
 - [ ] Crear un usuario de prueba con perfil distinto de Superusuario: **debe llegar el correo** con sus credenciales. Si la pantalla avisa de que no se envió, revisar `MAIL_*` antes de seguir.
-- [ ] Registrar una institución y su malla externa; el PDF adjunto se descarga desde la aplicación (no por URL directa: está fuera de `public/`).
+- [ ] Registrar una institución de origen y una de sus carreras.
 - [ ] Importar una malla por Excel y comprobar que **el progreso avanza** (valida el worker del §6).
+- [ ] Registrar una equivalencia en el catálogo (Mapeo de Mallas) y comprobar que aparece al simular.
 - [ ] Generar una preconvalidación y descargar su PDF y su Excel.
-- [ ] Entrar al portal con un postulante y ver sus cursos en pantalla.
+- [ ] Descargar un documento de un postulante desde la aplicación; comprobar que **no** se abre por URL directa (está fuera de `public/`).
+- [ ] Entrar al portal con un postulante y ver el seguimiento de su expediente.
 
 ## 8. Si el correo aún no está disponible
 
@@ -232,7 +235,7 @@ php artisan queue:restart
 php artisan up
 ```
 
-- **No ejecutar `key:generate` durante una reversión**: invalidaría las API keys cifradas y las sesiones.
+- **No ejecutar `key:generate` durante una reversión**: cerraría todas las sesiones abiertas y volvería ilegible lo cifrado en `configuraciones`.
 - Si una migración destruyó datos, restaurar el respaldo del §12 antes de volver a levantar.
 
 ---

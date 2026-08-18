@@ -8,7 +8,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Estructura\EstructuraController;
 use App\Http\Controllers\Estructura\FacultadController;
 use App\Http\Controllers\Estructura\ModalidadController;
-use App\Http\Controllers\Estructura\PlanEstudioController;
 use App\Http\Controllers\Estructura\ProgramaController;
 use App\Http\Controllers\Estructura\SedeController;
 use App\Http\Controllers\HistorialEquivalenciasController;
@@ -68,13 +67,11 @@ Route::middleware('auth')->group(function () {
         Route::prefix('estructura')->name('estructura.')->group(function () {
             Route::get('/', [EstructuraController::class, 'index'])->name('index');
 
-            // Cada submódulo: listar, crear, editar, actualizar, eliminar (lógico) y activar/inactivar.
             $recursos = [
                 ['sedes', SedeController::class, 'sede'],
                 ['facultades', FacultadController::class, 'facultad'],
                 ['programas', ProgramaController::class, 'programa'],
                 ['modalidades', ModalidadController::class, 'modalidad'],
-                ['planes', PlanEstudioController::class, 'plan'],
             ];
             foreach ($recursos as [$ruta, $ctrl, $param]) {
                 Route::get($ruta, [$ctrl, 'index'])->name("{$ruta}.index");
@@ -156,6 +153,11 @@ Route::middleware('auth')->group(function () {
                 ->name('postulantes.preconvalidacion.pdf')->whereNumber('postulante')->whereNumber('simulacion');
             Route::get('postulantes/{postulante}/preconvalidacion/{simulacion}/excel', [PostulanteController::class, 'preconvalidacionExcel'])
                 ->name('postulantes.preconvalidacion.excel')->whereNumber('postulante')->whereNumber('simulacion');
+            Route::get('postulantes/{postulante}/preconvalidacion/{simulacion}/excel-oficial', [PostulanteController::class, 'preconvalidacionExcelOficial'])
+                ->name('postulantes.preconvalidacion.excel-oficial')->whereNumber('postulante')->whereNumber('simulacion');
+            // Descarga/Visualización de documentos adjuntos del expediente
+            Route::get('postulantes/{postulante}/documentos/{tipo}', [PostulanteController::class, 'descargarDocumento'])
+                ->name('postulantes.documentos.descargar')->whereNumber('postulante');
         }); // fin solicitudes.ver (postulantes)
 
         // Catálogo en cascada (compartido por Postulantes, Equivalencias, Simulaciones)
@@ -177,6 +179,7 @@ Route::middleware('auth')->group(function () {
         // Edición de datos del expediente (Asesor dueño y Ejecutivo revisor).
         Route::middleware('permission:solicitudes.editar')->group(function () {
             Route::put('postulantes/{postulante}', [PostulanteController::class, 'update'])->name('postulantes.update');
+            Route::post('postulantes/{postulante}/documentos', [PostulanteController::class, 'subirDocumento'])->name('postulantes.documentos.subir');
             Route::patch('postulantes/{postulante}/estado', [PostulanteController::class, 'estado'])->name('postulantes.estado');
         }); // fin solicitudes.editar (postulantes)
 

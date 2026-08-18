@@ -18,36 +18,79 @@ const enviar = () => {
 </script>
 
 <template>
-    <div class="max-w-2xl">
-        <VolverA href="/estructura/modalidades" texto="Modalidades" />
-        <h1 class="mb-6 text-2xl font-semibold text-[#1F3864]">{{ editando ? 'Editar modalidad' : 'Nueva modalidad' }}</h1>
+    <div class="w-full pb-16">
+        <VolverA href="/estructura/modalidades" texto="Volver a Modalidades" class="mb-4" />
 
-        <form @submit.prevent="enviar" class="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Código</label>
-                    <input v-model="form.codigo" type="text" maxlength="20"
-                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    <p v-if="form.errors.codigo" class="mt-1 text-xs text-red-600">{{ form.errors.codigo }}</p>
-                </div>
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Nombre</label>
-                    <input v-model="form.nombre" type="text" placeholder="Presencial, Semipresencial, Virtual…"
-                           class="w-full rounded-md border-slate-300 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6]" />
-                    <p v-if="form.errors.nombre" class="mt-1 text-xs text-red-600">{{ form.errors.nombre }}</p>
-                </div>
-            </div>
-            <label class="flex items-center gap-2 text-sm text-slate-700">
-                <input v-model="form.activo" type="checkbox" class="rounded border-slate-300 text-[#2E75B6]" /> Activo
-            </label>
+        <!-- HERO HEADER BANNER -->
+        <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#2E75B6] opacity-25 rounded-full blur-2xl"></div>
 
-            <div class="flex gap-3 border-t border-slate-200 pt-4">
-                <button type="submit" :disabled="form.processing"
-                        class="rounded-md bg-[#1F3864] px-5 py-2 text-sm font-medium text-white hover:bg-[#2E75B6] disabled:opacity-60">
-                    {{ editando ? 'Guardar cambios' : 'Registrar' }}
-                </button>
-                <Link href="/estructura/modalidades" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Cancelar</Link>
+            <div class="relative z-10 p-6 sm:p-8">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 mb-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-xs">
+                    <span class="text-xs font-semibold tracking-wider text-blue-100 uppercase">Estructura Institucional · Modalidades</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                    {{ editando ? 'Editar Modalidad de Estudio' : 'Registrar Nueva Modalidad' }}
+                </h1>
+                <p class="mt-1 text-xs sm:text-sm text-blue-100/90 leading-relaxed max-w-xl">
+                    {{ editando ? 'Modifica la definición del formato o modalidad formativa.' : 'Agrega una nueva modalidad de estudio (Presencial, Semipresencial, Virtual).' }}
+                </p>
             </div>
-        </form>
+        </div>
+
+        <!-- FORMULARIO -->
+        <div class="max-w-3xl mx-auto">
+            <form @submit.prevent="enviar" class="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-10 shadow-sm space-y-6">
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Código de Modalidad <span class="text-red-500">*</span>
+                        </label>
+                        <input v-model="form.codigo" type="text" maxlength="20" placeholder="Ej. PRES, SEMIPRES, VIRTUAL…" required
+                               :class="form.errors.codigo ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                               class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all duration-200" />
+                        <p v-if="form.errors.codigo" class="mt-1 text-xs font-semibold text-red-600">{{ form.errors.codigo }}</p>
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Nombre Oficial de la Modalidad <span class="text-red-500">*</span>
+                        </label>
+                        <input v-model="form.nombre" type="text" placeholder="Ej. Presencial, Semipresencial, A Distancia…" required
+                               :class="form.errors.nombre ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200 focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100'"
+                               class="w-full rounded-xl border bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-hidden transition-all duration-200" />
+                        <p v-if="form.errors.nombre" class="mt-1 text-xs font-semibold text-red-600">{{ form.errors.nombre }}</p>
+                    </div>
+                </div>
+
+                <!-- Estado Activo Toggle -->
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 p-4 border border-slate-200/60">
+                    <div>
+                        <p class="text-xs font-bold text-slate-800">Estado de la modalidad</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Al estar activa, se podrá seleccionar en los planes y mallas curriculares.</p>
+                    </div>
+                    <label class="relative inline-flex cursor-pointer items-center">
+                        <input v-model="form.activo" type="checkbox" class="peer sr-only" />
+                        <div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#2E75B6] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+                    </label>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-6">
+                    <Link href="/estructura/modalidades" class="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-600 transition-colors">
+                        Cancelar
+                    </Link>
+                    <button type="submit" :disabled="form.processing"
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] hover:from-[#214378] hover:to-[#1F3864] px-6 py-2.5 text-xs font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-60">
+                        <svg v-if="form.processing" class="h-3.5 w-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{{ editando ? 'Guardar Cambios' : 'Registrar Modalidad' }}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </template>

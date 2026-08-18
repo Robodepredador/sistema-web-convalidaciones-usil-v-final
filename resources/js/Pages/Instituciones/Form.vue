@@ -55,7 +55,7 @@ const enviar = () => form.post('/instituciones', {
 </script>
 
 <template>
-    <div class="max-w-5xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <VolverA href="/instituciones" texto="Instituciones externas" />
 
         <!-- Banner Header Hero -->

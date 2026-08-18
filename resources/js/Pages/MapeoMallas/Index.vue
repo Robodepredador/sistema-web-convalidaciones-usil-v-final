@@ -82,7 +82,7 @@ const irA = (p) => {
 </script>
 
 <template>
-    <div class="max-w-6xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
         <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
             <!-- Decorative blur background -->

@@ -49,7 +49,7 @@ const descargarArchivo = (url) => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
         <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
             <div class="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl mix-blend-overlay"></div>
@@ -168,29 +168,29 @@ const descargarArchivo = (url) => {
         <div class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-100 text-xs">
-                    <thead class="bg-slate-50/90 text-left text-[11px] uppercase tracking-wider text-slate-500 font-extrabold">
+                    <thead class="bg-slate-50/90 text-left text-[11px] uppercase tracking-wider text-slate-500 font-extrabold whitespace-nowrap">
                         <tr>
-                            <th class="px-6 py-4">Expediente ID</th>
-                            <th class="px-6 py-4">Estudiante / Procedencia</th>
-                            <th class="px-6 py-4">Carrera Destino</th>
-                            <th class="px-6 py-4 text-center whitespace-nowrap">Asignaturas</th>
-                            <th class="px-6 py-4 text-center whitespace-nowrap">Créditos</th>
-                            <th class="px-6 py-4">Estado</th>
-                            <th class="px-6 py-4 text-right">Descargas & Detalle</th>
+                            <th class="px-4 py-3.5">Expediente ID</th>
+                            <th class="px-4 py-3.5">Estudiante / Procedencia</th>
+                            <th class="px-4 py-3.5">Carrera Destino</th>
+                            <th class="px-4 py-3.5 text-center whitespace-nowrap">Asignaturas</th>
+                            <th class="px-4 py-3.5 text-center whitespace-nowrap">Créditos</th>
+                            <th class="px-4 py-3.5">Estado</th>
+                            <th class="px-4 py-3.5 text-right">Descargas & Detalle</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <template v-for="c in simulaciones.data" :key="c.id">
                             <tr class="hover:bg-slate-50/70 transition-colors">
                                 <!-- ID & Fecha -->
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="font-extrabold text-[#1F3864] text-xs sm:text-sm">#{{ c.id }}</div>
                                     <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ c.fecha }}</div>
                                 </td>
 
                                 <!-- Estudiante & Origen -->
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-slate-800 text-xs sm:text-sm">{{ c.estudiante }}</div>
+                                <td class="px-4 py-3 min-w-[200px]">
+                                    <div class="font-bold text-slate-800 text-xs sm:text-sm leading-tight">{{ c.estudiante }}</div>
                                     <div class="flex items-center gap-1.5 mt-1 text-[11px] text-slate-500">
                                         <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600">
                                             {{ c.documento }}
@@ -201,29 +201,29 @@ const descargarArchivo = (url) => {
                                 </td>
 
                                 <!-- Carrera Destino USIL -->
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-[#1F3864]">{{ c.carrera || '—' }}</div>
+                                <td class="px-4 py-3 min-w-[160px]">
+                                    <div class="font-bold text-[#1F3864] leading-snug">{{ c.carrera || '—' }}</div>
                                     <div v-if="c.carrera_codigo" class="font-mono text-[10px] text-slate-400 mt-0.5">
                                         {{ c.carrera_codigo }}
                                     </div>
                                 </td>
 
                                 <!-- Asignaturas -->
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
                                     <span class="inline-flex items-center justify-center min-w-[2rem] px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#1F3864] border border-blue-100">
                                         {{ c.convalidados }}
                                     </span>
                                 </td>
 
                                 <!-- Créditos -->
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
                                     <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         {{ c.creditos.toFixed(1) }} cr.
                                     </span>
                                 </td>
 
                                 <!-- Estado -->
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
                                           :class="c.estado === 'aceptada' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-[#1F3864] border border-blue-100'">
                                         <span class="h-1.5 w-1.5 rounded-full" :class="c.estado === 'aceptada' ? 'bg-emerald-500' : 'bg-[#2E75B6]'"></span>
@@ -232,7 +232,7 @@ const descargarArchivo = (url) => {
                                 </td>
 
                                 <!-- Acciones y Descargas -->
-                                <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <div class="flex items-center justify-end gap-1.5">
                                         <!-- PDF Oficial -->
                                         <button v-if="c.pdf_preconv" @click="descargarArchivo(c.pdf_preconv)" title="Descargar Dictamen Oficial en PDF"
@@ -250,6 +250,15 @@ const descargarArchivo = (url) => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                             </svg>
                                             <span>Excel Oficial</span>
+                                        </button>
+
+                                        <!-- Excel ERP -->
+                                        <button v-if="c.excel_preconv" @click="descargarArchivo(c.excel_preconv)" title="Descargar Formato ERP en Excel"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs font-bold text-[11px]">
+                                            <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                            </svg>
+                                            <span>Excel ERP</span>
                                         </button>
 
                                         <!-- Ver Expediente Detalle -->

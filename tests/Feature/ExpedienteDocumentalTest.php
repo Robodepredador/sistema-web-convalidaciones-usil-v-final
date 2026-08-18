@@ -22,7 +22,7 @@ class ExpedienteDocumentalTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const EXPEDIENTE = ['dni', 'certificado', 'silabos', 'constancia', 'solicitud'];
+    private const EXPEDIENTE = ['dni', 'certificado'];
 
     private function usuario(string $rolNombre): User
     {
@@ -71,7 +71,7 @@ class ExpedienteDocumentalTest extends TestCase
     public function test_no_basta_con_parte_del_expediente(): void
     {
         $ejecutivo = $this->usuario(Role::EJECUTIVO);
-        $p = $this->postulante($this->usuario(Role::ASESOR), ['dni', 'certificado']);
+        $p = $this->postulante($this->usuario(Role::ASESOR), ['dni']);
 
         $this->actingAs($ejecutivo)
             ->post("/postulantes/{$p->id}/revisar", ['accion' => 'aprobar'])
@@ -98,7 +98,7 @@ class ExpedienteDocumentalTest extends TestCase
     public function test_la_aprobacion_provisional_queda_marcada_y_justificada(): void
     {
         $ejecutivo = $this->usuario(Role::EJECUTIVO);
-        $p = $this->postulante($this->usuario(Role::ASESOR), ['dni', 'constancia', 'solicitud']);
+        $p = $this->postulante($this->usuario(Role::ASESOR), ['dni']);
 
         // Provisional sin justificación: no procede.
         $this->actingAs($ejecutivo)

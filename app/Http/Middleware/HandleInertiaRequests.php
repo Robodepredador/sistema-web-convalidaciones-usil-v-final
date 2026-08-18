@@ -34,6 +34,7 @@ class HandleInertiaRequests extends Middleware
                 'status' => fn () => $request->session()->get('status'),
                 'error' => fn () => $request->session()->get('error'),
                 'reset_url' => fn () => $request->session()->get('reset_url'),
+                'credenciales_generadas' => fn () => $request->session()->get('credenciales_generadas'),
             ],
         ]);
     }

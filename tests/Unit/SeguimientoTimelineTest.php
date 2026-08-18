@@ -45,7 +45,7 @@ class SeguimientoTimelineTest extends TestCase
     {
         // Pendiente: muestra el avance de entrega de documentos.
         $pendiente = SeguimientoTimeline::construir('nuevo', '01/01/2026', 1, 'pendiente', false);
-        $this->assertSame('1 de 5 documentos entregados', $pendiente[1]['detalle']);
+        $this->assertSame('1 de 2 documentos entregados', $pendiente[1]['detalle']);
 
         // Observada: pide corregir.
         $observada = SeguimientoTimeline::construir('en_evaluacion', '01/01/2026', 3, 'observada', false);

@@ -28,7 +28,7 @@ const limpiar = () => {
 </script>
 
 <template>
-    <div class="max-w-6xl mx-auto pb-16">
+    <div class="w-full pb-16">
         <!-- ======================= HERO HEADER BANNER USIL ======================= -->
         <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl text-white">
             <!-- Decorative blur background -->
@@ -142,45 +142,45 @@ const limpiar = () => {
         <div class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-100 text-xs">
-                    <thead class="bg-slate-50/90 text-left text-[11px] uppercase tracking-wider text-slate-500 font-extrabold">
+                    <thead class="bg-slate-50/90 text-left text-[11px] uppercase tracking-wider text-slate-500 font-extrabold whitespace-nowrap">
                         <tr>
-                            <th class="px-6 py-4">Postulante</th>
-                            <th class="px-6 py-4">Documento</th>
-                            <th class="px-6 py-4">Institución de Origen</th>
-                            <th class="px-6 py-4">Carrera Destino (USIL)</th>
-                            <th class="px-6 py-4 whitespace-nowrap">Solicitado</th>
-                            <th class="px-6 py-4 text-center">Simulaciones</th>
-                            <th class="px-6 py-4 text-right">Acción</th>
+                            <th class="px-4 py-3.5">Postulante</th>
+                            <th class="px-4 py-3.5">Documento</th>
+                            <th class="px-4 py-3.5">Institución de Origen</th>
+                            <th class="px-4 py-3.5">Carrera Destino (USIL)</th>
+                            <th class="px-4 py-3.5">Solicitado</th>
+                            <th class="px-4 py-3.5 text-center">Simulaciones</th>
+                            <th class="px-4 py-3.5 text-right">Acción</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-for="p in postulantes.data" :key="p.destino_id" class="hover:bg-slate-50/70 transition-colors group">
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-[#2E75B6] transition-colors">{{ p.nombre }}</div>
-                                <div class="font-mono text-[11px] text-slate-400">{{ p.codigo }}</div>
+                            <td class="px-4 py-3 min-w-[200px]">
+                                <div class="font-bold text-slate-800 text-xs sm:text-sm group-hover:text-[#2E75B6] transition-colors leading-tight">{{ p.nombre }}</div>
+                                <div class="font-mono text-[11px] text-slate-400 mt-0.5">{{ p.codigo }}</div>
                             </td>
-                            <td class="px-6 py-4 text-slate-600 font-mono font-medium">
-                                <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200">
+                            <td class="px-4 py-3 text-slate-600 font-mono font-medium whitespace-nowrap">
+                                <span class="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs">
                                     {{ p.documento }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-slate-700">
-                                <div class="font-bold">{{ p.institucion || '—' }}</div>
-                                <div class="text-[11px] text-slate-400 font-medium">{{ p.carrera_externa }}</div>
+                            <td class="px-4 py-3 text-slate-700 min-w-[170px]">
+                                <div class="font-bold leading-tight">{{ p.institucion || '—' }}</div>
+                                <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ p.carrera_externa }}</div>
                             </td>
-                            <td class="px-6 py-4">
-                                <span class="font-bold text-[#1F3864]">{{ p.carrera_destino || '—' }}</span>
+                            <td class="px-4 py-3 min-w-[160px]">
+                                <span class="font-bold text-[#1F3864] leading-snug">{{ p.carrera_destino || '—' }}</span>
                             </td>
-                            <td class="whitespace-nowrap px-6 py-4 text-slate-500 font-medium">{{ p.solicitado || '—' }}</td>
-                            <td class="px-6 py-4 text-center">
+                            <td class="whitespace-nowrap px-4 py-3 text-slate-500 font-medium">{{ p.solicitado || '—' }}</td>
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
                                 <span class="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-bold"
                                       :class="p.simulaciones_count > 0 ? 'bg-blue-50 text-[#2E75B6] border border-blue-100' : 'bg-slate-100 text-slate-500'">
                                     {{ p.simulaciones_count }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <Link :href="`/simulaciones/simular/${p.id}?carrera=${p.carrera_destino_id}`"
-                                      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
+                                      class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1F3864] to-[#2E75B6] text-xs font-bold text-white shadow-2xs hover:shadow-md transition-all">
                                     <span>Simular</span>
                                     <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />

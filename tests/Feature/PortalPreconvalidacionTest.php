@@ -47,12 +47,13 @@ class PortalPreconvalidacionTest extends TestCase
         $malla = MallaCurricular::create(['carrera_id' => $carrera->id, 'anio' => 2026, 'version' => 'A', 'origen_carga' => 'manual', 'usuario_id' => $user->id]);
         $ciclo = Ciclo::create(['malla_id' => $malla->id, 'numero' => 1]);
         $cursoUsil = CursoUsil::create(['ciclo_id' => $ciclo->id, 'codigo' => 'U1', 'nombre' => 'Cálculo', 'creditos' => 4]);
+        $cursoUsil2 = CursoUsil::create(['ciclo_id' => $ciclo->id, 'codigo' => 'U2', 'nombre' => 'Física', 'creditos' => 3]);
 
         $tipo = TipoInstitucion::create(['nombre' => 'Universidad']);
         $inst = InstitucionExterna::create(['tipo_id' => $tipo->id, 'nombre' => 'UNI']);
         $carExt = CarreraExterna::create(['institucion_id' => $inst->id, 'nombre' => 'Sistemas']);
 
-        $this->ctx = compact('user', 'carrera', 'malla', 'carExt', 'inst', 'cursoUsil');
+        $this->ctx = compact('user', 'carrera', 'malla', 'carExt', 'inst', 'cursoUsil', 'cursoUsil2');
     }
 
     /** Postulante con acceso al portal y la contraseña ya cambiada. */
@@ -89,7 +90,7 @@ class PortalPreconvalidacionTest extends TestCase
             'creditos_reconocidos' => 4, 'excluido' => false, 'origen' => 'manual',
         ]);
         SimulacionDetalle::create([
-            'simulacion_id' => $sim->id, 'curso_usil_id' => null,
+            'simulacion_id' => $sim->id, 'curso_usil_id' => $this->ctx['cursoUsil2']->id,
             'curso_origen_nombre' => 'Inglés I', 'clasificacion' => 'no_convalidable',
             'motivo' => 'Idiomas no se convalidan', 'creditos_reconocidos' => 0,
             'excluido' => false, 'origen' => 'manual',

@@ -60,10 +60,23 @@ const onBlur = () => {
 };
 const onKeydown = (e) => {
     if (!abierto.value) return;
-    if (e.key === 'ArrowDown') { activo.value = Math.min(filtradas.value.length - 1, activo.value + 1); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { activo.value = Math.max(0, activo.value - 1); e.preventDefault(); }
-    else if (e.key === 'Enter' && filtradas.value[activo.value]) { seleccionar(filtradas.value[activo.value]); e.preventDefault(); }
-    else if (e.key === 'Escape') { abierto.value = false; }
+    if (e.key === 'ArrowDown') {
+        activo.value = Math.min(filtradas.value.length - 1, activo.value + 1);
+        e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+        activo.value = Math.max(0, activo.value - 1);
+        e.preventDefault();
+    } else if (e.key === 'Enter') {
+        if (activo.value >= 0 && filtradas.value[activo.value]) {
+            seleccionar(filtradas.value[activo.value]);
+            e.preventDefault();
+        } else if (mostrarCrear.value) {
+            crear();
+            e.preventDefault();
+        }
+    } else if (e.key === 'Escape') {
+        abierto.value = false;
+    }
 };
 const limpiar = () => { texto.value = ''; emit('update:modelValue', ''); abierto.value = true; };
 </script>
@@ -72,25 +85,41 @@ const limpiar = () => { texto.value = ''; emit('update:modelValue', ''); abierto
     <div class="relative">
         <input :value="texto" @input="onInput" @focus="onFocus" @blur="onBlur" @keydown="onKeydown"
                :disabled="disabled" :placeholder="placeholder" autocomplete="off"
-               class="w-full rounded-lg border-slate-300 pr-8 text-sm focus:border-[#2E75B6] focus:ring-[#2E75B6] disabled:cursor-not-allowed disabled:bg-slate-50" />
+               class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:border-[#2E75B6] focus:ring-3 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 transition-all" />
         <button v-if="texto && !disabled" type="button" @mousedown.prevent="limpiar"
-                class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-300 hover:text-slate-500">
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-300 hover:text-slate-500">
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
         </button>
 
         <div v-if="abierto && (filtradas.length || mostrarCrear || (texto.trim() && !allowFree))"
-             class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg">
-            <ul>
-                <li v-for="(o, i) in filtradas" :key="String(o.value)" @mousedown.prevent="seleccionar(o)"
-                    :class="[i === activo ? 'bg-[#2E75B6]/10' : 'hover:bg-slate-50', String(o.value) === String(modelValue) ? 'font-medium text-[#1F3864]' : 'text-slate-700']"
-                    class="cursor-pointer px-3 py-1.5">{{ o.label }}</li>
-            </ul>
-            <button v-if="mostrarCrear" type="button" @mousedown.prevent="crear"
-                    :class="filtradas.length ? 'border-t border-slate-100' : ''"
-                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left font-medium text-[#2E75B6] hover:bg-slate-50">
-                <span class="text-base leading-none">+</span> Agregar «{{ texto.trim() }}»
+             class="absolute z-40 mt-1.5 max-h-60 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white py-1.5 text-xs shadow-xl animate-in fade-in zoom-in-95 duration-100">
+            
+            <!-- Botón destacado superior si no hay coincidencias directas -->
+            <button v-if="mostrarCrear && !filtradas.length" type="button" @mousedown.prevent="crear"
+                    class="flex w-full items-center gap-2.5 px-3.5 py-3 text-left font-bold text-[#1F3864] bg-blue-50/90 hover:bg-blue-100 border-b border-blue-100 transition-colors">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#2E75B6] text-white text-xs font-black shadow-2xs">+</span>
+                <span class="truncate">Registrar «<strong class="text-[#2E75B6]">{{ texto.trim() }}</strong>» como nueva carrera</span>
             </button>
-            <p v-else-if="!filtradas.length && !allowFree" class="px-3 py-2 text-slate-400">Sin resultados</p>
+
+            <ul v-if="filtradas.length">
+                <li v-for="(o, i) in filtradas" :key="String(o.value)" @mousedown.prevent="seleccionar(o)"
+                    :class="[i === activo ? 'bg-blue-50/80 text-[#1F3864]' : 'hover:bg-slate-50', String(o.value) === String(modelValue) ? 'font-bold text-[#1F3864] bg-blue-50/40' : 'text-slate-700']"
+                    class="cursor-pointer px-3.5 py-2 transition-colors flex items-center justify-between">
+                    <span class="truncate">{{ o.label }}</span>
+                    <span v-if="String(o.value) === String(modelValue)" class="text-[#2E75B6] text-xs font-bold">✓</span>
+                </li>
+            </ul>
+
+            <!-- Botón al pie si hay coincidencias parciales pero se quiere registrar como nuevo -->
+            <button v-if="mostrarCrear && filtradas.length" type="button" @mousedown.prevent="crear"
+                    class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-bold text-[#1F3864] bg-blue-50/80 hover:bg-blue-100/90 border-t border-slate-100 transition-colors">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-[#2E75B6] text-white text-xs font-black shadow-2xs">+</span>
+                <span class="truncate">Registrar «<strong class="text-[#2E75B6]">{{ texto.trim() }}</strong>» como nueva carrera</span>
+            </button>
+
+            <p v-else-if="!filtradas.length && !mostrarCrear && !allowFree" class="px-3.5 py-3 text-center text-slate-400 font-medium">
+                No se encontraron opciones.
+            </p>
         </div>
     </div>
 </template>

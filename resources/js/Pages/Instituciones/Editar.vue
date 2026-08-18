@@ -224,7 +224,7 @@ const enviar = () => {
 </script>
 
 <template>
-    <div class="mx-auto max-w-5xl pb-16" @click="cerrarMenu">
+    <div class="w-full pb-16" @click="cerrarMenu">
         <VolverA href="/instituciones" texto="Instituciones externas" />
 
         <!-- HERO HEADER INTEGRADO CON METADATOS -->

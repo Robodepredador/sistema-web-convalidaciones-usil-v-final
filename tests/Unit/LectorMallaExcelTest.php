@@ -25,17 +25,16 @@ class LectorMallaExcelTest extends TestCase
         $s->setCellValue('B2', 'Carrera Profesional: Ingeniería de Software');
         $s->setCellValue('B3', 'Plan de Estudios 2023-01');
         // Encabezado en la fila 5.
-        $s->fromArray(['Ciclo', 'Curso', 'CR', 'TH', 'Pre - Requisito'], null, 'B5');
+        $s->fromArray(['Ciclo', 'Curso', 'CR', 'TH', 'Pre - Requisito', 'Mención'], null, 'B5');
         // Ciclo 1.
-        $s->fromArray([1, 'Fundamentos de programación', 3, 5, ''], null, 'B6');
-        $s->fromArray([1, 'Matemática', 4, 6, 'Nivelación en Matemática'], null, 'B7');
-        $s->fromArray(['', 'Total', 7, 11, ''], null, 'B8');       // se descarta
+        $s->fromArray([1, 'Fundamentos de programación', 3, 5, '', ''], null, 'B6');
+        $s->fromArray([1, 'Matemática', 4, 6, 'Nivelación en Matemática', ''], null, 'B7');
+        $s->fromArray(['', 'Total', 7, 11, '', ''], null, 'B8');       // se descarta
         // Ciclo 2.
-        $s->fromArray([2, 'Electivo 1', 4, 6, ''], null, 'B9');
+        $s->fromArray([2, 'Electivo 1', 4, 6, '', ''], null, 'B9');
         // Bloque de mención.
-        $s->setCellValue('B11', 'Analítica de datos');
-        $s->fromArray([6, 'Procesamiento de señales', 4, 6, ''], null, 'B12');
-        $s->fromArray([7, 'Visión computacional', 4, 6, 'Procesamiento de señales'], null, 'B13');
+        $s->fromArray([6, 'Procesamiento de señales', 4, 6, '', 'Analítica de datos'], null, 'B11');
+        $s->fromArray([7, 'Visión computacional', 4, 6, 'Procesamiento de señales', 'Analítica de datos'], null, 'B12');
 
         $ruta = tempnam(sys_get_temp_dir(), 'malla').'.xlsx';
         (new Xlsx($ss))->save($ruta);

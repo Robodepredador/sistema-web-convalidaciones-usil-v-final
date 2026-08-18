@@ -86,7 +86,7 @@ const eliminar = (m) => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto pb-12">
+    <div class="w-full pb-12">
         <!-- Banner Header Hero -->
         <div class="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1F3864] via-[#214378] to-[#2E75B6] shadow-xl">
             <!-- Decorative background elements -->
