@@ -31,9 +31,4 @@ class Carrera extends Model
     {
         return $this->hasMany(MallaCurricular::class);
     }
-
-    public function planes(): HasMany
-    {
-        return $this->hasMany(PlanEstudio::class);
-    }
 }

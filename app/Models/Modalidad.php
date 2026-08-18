@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -18,9 +17,4 @@ class Modalidad extends Model
     protected $fillable = ['codigo', 'nombre', 'activo'];
 
     protected $casts = ['activo' => 'boolean'];
-
-    public function planes(): HasMany
-    {
-        return $this->hasMany(PlanEstudio::class);
-    }
 }
