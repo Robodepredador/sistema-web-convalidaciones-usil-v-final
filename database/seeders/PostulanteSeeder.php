@@ -52,7 +52,10 @@ class PostulanteSeeder extends Seeder
                     'carrera_destino_id' => $isi?->id,
                     'ciclo_postulacion' => '2026-1',
                     'estado' => $estado,
-                    'estado_equivalencias' => $estadoEq,
+                    // 'estado_equivalencias' NO va aquí: la normalización de agosto
+                    // la movió a `postulante_destinos`, porque el estado de la
+                    // evaluación es de cada destino y no del expediente. Se escribe
+                    // más abajo, al crear el destino.
                     'usuario_id' => $admin?->id,
                 ]
             );
