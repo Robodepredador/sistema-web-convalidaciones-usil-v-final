@@ -252,7 +252,7 @@ php artisan up
 
 ## 13. Estado de seguridad conocido
 
-Documentado en `docs/Auditoria-Entrega-TI-2026-08-10.md`:
+Documentado en `docs/Auditoria-Entrega-TI-2026-08-18.md`:
 
 - `composer audit` reporta **3 advisories de `laravel/framework`**, sin parche en la rama 11.x. Uno no tiene exposición (la aplicación no usa URLs firmadas); el otro —inyección CRLF en la regla `email`— **está mitigado en código** (`App\Rules\Correo`).
 - Por eso `composer.json` conserva `"advisories": {"block": false}`: activarlo haría fallar `composer install`. Retirarlo cuando se resuelva la versión del framework.

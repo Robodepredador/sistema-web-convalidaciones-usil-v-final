@@ -5,7 +5,8 @@ Convalidación de cursos por traslado externo. Laravel 11 + Vue 3 (Inertia) sobr
 ## Por dónde empezar
 
 1. **`deploy/RUNBOOK.md`** — instalación, actualización y reversión. Empieza por su §1: hay un requisito (PHP 8.2) que, si no se cumple, detiene todo lo demás.
-2. **`docs/Auditoria-Entrega-TI-2026-08-18.md`** — estado técnico y de seguridad al cierre, con lo corregido y lo que queda abierto. La [auditoría del 10/08](docs/Auditoria-Entrega-TI-2026-08-10.md) queda como antecedente.
+2. **`docs/Auditoria-Entrega-TI-2026-08-18.md`** — estado técnico y de seguridad al cierre, con lo corregido y lo que queda abierto.
+3. **`docs/Documentación_Final/`** — la documentación funcional y técnica del sistema: Documento Funcional, Documento Técnico, Diccionario de Datos y Manual de Usuario. Se entrega por separado del paquete (ver «Contenido»).
 
 ## Qué necesita el servidor
 
@@ -37,4 +38,17 @@ docs/                                           Documentación del proyecto
 
 El alcance se ajustó durante agosto de 2026: salieron el memorándum oficial, los reportes, las mallas externas y el motor de IA (el detalle está en el README). Lo que se entrega está construido y **las 168 pruebas pasan**. Pendiente: UAT y pase a producción.
 
-Los entregables documentales A1, A2, A4 y A6 y los diagramas D-03, D-04 y D-06 **no forman parte de esta entrega** (ver `docs/expediente-pase-produccion/INDICE.md`).
+## Documentación
+
+La documentación del sistema son cuatro documentos, en `docs/Documentación_Final/`:
+
+| Documento | Audiencia | Contenido |
+|---|---|---|
+| Documento Funcional | Área usuaria y Gestión Académica | Alcance, actores, 20 requerimientos funcionales, 17 reglas de negocio, 7 casos de uso y matriz de trazabilidad. |
+| Documento Técnico | Desarrollo y sistemas | Arquitectura, modelo de datos, requerimientos no funcionales, pruebas y despliegue. |
+| Diccionario de Datos | Desarrollo y sistemas | Las 27 tablas de negocio campo a campo, con relaciones, índices y restricciones. |
+| Manual de Usuario | Usuarios finales | Guía de uso pantalla por pantalla, por perfil, con capturas. |
+
+**No viajan dentro del paquete `.tar.gz`**: son 21 MB de documentos e imágenes que se entregan aparte.
+
+Los diagramas de proceso AS-IS y TO-BE y el diagrama de casos de uso quedan pendientes: requieren validación del proceso con el área usuaria.

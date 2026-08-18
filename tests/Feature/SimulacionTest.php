@@ -236,7 +236,7 @@ class SimulacionTest extends TestCase
      * NOTA: sin `confirmar()`, `Simulacion::estaCerrada()` devuelve siempre
      * falso, así que una preconvalidación ya entregada al postulante puede
      * editarse y eliminarse sin candado. Es una consecuencia aceptada de la
-     * retirada; ver P-3 en docs/Plan-Correccion-Entrega-TI.md.
+     * retirada del módulo de convalidación, decidida en agosto de 2026.
      */
     public function test_eliminar_simulacion_exige_motivo_y_conserva_el_registro(): void
     {

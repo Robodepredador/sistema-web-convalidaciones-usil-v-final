@@ -31,9 +31,9 @@ use Tests\TestCase;
  * `Simulacion::estaCerrada()` se apoyaba en que existiera una convalidación
  * confirmada, así que hoy devuelve siempre falso.
  *
- * La consecuencia está aceptada y documentada (P-3 en
- * docs/Plan-Correccion-Entrega-TI.md), y se fija abajo con una prueba: si algún
- * día vuelve un candado, que sea por decisión y no por accidente.
+ * La consecuencia está aceptada: se decidió al retirar el módulo, en agosto de
+ * 2026, y se fija abajo con una prueba. Si algún día vuelve un candado, que sea
+ * por decisión y no por accidente.
  */
 class IntegridadConvalidacionTest extends TestCase
 {

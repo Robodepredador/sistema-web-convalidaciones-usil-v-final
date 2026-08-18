@@ -2,7 +2,7 @@
 
 **Fecha:** 18 de agosto de 2026
 **Rama:** `refactor/normalizacion-bd` (último commit `4272461`, del 14/08) **más 64 archivos modificados y 12 sin versionar que no están confirmados**
-**Antecedente:** [Auditoría del 10/08/2026](Auditoria-Entrega-TI-2026-08-10.md). La mayoría de sus puntos están cerrados.
+**Antecedente:** auditoría del 10/08/2026, cuyos puntos están cerrados en su mayoría. Se retiró del repositorio junto con el resto de la documentación superada; queda en el historial de Git.
 
 ---
 
@@ -316,7 +316,7 @@ Cosas que no son defectos a corregir, pero que deben ir por escrito en la entreg
 
 1. **Tres avisos de seguridad en `laravel/framework` 11.54.** Solo se corrigen subiendo a Laravel 12, que es un cambio de versión mayor. El más serio —inyección CRLF en la validación de correos— **está mitigado en el código** (`App\Rules\Correo`, con prueba que lo respalda). Los otros dos no aplican a este sistema.
 2. **`composer.json` lleva `"advisories": {"block": false}`**, que desactiva a propósito el bloqueo por avisos. Sin eso, `composer install` fallaría en el servidor de TI. Debe explicarse por qué está y cuándo se retira.
-3. **Documentación pendiente**, según `docs/expediente-pase-produccion/INDICE.md`: los anexos A1, A2, A4 y A6; el Documento 2 (Expediente Técnico) y el 3 (presentación); y los diagramas D-03, D-04 y D-06. Son los que suele pedir el comité.
+3. **Documentación.** Se entregan cuatro documentos en `docs/Documentación_Final/`: Documento Funcional, Documento Técnico, Diccionario de Datos y Manual de Usuario. Quedan pendientes los diagramas de proceso AS-IS y TO-BE y el de casos de uso, que requieren validación del proceso con el área usuaria. El expediente para el comité de pase a producción se retiró del repositorio el 18/08 al quedar superado por esta documentación.
 4. **El servidor necesita salida a internet** para las tipografías de Google. Sin ella la aplicación funciona, pero se ve con tipografías del sistema.
 5. **`backups/` contiene un respaldo con datos personales reales** (postulantes, documentos, usuarios). **Nunca comprimir la carpeta de trabajo para entregar**; usar siempre `deploy/empaquetar.sh`, que lo excluye.
 
